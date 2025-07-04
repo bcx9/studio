@@ -14,20 +14,6 @@ import type { MeshUnit } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// This is the explicit and robust way to define the default icon for Leaflet in a Next.js environment.
-// It avoids issues with prototype patching and ensures all required options are set.
-const defaultIcon = L.icon({
-    iconRetinaUrl: markerIcon2x.src,
-    iconUrl: markerIcon.src,
-    shadowUrl: markerShadow.src,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    tooltipAnchor: [16, -28],
-    shadowSize: [41, 41]
-});
-
-
 interface MapViewProps {
   units: MeshUnit[];
   highlightedUnitId: number | null;
@@ -59,6 +45,21 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
+
+  // useMemo ensures this icon object is only created once on the client-side,
+  // preventing issues with server-side rendering and providing a stable icon instance.
+  const defaultIcon = React.useMemo(() => {
+    return L.icon({
+      iconRetinaUrl: markerIcon2x.src,
+      iconUrl: markerIcon.src,
+      shadowUrl: markerShadow.src,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41]
+    });
+  }, []);
 
   const handleRecenter = React.useCallback(() => {
     const map = mapInstanceRef.current;
@@ -170,7 +171,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
         controlCenterMarkerRef.current = marker;
     }
-  }, [units, highlightedUnitId, controlCenterPosition, onUnitClick]);
+  }, [units, highlightedUnitId, controlCenterPosition, onUnitClick, defaultIcon]);
 
   // Perform initial centering only once
   React.useEffect(() => {
