@@ -53,14 +53,13 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   };
 
   return (
-    <div className="relative w-full h-full rounded-lg overflow-hidden border">
+    <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
       <Image
         key={mapStyle}
         src={mapImages[mapStyle].src}
         alt="Kartenansicht von Berlin"
         layout="fill"
         objectFit="cover"
-        className="opacity-40"
         data-ai-hint={mapImages[mapStyle].hint}
       />
       <TooltipProvider>
