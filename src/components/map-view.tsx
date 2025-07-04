@@ -9,11 +9,11 @@ import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const getStatusColor = (status: MeshUnit['status'], battery: number) => {
-  if (status === 'Offline') return '#6b7280'; // gray-500
-  if (status === 'Alarm') return '#ef4444'; // red-500
-  if (battery < 20) return '#eab308'; // yellow-500
-  if (status === 'Moving') return '#22c55e'; // green-500
-  return '#3b82f6'; // blue-500
+  if (status === 'Offline') return 'hsl(215, 14%, 34%)'; // gray-500
+  if (status === 'Alarm') return 'hsl(0, 72%, 51%)'; // red-500
+  if (battery < 20) return 'hsl(45, 93%, 47%)'; // yellow-500
+  if (status === 'Moving') return 'hsl(142, 64%, 42%)'; // green-500
+  return 'hsl(217, 91%, 60%)'; // blue-500
 };
 
 const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
@@ -46,7 +46,7 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
 
   return L.divIcon({
     html: iconHtml,
-    className: '', // Use an empty class name to prevent Leaflet's default styles
+    className: '', 
     iconSize: [34, 34],
     iconAnchor: [17, 17],
   });
@@ -120,7 +120,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
 
-  const handleRecenter = React.useCallback(() => {
+  const recenterMap = React.useCallback(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
@@ -179,10 +179,12 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Sync markers with units data
+    const unitIdsOnMap = new Set(Object.keys(markersRef.current).map(Number));
+
     units.forEach(unit => {
+      unitIdsOnMap.delete(unit.id);
+      
       if (!unit.isActive) {
-        // Remove marker if unit is inactive
         if (markersRef.current[unit.id]) {
           markersRef.current[unit.id].remove();
           delete markersRef.current[unit.id];
@@ -206,33 +208,39 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           .setLatLng(position)
           .setIcon(icon)
           .setZIndexOffset(isHighlighted ? 1000 : 0)
-          .setTooltipContent(tooltipContent);
+          .getTooltip()?.setContent(tooltipContent);
       } else {
         // Marker doesn't exist, create it
         const marker = L.marker(position, { icon, zIndexOffset: isHighlighted ? 1000 : 0 })
           .addTo(map)
           .bindTooltip(tooltipContent);
 
-        marker.on('click', () => onUnitClick?.(unit.id));
+        marker.on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            onUnitClick?.(unit.id)
+        });
         markersRef.current[unit.id] = marker;
       }
     });
 
     // Remove markers for units that are no longer in the units array
-    const currentMarkerIds = Object.keys(markersRef.current).map(Number);
-    const unitIds = units.map(u => u.id);
-    currentMarkerIds.forEach(id => {
-      if (!unitIds.includes(id)) {
-        markersRef.current[id].remove();
-        delete markersRef.current[id];
-      }
+    unitIdsOnMap.forEach(id => {
+        if (markersRef.current[id]) {
+            markersRef.current[id].remove();
+            delete markersRef.current[id];
+        }
     });
-      
+
+  }, [units, highlightedUnitId, onUnitClick]);
+
+  // Perform initial centering
+  React.useEffect(() => {
     if (!isInitiallyCenteredRef.current && units.some(u => u.isActive)) {
-      handleRecenter();
+      recenterMap();
       isInitiallyCenteredRef.current = true;
     }
-  }, [units, highlightedUnitId, onUnitClick, handleRecenter]);
+  }, [units, recenterMap]);
+
 
   // Manage control center marker
   React.useEffect(() => {
@@ -269,7 +277,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         <Button
             variant="secondary"
             size="icon"
-            onClick={handleRecenter}
+            onClick={recenterMap}
             title="Auf Einheiten zentrieren"
         >
             <Target className="h-5 w-5" />
