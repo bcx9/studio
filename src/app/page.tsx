@@ -19,6 +19,7 @@ import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
 import { connectToGateway } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
 
 // Keep map-view dynamic to avoid SSR issues with Leaflet
 const MapView = dynamic(() => import('@/components/map-view'), {
@@ -39,6 +40,7 @@ export default function Home() {
   const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized } = useMeshData();
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
+  const [isLeitstellePanelOpen, setLeitstellePanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
   
   // Add state for the control center position
@@ -102,6 +104,14 @@ export default function Home() {
       setGatewayLogs(prev => [...prev, 'Verbindung durch Benutzer getrennt.']);
       toast({ title: 'Gateway getrennt' });
   };
+  
+  const handleSendMessageToAll = (message: string) => {
+    toast({
+      title: 'Nachricht gesendet',
+      description: `Ihre Nachricht wurde an alle Einheiten übermittelt: "${message}"`,
+    });
+    // In a real app, this would trigger an API call.
+  };
 
 
   return (
@@ -117,6 +127,7 @@ export default function Home() {
           selectedUnitId={selectedUnit?.id}
           onSelectUnit={setSelectedUnit}
           controlCenterPosition={controlCenterPosition}
+          onConfigureLeitstelle={() => setLeitstellePanelOpen(true)}
         />
       </Sidebar>
       <SidebarInset>
@@ -194,6 +205,11 @@ export default function Home() {
           onSave={handleSaveUnitConfig}
         />
       )}
+       <LeitstelleConfigPanel
+        isOpen={isLeitstellePanelOpen}
+        setIsOpen={setLeitstellePanelOpen}
+        onSendMessage={handleSendMessageToAll}
+      />
     </SidebarProvider>
   );
 }
