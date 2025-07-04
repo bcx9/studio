@@ -19,15 +19,15 @@ const getStatusColorClass = (status: MeshUnit['status'], battery: number) => {
 };
 
 const UnitIconComponent = ({ type }: { type: MeshUnit['type'] }) => {
-  if (type === 'Vehicle') return <Car className="h-4 w-4 text-white" />;
-  return <User className="h-4 w-4 text-white" />;
+  if (type === 'Vehicle') return <Car className="h-4 w-4 text-primary-foreground" />;
+  return <User className="h-4 w-4 text-primary-foreground" />;
 };
 
 const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   const iconHtml = renderToStaticMarkup(
     <div
       className={cn(
-        'w-7 h-7 rounded-full flex items-center justify-center border-2 border-white/50 shadow-lg transition-transform duration-300',
+        'w-7 h-7 rounded-full flex items-center justify-center border-2 border-background shadow-lg transition-transform duration-300',
         getStatusColorClass(unit.status, unit.battery),
         isHighlighted ? 'scale-125 ring-4 ring-primary' : 'scale-100'
       )}
@@ -46,7 +46,7 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
 
 const createControlCenterIcon = () => {
     const iconHtml = renderToStaticMarkup(
-        <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white/80 shadow-lg bg-primary">
+        <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-background shadow-lg bg-primary">
             <Building2 className="h-5 w-5 text-primary-foreground" />
         </div>
     );
@@ -150,16 +150,11 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const existingMarkerIds = Object.keys(markersRef.current).map(Number);
-    const activeUnitIds = units.filter(u => u.isActive).map(u => u.id);
+    // Clear existing markers
+    Object.values(markersRef.current).forEach(marker => marker.remove());
+    markersRef.current = {};
 
-    existingMarkerIds.forEach(id => {
-      if (!activeUnitIds.includes(id)) {
-        markersRef.current[id].remove();
-        delete markersRef.current[id];
-      }
-    });
-
+    // Add new markers
     units.forEach(unit => {
       if (!unit.isActive) {
         return;
@@ -176,17 +171,11 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             </span>
           `;
       
-      if (markersRef.current[unit.id]) {
-        markersRef.current[unit.id].setLatLng(position);
-        markersRef.current[unit.id].setIcon(icon);
-        markersRef.current[unit.id].setZIndexOffset(isHighlighted ? 1000 : 0);
-      } else {
-         const marker = L.marker(position, {
+      const marker = L.marker(position, {
           icon: icon,
           zIndexOffset: isHighlighted ? 1000 : 0,
-        }).bindTooltip(tooltipContent).addTo(map);
-        markersRef.current[unit.id] = marker;
-      }
+      }).bindTooltip(tooltipContent).addTo(map);
+      markersRef.current[unit.id] = marker;
     });
       
     if (!isInitiallyCenteredRef.current && units.some(u => u.isActive)) {
