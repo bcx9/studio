@@ -5,7 +5,8 @@ import 'leaflet/dist/leaflet.css';
 import * as React from 'react';
 import L, { type Map } from 'leaflet';
 
-// Manually import the marker icons to ensure they are processed by the bundler.
+// Manually import the marker icons to ensure they are processed by the bundler
+// and then configure Leaflet's default icon to use them.
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -14,9 +15,13 @@ import type { MeshUnit } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Create a custom icon instance to avoid issues with the default icon path.
-// This is a robust fix for Leaflet in React/Next.js environments.
-const defaultIcon = L.icon({
+// This is the robust fix for Leaflet in React/Next.js environments.
+// It directly patches Leaflet's default icon options to use the
+// correctly imported image assets.
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
     iconRetinaUrl: markerIcon2x.src,
     iconUrl: markerIcon.src,
     shadowUrl: markerShadow.src,
@@ -162,7 +167,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
       } else {
         // Marker doesn't exist, create it
-        const marker = L.marker(position, { icon: defaultIcon })
+        const marker = L.marker(position)
           .addTo(map)
           .bindTooltip(tooltipContent);
 
@@ -206,7 +211,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             controlCenterMarkerRef.current.setLatLng(position);
         } else {
             const marker = L.marker(position, {
-                icon: defaultIcon,
                 zIndexOffset: 1100,
             }).bindTooltip(tooltipContent).addTo(map);
             controlCenterMarkerRef.current = marker;
