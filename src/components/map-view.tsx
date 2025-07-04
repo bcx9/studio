@@ -1,7 +1,5 @@
 'use client';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import 'leaflet-defaulticon-compatibility';
 
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
