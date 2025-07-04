@@ -60,7 +60,7 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
         alt="Kartenansicht von Berlin"
         layout="fill"
         objectFit="cover"
-        className="opacity-20 animate-in fade-in-50"
+        className="opacity-40 animate-in fade-in-50"
         data-ai-hint={mapImages[mapStyle].hint}
       />
       <TooltipProvider>
