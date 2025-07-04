@@ -51,7 +51,8 @@ interface MapViewProps {
 
 type MapStyle = 'satellite' | 'street';
 
-const tileLayers = {
+// Move these constants outside the component to prevent re-creation on every render
+const TILE_LAYERS = {
   street: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -61,6 +62,7 @@ const tileLayers = {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
   },
 };
+const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
 
 
 export default function MapView({ units, highlightedUnitId }: MapViewProps) {
@@ -71,7 +73,6 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
-  const center: L.LatLngExpression = [53.19745, 10.84507];
 
   const handleRecenter = React.useCallback(() => {
     const map = mapInstanceRef.current;
@@ -85,22 +86,22 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
       }
     } else {
-        map.setView(center, 13);
+        map.setView(INITIAL_CENTER, 13);
     }
-  }, [units, center]);
+  }, [units]);
 
   // Effect to initialize and destroy the map
   React.useEffect(() => {
     if (mapContainerRef.current && !mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
-          center: center,
+          center: INITIAL_CENTER,
           zoom: 13,
           scrollWheelZoom: true,
       });
       mapInstanceRef.current = map;
 
-      tileLayerRef.current = L.tileLayer(tileLayers.street.url, {
-          attribution: tileLayers.street.attribution,
+      tileLayerRef.current = L.tileLayer(TILE_LAYERS.street.url, {
+          attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
 
       // Invalidate size after initial creation
@@ -113,13 +114,13 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
             mapInstanceRef.current = null;
         }
     };
-  }, [center]);
+  }, []); // Empty dependency array ensures this only runs once
 
   // Effect to update tile layer style
   React.useEffect(() => {
       if (tileLayerRef.current) {
-          tileLayerRef.current.setUrl(tileLayers[mapStyle].url);
-          tileLayerRef.current.options.attribution = tileLayers[mapStyle].attribution;
+          tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
+          tileLayerRef.current.options.attribution = TILE_LAYERS[mapStyle].attribution;
       }
   }, [mapStyle]);
   
