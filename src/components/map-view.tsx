@@ -33,11 +33,10 @@ const TILE_LAYERS = {
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
 
 const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
-  const isVehicle = unit.type === 'Vehicle';
   const size = isHighlighted ? 32 : 28;
-  const color = unit.status === 'Alarm' ? '#ef4444' : '#2962FF'; // Red-500 or Primary Blue
-  const borderColor = isHighlighted ? '#ffffff' : '#f8fafc'; // White or Slate-50
-  const zIndex = isHighlighted ? 1000 : unit.id;
+  // Using direct hex codes to avoid any theme/variable resolution issues.
+  const color = unit.status === 'Alarm' ? '#ef4444' : '#2962FF'; // red-500, blue-600
+  const borderColor = isHighlighted ? '#ffffff' : '#f8fafc'; // white, slate-50
 
   const iconHtml = `
     <div style="
@@ -46,23 +45,22 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
       background-color: ${color};
       border-radius: 50%;
       border: 2px solid ${borderColor};
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      z-index: ${isHighlighted ? 1000 : unit.id};
+      font-size: 14px;
+      color: white;
       display: flex;
       justify-content: center;
       align-items: center;
-      color: white;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-      z-index: ${zIndex};
+      font-weight: bold;
     ">
-      ${isVehicle 
-        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16.5V18a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-1.5"/><path d="M19 16.5h.5a2.5 2.5 0 0 0 0-5H19"/><path d="M5 16.5H4.5a2.5 2.5 0 0 1 0-5H5"/><path d="M15 11.5H9v-3.41c0-.42.23-.8.6-.99l2.8-1.4a2 2 0 0 1 1.2 0l2.8 1.4c.37.19.6.57.6.99V11.5Z"/><path d="M8 12v-2"/><path d="M16 12v-2"/></svg>` 
-        : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
-      }
+      ${unit.type === 'Vehicle' ? 'V' : 'P'}
     </div>
   `;
 
   return L.divIcon({
     html: iconHtml,
-    className: '', // Important to have an empty class name to avoid conflicts
+    className: '', // Important to prevent default leaflet styles
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
