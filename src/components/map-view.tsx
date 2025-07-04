@@ -3,61 +3,85 @@
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import * as React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import L, { type Map } from 'leaflet';
 import 'leaflet-defaulticon-compatibility';
 
 
 import type { MeshUnit } from '@/types/mesh';
-import { Car, User, Globe, Map as MapIcon, Target, Building2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const getStatusColorClass = (status: MeshUnit['status'], battery: number) => {
-  if (status === 'Offline') return 'bg-gray-500';
-  if (status === 'Alarm') return 'bg-red-500 animate-pulse';
-  if (battery < 20) return 'bg-yellow-500';
-  if (status === 'Moving') return 'bg-green-500';
-  return 'bg-blue-500';
-};
-
-const UnitIconComponent = ({ type }: { type: MeshUnit['type'] }) => {
-  if (type === 'Vehicle') return <Car className="h-4 w-4 text-primary-foreground" />;
-  return <User className="h-4 w-4 text-primary-foreground" />;
+const getStatusColor = (status: MeshUnit['status'], battery: number) => {
+  if (status === 'Offline') return '#6b7280'; // gray-500
+  if (status === 'Alarm') return '#ef4444'; // red-500
+  if (battery < 20) return '#eab308'; // yellow-500
+  if (status === 'Moving') return '#22c55e'; // green-500
+  return '#3b82f6'; // blue-500
 };
 
 const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
-  const iconHtml = renderToStaticMarkup(
-    <div
-      className={cn(
-        'w-7 h-7 rounded-full flex items-center justify-center border-2 border-border shadow-lg transition-transform duration-300',
-        getStatusColorClass(unit.status, unit.battery),
-        isHighlighted ? 'scale-125 ring-4 ring-primary' : 'scale-100'
-      )}
-    >
-      <UnitIconComponent type={unit.type} />
+  const bgColor = getStatusColor(unit.status, unit.battery);
+  // CSS variables are globally available from globals.css
+  const borderColor = isHighlighted ? 'hsl(var(--primary))' : 'hsl(var(--border))';
+  const scale = isHighlighted ? '1.25' : '1';
+
+  const iconSvg = unit.type === 'Vehicle'
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9L2 12v9c0 .6.4 1 1 1h2"/><path d="M14 17H9"/><path d="M19 17H6.5c-1 0-1.8-.6-2-1.4L2 12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+  const iconHtml = `
+    <div style="
+      width: 28px; 
+      height: 28px; 
+      border-radius: 50%; 
+      background-color: ${bgColor}; 
+      border: 3px solid ${borderColor};
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transform: scale(${scale});
+      transition: transform 0.2s ease-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      ${iconSvg}
     </div>
-  );
+  `;
 
   return L.divIcon({
     html: iconHtml,
-    className: 'bg-transparent border-0',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    className: '', // Use an empty class name to prevent Leaflet's default styles
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
   });
 };
 
 const createControlCenterIcon = () => {
-    const iconHtml = renderToStaticMarkup(
-        <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-background shadow-lg bg-primary">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
-        </div>
-    );
+    const iconHtml = `
+      <div style="
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: hsl(var(--primary));
+        border: 2px solid hsl(var(--card));
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22v-5"/>
+          <path d="M9 17H5.5a2.5 2.5 0 0 1-2.5-2.5V7.5A2.5 2.5 0 0 1 5.5 5H7"/>
+          <path d="M17 5h1.5a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1-2.5 2.5H15"/>
+          <path d="M7 17v-1a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>
+          <path d="M7 5V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>
+        </svg>
+      </div>
+    `;
     return L.divIcon({
         html: iconHtml,
-        className: 'bg-transparent border-0',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        className: '',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
     });
 };
 
