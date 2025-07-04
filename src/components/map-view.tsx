@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import L, { type Map } from 'leaflet';
 
 import type { MeshUnit } from '@/types/mesh';
-import { Car, User, Globe, Map as MapIcon } from 'lucide-react';
+import { Car, User, Globe, Map as MapIcon, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -69,9 +69,24 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
   const markersLayerRef = React.useRef<L.LayerGroup | null>(null);
+  const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
   const center: L.LatLngExpression = [52.52, 13.405];
+
+  const handleRecenter = React.useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const activeUnits = units.filter(u => u.isActive);
+
+    if (activeUnits.length > 0) {
+      const bounds = L.latLngBounds(activeUnits.map(u => [u.position.lat, u.position.lng]));
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      }
+    }
+  }, [units]);
 
   // Effect to initialize and destroy the map
   React.useEffect(() => {
@@ -137,20 +152,26 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
           markersLayer.addLayer(marker);
       });
       
-      // Auto-recenter logic
-      if (activeUnits.length > 0) {
-          const bounds = L.latLngBounds(activeUnits.map(u => [u.position.lat, u.position.lng]));
-          if (bounds.isValid()) {
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-          }
+      // Auto-recenter logic, but only on the first load of units
+      if (!isInitiallyCenteredRef.current && activeUnits.length > 0) {
+        handleRecenter();
+        isInitiallyCenteredRef.current = true;
       }
-  }, [units, highlightedUnitId]);
+  }, [units, highlightedUnitId, handleRecenter]);
 
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
       <div ref={mapContainerRef} className="h-full w-full z-0" />
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute top-2 right-2 z-10 flex gap-2">
+        <Button
+            variant="secondary"
+            size="icon"
+            onClick={handleRecenter}
+            title="Auf Einheiten zentrieren"
+        >
+            <Target className="h-5 w-5" />
+        </Button>
         <Button
           variant="secondary"
           size="icon"
