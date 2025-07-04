@@ -130,13 +130,13 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         bounds.extend([controlCenterPosition.lat, controlCenterPosition.lng]);
       }
       if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
       }
     } else if (controlCenterPosition) {
-        map.setView([controlCenterPosition.lat, controlCenterPosition.lng], 13);
+        map.setView([controlCenterPosition.lat, controlCenterPosition.lng], 14);
     } 
     else {
-        map.setView(INITIAL_CENTER, 13);
+        map.setView(INITIAL_CENTER, 14);
     }
   }, [units, controlCenterPosition]);
 
@@ -145,7 +145,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     if (mapContainerRef.current && !mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
           center: INITIAL_CENTER,
-          zoom: 13,
+          zoom: 14,
+          maxZoom: 18,
           scrollWheelZoom: true,
       });
       mapInstanceRef.current = map;
