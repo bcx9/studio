@@ -23,7 +23,7 @@ const InvalidateSizeWhenVisible = () => {
         if (entry.isIntersecting) {
           setTimeout(() => {
             map.invalidateSize();
-          }, 100);
+          }, 100); 
         }
       },
       { threshold: 0.1 }
