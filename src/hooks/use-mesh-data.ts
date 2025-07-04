@@ -67,32 +67,23 @@ const names: Record<UnitType, string[]> = {
 }
 
 export function useMeshData() {
-  const [units, setUnits] = useState<MeshUnit[]>(() => {
-    // This function runs only on the initial render.
-    if (typeof window === 'undefined') {
-      return initialUnits;
-    }
+  const [units, setUnits] = useState<MeshUnit[]>(initialUnits);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const unitsRef = useRef(units);
+  unitsRef.current = units;
+
+  useEffect(() => {
     try {
       const storedState = localStorage.getItem(MESH_DATA_STORAGE_KEY);
       if (storedState) {
         const parsedUnits = JSON.parse(storedState) as MeshUnit[];
-        // Reset timestamps to avoid units appearing immediately offline after a long break.
-        return parsedUnits.map(unit => ({ ...unit, timestamp: Date.now() }));
+        setUnits(parsedUnits.map(unit => ({ ...unit, timestamp: Date.now() })));
       }
     } catch (error) {
       console.error("Failed to load units from localStorage", error);
-      // Fallback to initial units if there's an error.
     }
-    return initialUnits;
-  });
+    setIsInitialized(true);
 
-  // Use a ref to hold the latest units state for the unload event listener.
-  // This avoids re-registering the event listener on every state change.
-  const unitsRef = useRef(units);
-  unitsRef.current = units;
-
-  // Effect for saving state before the page is closed/reloaded.
-  useEffect(() => {
     const handleBeforeUnload = () => {
       try {
         localStorage.setItem(MESH_DATA_STORAGE_KEY, JSON.stringify(unitsRef.current));
@@ -106,11 +97,14 @@ export function useMeshData() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []); // Empty dependency array ensures this runs only once on mount.
+  }, []);
 
 
-  // Effect for the simulation interval
   useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+
     const interval = setInterval(() => {
       setUnits(currentUnits =>
         currentUnits.map(unit => {
@@ -118,11 +112,9 @@ export function useMeshData() {
             return {...unit, status: 'Offline'};
           }
 
-          // Simulate battery drain
           const batteryDrain = unit.battery > 0 ? 0.05 / (unit.sendInterval / 5) : 0;
           const newBattery = Math.max(0, unit.battery - batteryDrain);
 
-          // Simulate movement
           let { lat, lng } = unit.position;
           const newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360;
           const newSpeed = Math.max(0, unit.speed + (Math.random() - 0.5) * 2);
@@ -158,7 +150,7 @@ export function useMeshData() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isInitialized]);
 
   const updateUnit = useCallback((updatedUnit: MeshUnit) => {
     setUnits(currentUnits =>
