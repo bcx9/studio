@@ -122,105 +122,68 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           tileLayerRef.current.options.attribution = TILE_LAYERS[mapStyle].attribution;
       }
   }, [mapStyle]);
-  
-  // Manage unit markers
+
+  // Manage all markers (Units and Control Center) with a robust "clear and redraw" strategy
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const unitIdsOnMap = new Set(Object.keys(markersRef.current).map(Number));
+    // --- Clear all existing markers from the map ---
+    Object.values(markersRef.current).forEach(marker => marker.remove());
+    markersRef.current = {};
+    if (controlCenterMarkerRef.current) {
+        controlCenterMarkerRef.current.remove();
+        controlCenterMarkerRef.current = null;
+    }
 
+    // --- Redraw unit markers ---
     units.forEach(unit => {
-      unitIdsOnMap.delete(unit.id);
-      
-      if (!unit.isActive) {
-        if (markersRef.current[unit.id]) {
-          markersRef.current[unit.id].remove();
-          delete markersRef.current[unit.id];
-        }
-        return;
-      }
+        if (!unit.isActive) return;
 
-      const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
-      const tooltipContent = `
-        <strong>${unit.name} (${unit.type})</strong><br>
-        <span>
-            Status: ${unit.status}<br>
-            Akku: ${unit.battery}%
-        </span>`;
-
-      if (markersRef.current[unit.id]) {
-        // Marker exists, update it
-        markersRef.current[unit.id]
-          .setLatLng(position)
-          .getTooltip()?.setContent(tooltipContent);
+        const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
+        const tooltipContent = `
+            <strong>${unit.name} (${unit.type})</strong><br>
+            <span>
+                Status: ${unit.status}<br>
+                Akku: ${unit.battery}%
+            </span>`;
         
-        // Simple highlight effect
-        markersRef.current[unit.id].setOpacity(unit.id === highlightedUnitId ? 0.7 : 1.0);
-        if (unit.id === highlightedUnitId) {
-            markersRef.current[unit.id].setZIndexOffset(1000);
-        } else {
-            markersRef.current[unit.id].setZIndexOffset(unit.id);
-        }
-
-      } else {
-        // Marker doesn't exist, create it
         const marker = L.marker(position, { icon: defaultIcon })
           .addTo(map)
           .bindTooltip(tooltipContent);
+        
+        marker.setOpacity(unit.id === highlightedUnitId ? 0.7 : 1.0);
+        marker.setZIndexOffset(unit.id === highlightedUnitId ? 1000 : unit.id);
 
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
-            onUnitClick?.(unit.id)
+            onUnitClick?.(unit.id);
         });
+
         markersRef.current[unit.id] = marker;
-      }
     });
 
-    // Remove markers for units that are no longer in the units array
-    unitIdsOnMap.forEach(id => {
-        if (markersRef.current[id]) {
-            markersRef.current[id].remove();
-            delete markersRef.current[id];
-        }
-    });
+    // --- Redraw control center marker ---
+    if (controlCenterPosition) {
+        const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
+        const tooltipContent = `<strong>Leitstelle</strong>`;
+        
+        const marker = L.marker(position, {
+            icon: defaultIcon,
+            zIndexOffset: 1100,
+        }).bindTooltip(tooltipContent).addTo(map);
 
-  }, [units, highlightedUnitId, onUnitClick]);
+        controlCenterMarkerRef.current = marker;
+    }
+  }, [units, highlightedUnitId, controlCenterPosition, onUnitClick]);
 
-  // Perform initial centering
+  // Perform initial centering only once
   React.useEffect(() => {
     if (!isInitiallyCenteredRef.current && (units.some(u => u.isActive) || controlCenterPosition)) {
       handleRecenter();
       isInitiallyCenteredRef.current = true;
     }
   }, [units, controlCenterPosition, handleRecenter]);
-
-
-  // Manage control center marker
-  React.useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    if (controlCenterPosition) {
-        const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
-        const tooltipContent = `<strong>Leitstelle</strong>`;
-
-        if (controlCenterMarkerRef.current) {
-            controlCenterMarkerRef.current.setLatLng(position);
-        } else {
-            const marker = L.marker(position, {
-                icon: defaultIcon,
-                zIndexOffset: 1100,
-            }).bindTooltip(tooltipContent).addTo(map);
-            controlCenterMarkerRef.current = marker;
-        }
-    } else {
-        if (controlCenterMarkerRef.current) {
-            controlCenterMarkerRef.current.remove();
-            controlCenterMarkerRef.current = null;
-        }
-    }
-  }, [controlCenterPosition]);
 
 
   return (

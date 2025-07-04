@@ -236,8 +236,8 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
         if (newSpeed > 1) {
            const distance = (newSpeed / 3600) * timeSinceLastUpdate; 
            const angleRad = (newHeading * Math.PI) / 180;
-           lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
-           lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
+           lat += (distance * Math.cos(angleRad)) / 111.32;
+           lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180));
         }
 
         let newStatus = unit.status;
