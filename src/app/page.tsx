@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/sidebar';
 import AppHeader from '@/components/layout/header';
-import MapView from '@/components/map-view';
 import { useMeshData } from '@/hooks/use-mesh-data';
 import type { MeshUnit } from '@/types/mesh';
 import ConfigPanel from '@/components/config-panel';
@@ -12,12 +12,26 @@ import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code } from 'lucide-react';
+import { Code, Map } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
 import GatewayConfig from '@/components/gateway-config';
 import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
 import { connectToGateway } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const MapView = dynamic(() => import('@/components/map-view'), {
+  ssr: false,
+  loading: () => (
+     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">
+        <Skeleton className="w-full h-full" />
+        <div className="absolute flex flex-col items-center text-muted-foreground">
+          <Map className="h-16 w-16 mb-4 animate-pulse" />
+          <p>Lade Karte...</p>
+        </div>
+      </div>
+  )
+});
 
 
 export default function Home() {
@@ -121,7 +135,7 @@ export default function Home() {
                <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
                 <GatewayConfig
                     status={gatewayStatus}
-                    logs={gatewayLogs}
+                    logs={logs}
                     onConnect={handleConnect}
                     onDisconnect={handleDisconnect}
                     isConnecting={isConnecting}
