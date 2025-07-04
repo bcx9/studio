@@ -380,6 +380,52 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     )
   }, []);
 
+  const repositionAllUnits = useCallback(() => {
+    if (!controlCenterPositionRef.current) {
+      console.warn("Cannot reposition units without a control center position.");
+      return;
+    }
+
+    const { lat: centerLat, lng: centerLng } = controlCenterPositionRef.current;
+    const radiusKm = 20; // 20 km radius
+    const earthRadiusKm = 6371;
+
+    const toRadians = (deg: number) => deg * Math.PI / 180;
+    const toDegrees = (rad: number) => rad * 180 / Math.PI;
+
+    setUnits(currentUnits => currentUnits.map(unit => {
+      // Generate a random point within the circle using a method that ensures uniform distribution
+      const randomDist = radiusKm * Math.sqrt(Math.random());
+      const randomAngle = Math.random() * 2 * Math.PI; // in radians
+
+      const lat1Rad = toRadians(centerLat);
+      const lon1Rad = toRadians(centerLng);
+      const angularDistance = randomDist / earthRadiusKm;
+
+      const newLatRad = Math.asin(
+        Math.sin(lat1Rad) * Math.cos(angularDistance) +
+        Math.cos(lat1Rad) * Math.sin(angularDistance) * Math.cos(randomAngle)
+      );
+
+      const newLonRad = lon1Rad + Math.atan2(
+        Math.sin(randomAngle) * Math.sin(angularDistance) * Math.cos(lat1Rad),
+        Math.cos(angularDistance) - Math.sin(lat1Rad) * Math.sin(newLatRad)
+      );
+      
+      return {
+        ...unit,
+        position: {
+          lat: toDegrees(newLatRad),
+          lng: toDegrees(newLonRad)
+        },
+        speed: 0,
+        heading: Math.floor(Math.random() * 360),
+        status: 'Online',
+        timestamp: Date.now()
+      };
+    }));
+  }, []);
+
   const addGroup = (name: string) => {
     setGroups(g => [...g, { id: Date.now(), name }]);
   };
@@ -415,5 +461,6 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       updateGroup,
       removeGroup,
       assignUnitToGroup,
+      repositionAllUnits,
     };
 }

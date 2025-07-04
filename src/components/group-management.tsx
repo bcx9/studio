@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Users, PlusCircle, Save, Trash2, Edit, X } from 'lucide-react';
+import { Users, PlusCircle, Save, Trash2, Edit, X, Move } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -17,9 +17,11 @@ interface GroupManagementProps {
   onAddGroup: (name: string) => void;
   onUpdateGroup: (group: Group) => void;
   onRemoveGroup: (groupId: number) => void;
+  onRepositionAllUnits: () => void;
+  isRepositionPossible: boolean;
 }
 
-export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onRemoveGroup }: GroupManagementProps) {
+export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onRemoveGroup, onRepositionAllUnits, isRepositionPossible }: GroupManagementProps) {
     const [newGroupName, setNewGroupName] = React.useState('');
     const [editingGroup, setEditingGroup] = React.useState<Group | null>(null);
     const [editingName, setEditingName] = React.useState('');
@@ -142,6 +144,27 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+                     <div className="border-t pt-6">
+                         <h3 className="text-lg font-semibold mb-3">Szenario-Steuerung</h3>
+                         <div className="flex items-start gap-4 p-4 border rounded-lg bg-background">
+                            <Move className="h-8 w-8 text-primary mt-1 shrink-0" />
+                            <div>
+                                <h4 className="font-semibold">Einheiten neu positionieren</h4>
+                                <p className="text-sm text-muted-foreground mb-3">
+                                    Positioniert alle Einheiten zufällig in einem 20km-Radius um die Leitstelle. Nützlich, um neue Szenarien zu testen.
+                                </p>
+                                <Button onClick={onRepositionAllUnits} disabled={!isRepositionPossible}>
+                                    <Move className="mr-2" />
+                                    Alle Einheiten neu positionieren
+                                </Button>
+                                {!isRepositionPossible && (
+                                    <p className="text-xs text-yellow-500 mt-2">
+                                        Setzen Sie zuerst einen Leitstellen-Marker auf der Karte, um diese Funktion zu nutzen.
+                                    </p>
+                                )}
+                            </div>
+                         </div>
                     </div>
                 </CardContent>
             </Card>

@@ -80,6 +80,7 @@ export default function Home() {
       updateGroup,
       removeGroup,
       assignUnitToGroup,
+      repositionAllUnits,
    } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
     isRallying,
@@ -178,6 +179,22 @@ export default function Home() {
     });
   };
 
+  const handleRepositionAllUnits = () => {
+    if (!controlCenterPosition) {
+        toast({
+            variant: 'destructive',
+            title: 'Leitstelle nicht positioniert',
+            description: 'Bitte klicken Sie zuerst auf die Karte, um die Position der Leitstelle festzulegen.',
+        });
+        return;
+    }
+    repositionAllUnits();
+    toast({
+        title: 'Einheiten neu positioniert',
+        description: 'Alle Einheiten wurden in einem 20km-Umkreis um die Leitstelle neu positioniert.',
+    });
+  };
+
   const displayedUnits = React.useMemo(() => {
     if (isReplayMode && replayTimestamp) {
         return getUnitStateAtTime(units, unitHistory, replayTimestamp);
@@ -266,6 +283,8 @@ export default function Home() {
                         onAddGroup={addGroup}
                         onUpdateGroup={updateGroup}
                         onRemoveGroup={removeGroup}
+                        onRepositionAllUnits={handleRepositionAllUnits}
+                        isRepositionPossible={!!controlCenterPosition}
                     />
                 </TabsContent>
                <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
