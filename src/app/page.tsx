@@ -12,7 +12,7 @@ import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code, Map } from 'lucide-react';
+import { Code, Map as MapIcon } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
 import GatewayConfig from '@/components/gateway-config';
 import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
@@ -23,14 +23,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
   loading: () => (
-     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">
-        <Skeleton className="w-full h-full" />
-        <div className="absolute flex flex-col items-center text-muted-foreground">
-          <Map className="h-16 w-16 mb-4 animate-pulse" />
-          <p>Lade Karte...</p>
-        </div>
+    <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">
+      <Skeleton className="w-full h-full" />
+      <div className="absolute flex flex-col items-center text-muted-foreground">
+        <MapIcon className="h-16 w-16 mb-4 animate-pulse" />
+        <p>Lade Karte...</p>
       </div>
-  )
+    </div>
+  ),
 });
 
 
@@ -119,20 +119,20 @@ export default function Home() {
                   Datenansicht
                 </TabsTrigger>
               </TabsList>
-              <TabsContent forceMount value="map" className="flex-1 overflow-hidden rounded-lg">
+              <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg">
                 <MapView units={units} highlightedUnitId={highlightedUnitId} />
               </TabsContent>
-              <TabsContent forceMount value="ai-monitor" className="flex-1 overflow-y-auto">
+              <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
                 <AiAnomalyDetector units={units} />
               </TabsContent>
-               <TabsContent forceMount value="device-registry" className="flex-1 overflow-y-auto">
+               <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
                 <DeviceRegistry 
                     units={units} 
                     updateUnit={updateUnit} 
                     addUnit={handleCreateNewUnit} 
                 />
               </TabsContent>
-               <TabsContent forceMount value="gateway-config" className="flex-1 overflow-y-auto">
+               <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
                 <GatewayConfig
                     status={gatewayStatus}
                     logs={gatewayLogs}
@@ -141,7 +141,7 @@ export default function Home() {
                     isConnecting={isConnecting}
                 />
               </TabsContent>
-               <TabsContent forceMount value="json-view" className="flex-1 overflow-y-auto">
+               <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (
                   <JsonView unit={selectedUnit} />
                 ) : (

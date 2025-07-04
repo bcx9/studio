@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import StatusBadge from './status-badge';
 
+
 interface MapViewProps {
   units: MeshUnit[];
   highlightedUnitId: number | null;
@@ -110,41 +111,30 @@ const UnitMarkers = ({ units, highlightedUnitId }: MapViewProps) => {
   );
 };
 
-const MapView = React.memo(function MapView({ units, highlightedUnitId }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
-  const [isMounted, setIsMounted] = React.useState(false);
   const center: L.LatLngExpression = [52.52, 13.405];
-
-  React.useEffect(() => {
-      setIsMounted(true);
-  }, []);
-
+  
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
-      {isMounted && (
-        <>
-          <MapContainer center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
-            <TileLayer
-              key={mapStyle}
-              attribution={tileLayers[mapStyle].attribution}
-              url={tileLayers[mapStyle].url}
-            />
-            <UnitMarkers units={units} highlightedUnitId={highlightedUnitId} />
-          </MapContainer>
-          <div className="absolute top-2 right-2 z-10">
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={() => setMapStyle(style => style === 'satellite' ? 'street' : 'satellite')}
-              title={mapStyle === 'satellite' ? 'Straßenansicht' : 'Satellitenansicht'}
-            >
-              {mapStyle === 'satellite' ? <MapIcon className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
-            </Button>
-          </div>
-        </>
-      )}
+      <MapContainer center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
+        <TileLayer
+          key={mapStyle}
+          attribution={tileLayers[mapStyle].attribution}
+          url={tileLayers[mapStyle].url}
+        />
+        <UnitMarkers units={units} highlightedUnitId={highlightedUnitId} />
+      </MapContainer>
+      <div className="absolute top-2 right-2 z-10">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => setMapStyle(style => style === 'satellite' ? 'street' : 'satellite')}
+          title={mapStyle === 'satellite' ? 'Straßenansicht' : 'Satellitenansicht'}
+        >
+          {mapStyle === 'satellite' ? <MapIcon className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+        </Button>
+      </div>
     </div>
   );
-});
-
-export default MapView;
+}
