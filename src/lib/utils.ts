@@ -28,3 +28,32 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
   const distance = R * c; // Distance in km
   return distance;
 }
+
+
+/**
+ * Calculates the initial bearing (forward azimuth) from one point to another.
+ * @param lat1 - Latitude of the first point.
+ * @param lon1 - Longitude of the first point.
+ * @param lat2 - Latitude of the second point.
+ * @param lon2 - Longitude of the second point.
+ * @returns The bearing in degrees (0-360).
+ */
+export function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRadians = (deg: number) => deg * Math.PI / 180;
+  const toDegrees = (rad: number) => rad * 180 / Math.PI;
+
+  const lat1Rad = toRadians(lat1);
+  const lon1Rad = toRadians(lon1);
+  const lat2Rad = toRadians(lat2);
+  const lon2Rad = toRadians(lon2);
+
+  const dLon = lon2Rad - lon1Rad;
+
+  const y = Math.sin(dLon) * Math.cos(lat2Rad);
+  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+            Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+  
+  let brng = Math.atan2(y, x);
+  brng = toDegrees(brng);
+  return (brng + 360) % 360; // Normalize to 0-360
+}

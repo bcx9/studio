@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MeshUnit, UnitType } from '@/types/mesh';
+import { calculateBearing, calculateDistance } from '@/lib/utils';
 
 const MESH_DATA_STORAGE_KEY = 'mesh-data-state';
 const baseCoords = { lat: 53.19745, lng: 10.84507 };
@@ -72,10 +73,12 @@ const names: Record<UnitType, string[]> = {
 
 interface UseMeshDataProps {
   onUnitMessage: (unitName: string, message: string) => void;
+  isRallying: boolean;
+  controlCenterPosition: { lat: number; lng: number } | null;
 }
 
 
-export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
+export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }: UseMeshDataProps) {
   const [units, setUnits] = useState<MeshUnit[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const unitsRef = useRef(units);
@@ -84,23 +87,25 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
 
   useEffect(() => {
     // This effect should only run once on the client after hydration
+    let loadedUnits: MeshUnit[] = [];
     try {
       const storedState = localStorage.getItem(MESH_DATA_STORAGE_KEY);
       if (storedState) {
         const parsedUnits = JSON.parse(storedState) as MeshUnit[];
         // Filter out any invalid units from storage
         if(Array.isArray(parsedUnits) && parsedUnits.length > 0) {
-            setUnits(parsedUnits);
+            loadedUnits = parsedUnits;
         } else {
-            setUnits(initialUnits);
+            loadedUnits = initialUnits;
         }
       } else {
-        setUnits(initialUnits);
+        loadedUnits = initialUnits;
       }
     } catch (error) {
       console.error("Failed to load units from localStorage, using initial data.", error);
-      setUnits(initialUnits);
+      loadedUnits = initialUnits;
     }
+    setUnits(loadedUnits);
     setIsInitialized(true);
 
     const handleBeforeUnload = () => {
@@ -132,6 +137,7 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
 
     simulationIntervalRef.current = setInterval(() => {
       const messagesToSend: Array<{ unitName: string; message: string }> = [];
+      const isRallyingMode = isRallying && controlCenterPosition;
       
       const nextUnits = unitsRef.current.map(unit => {
         if (!unit.isActive) {
@@ -145,16 +151,41 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
         let newHeading = unit.heading;
         let newSpeed = unit.speed;
         
-        if (unit.type === 'Vehicle') {
-          newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
-          if (newSpeed > 1) {
-            newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
+        if (isRallyingMode) {
+          const distanceToCenter = calculateDistance(lat, lng, controlCenterPosition.lat, controlCenterPosition.lng);
+
+          if (distanceToCenter > 0.5) { // more than 500m away
+            newHeading = calculateBearing(lat, lng, controlCenterPosition.lat, controlCenterPosition.lng);
+             if (unit.type === 'Vehicle') {
+                newSpeed = Math.max(10, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
+              } else { 
+                newSpeed = Math.max(2, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
+              }
+          } else { // within 500m radius, patrol
+             if (unit.type === 'Vehicle') {
+                newSpeed = Math.max(0, Math.min(15, unit.speed + (Math.random() - 0.5) * 4)); 
+                 if (newSpeed > 1) {
+                    newHeading = (unit.heading + (Math.random() - 0.5) * 25) % 360; 
+                }
+            } else { 
+                newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.5) * 2));
+                if (newSpeed > 0.5) {
+                    newHeading = (unit.heading + (Math.random() - 0.5) * 60) % 360;
+                }
+            }
           }
-        } else { 
-          newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
-          if (newSpeed > 0.5) {
-            newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
-          }
+        } else { // Regular movement
+            if (unit.type === 'Vehicle') {
+              newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
+              if (newSpeed > 1) {
+                newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
+              }
+            } else { 
+              newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
+              if (newSpeed > 0.5) {
+                newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
+              }
+            }
         }
 
         if (newSpeed > 1) {
@@ -198,7 +229,7 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
       });
       
     }, 1000);
-  }, [onUnitMessage]);
+  }, [onUnitMessage, isRallying, controlCenterPosition]);
 
   useEffect(() => {
     // Cleanup simulation on component unmount

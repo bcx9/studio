@@ -42,8 +42,8 @@ export default function Home() {
   const [isLeitstellePanelOpen, setLeitstellePanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
   
-  // Add state for the control center position
   const [controlCenterPosition, setControlCenterPosition] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [isRallying, setIsRallying] = React.useState(false);
 
   const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('disconnected');
   const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
@@ -56,9 +56,13 @@ export default function Home() {
         title: `Nachricht von ${unitName}`,
         description: message,
     });
-  }, [toast, setGatewayLogs]);
+  }, [toast]);
 
-  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits, startSimulation, stopSimulation } = useMeshData({ onUnitMessage: handleUnitMessage });
+  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits, startSimulation, stopSimulation } = useMeshData({ 
+    onUnitMessage: handleUnitMessage,
+    isRallying,
+    controlCenterPosition,
+   });
 
 
   const handleConfigureUnit = (unit: MeshUnit) => {
@@ -122,6 +126,25 @@ export default function Home() {
     toast({
       title: 'Rundnachricht gesendet',
       description: `Ihre Nachricht wurde an alle aktiven Einheiten übermittelt.`,
+    });
+  };
+  
+  const handleToggleRally = () => {
+    if (!controlCenterPosition && !isRallying) {
+      toast({
+          variant: 'destructive',
+          title: 'Sammelpunkt nicht gesetzt',
+          description: 'Bitte klicken Sie zuerst auf die Karte, um die Position der Leitstelle festzulegen.',
+      });
+      return;
+    }
+    const newRallyState = !isRallying;
+    setIsRallying(newRallyState);
+    toast({
+        title: `Sammelbefehl ${newRallyState ? 'aktiviert' : 'deaktiviert'}`,
+        description: newRallyState 
+            ? 'Alle Einheiten bewegen sich nun zur Leitstelle.'
+            : 'Alle Einheiten setzen ihre vorherigen Operationen fort.',
     });
   };
 
@@ -221,6 +244,9 @@ export default function Home() {
         isOpen={isLeitstellePanelOpen}
         setIsOpen={setLeitstellePanelOpen}
         onSendMessage={handleSendMessageToAll}
+        isRallying={isRallying}
+        onToggleRally={handleToggleRally}
+        isRallyPossible={!!controlCenterPosition}
       />
     </SidebarProvider>
   );
