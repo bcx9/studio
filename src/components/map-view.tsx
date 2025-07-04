@@ -15,14 +15,13 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 // This is the patch. It deletes a problematic function from Leaflet's prototype
 // and then merges the correct image paths into the default icon options.
 // This ensures all markers created without a specific icon option will use these settings.
-if (typeof window !== 'undefined') {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: markerIcon2x.src,
-    iconUrl: markerIcon.src,
-    shadowUrl: markerShadow.src,
-  });
-}
+// This code runs once when the module is loaded on the client, before any components render.
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x.src,
+  iconUrl: markerIcon.src,
+  shadowUrl: markerShadow.src,
+});
 
 import type { MeshUnit } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
