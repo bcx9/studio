@@ -46,21 +46,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
 
-  // useMemo ensures this icon object is only created once on the client-side,
-  // preventing issues with server-side rendering and providing a stable icon instance.
-  const defaultIcon = React.useMemo(() => {
-    return L.icon({
-      iconRetinaUrl: markerIcon2x.src,
-      iconUrl: markerIcon.src,
-      shadowUrl: markerShadow.src,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
-    });
-  }, []);
-
   const handleRecenter = React.useCallback(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -86,6 +71,18 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   // Initialize map
   React.useEffect(() => {
     if (mapContainerRef.current && !mapInstanceRef.current) {
+        
+        // This is a common issue with bundlers like Webpack used by Next.js.
+        // We need to manually set the default icon paths for Leaflet.
+        // We do this inside useEffect to ensure it only runs once on the client,
+        // after the L object is available.
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+            iconRetinaUrl: markerIcon2x.src,
+            iconUrl: markerIcon.src,
+            shadowUrl: markerShadow.src,
+        });
+
       const map = L.map(mapContainerRef.current, {
           center: INITIAL_CENTER,
           zoom: 13,
@@ -146,7 +143,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
                 Akku: ${unit.battery}%
             </span>`;
         
-        const marker = L.marker(position, { icon: defaultIcon })
+        // No need to pass icon options; it uses the patched default settings.
+        const marker = L.marker(position)
           .addTo(map)
           .bindTooltip(tooltipContent);
         
@@ -166,12 +164,12 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
         const tooltipContent = `<strong>Leitstelle</strong>`;
         
-        const marker = L.marker(position, { icon: defaultIcon, zIndexOffset: 1100 })
+        const marker = L.marker(position, { zIndexOffset: 1100 })
           .bindTooltip(tooltipContent).addTo(map);
 
         controlCenterMarkerRef.current = marker;
     }
-  }, [units, highlightedUnitId, controlCenterPosition, onUnitClick, defaultIcon]);
+  }, [units, highlightedUnitId, controlCenterPosition, onUnitClick]);
 
   // Perform initial centering only once
   React.useEffect(() => {
