@@ -76,7 +76,11 @@ export default function Home() {
                 <AiAnomalyDetector units={units} />
               </TabsContent>
                <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
-                <DeviceRegistry units={units} updateUnit={updateUnit} />
+                <DeviceRegistry 
+                    units={units} 
+                    updateUnit={updateUnit} 
+                    addUnit={handleCreateNewUnit} 
+                />
               </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (
