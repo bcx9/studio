@@ -32,6 +32,7 @@ export const CODE_TO_UNIT_STATUS: { [key: number]: UnitStatus } = {
 export interface UnitMessage {
   text: string;
   timestamp: number;
+  source: 'control' | 'unit';
 }
 
 export interface Group {

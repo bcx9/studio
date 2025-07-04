@@ -1,3 +1,4 @@
+
 'use client';
 import type { MeshUnit } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,8 @@ import {
   AlertTriangle,
   BatteryCharging,
   Milestone,
-  MessageSquare,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
 import { cn, calculateDistance } from '@/lib/utils';
@@ -145,7 +147,11 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
         {unit.lastMessage && (
             <div className="mt-3 pt-3 border-t border-muted-foreground/20">
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <MessageSquare className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" />
+                    {unit.lastMessage.source === 'unit' ? (
+                        <ArrowUp className="h-4 w-4 shrink-0 mt-0.5 text-blue-400" />
+                    ) : (
+                        <ArrowDown className="h-4 w-4 shrink-0 mt-0.5 text-green-400" />
+                    )}
                     <div className="flex-1">
                         <p className="text-foreground leading-snug">{unit.lastMessage.text}</p>
                         <p>{formatDistanceToNow(new Date(unit.lastMessage.timestamp), { addSuffix: true, locale: de })}</p>

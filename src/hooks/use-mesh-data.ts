@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MeshUnit, UnitType, Group, UnitHistoryPoint } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, UnitHistoryPoint, UnitMessage } from '@/types/mesh';
 import { calculateBearing, calculateDistance } from '@/lib/utils';
 
 const MESH_DATA_STORAGE_KEY = 'mesh-data-state';
@@ -163,7 +163,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     if (simulationIntervalRef.current) return;
 
     simulationIntervalRef.current = setInterval(() => {
-      const messagesToSend: Array<{ unitName: string; message: string }> = [];
+      const messagesForToast: Array<{ unitName: string; message: string }> = [];
       const isRallyingMode = isRallyingRef.current && controlCenterPositionRef.current;
       const rallyPosition = controlCenterPositionRef.current;
       
@@ -230,11 +230,17 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
           if (newSpeed > 1) newStatus = 'Moving';
           else newStatus = 'Idle';
         }
-
+        
+        let newLastMessage = unit.lastMessage;
         if (Math.random() < 0.005 && newStatus !== 'Offline') {
           const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
           const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
-          messagesToSend.push({ unitName: unit.name, message: messageText });
+          newLastMessage = {
+              text: messageText,
+              timestamp: Date.now(),
+              source: 'unit',
+          };
+          messagesForToast.push({ unitName: unit.name, message: messageText });
         }
         
         return {
@@ -246,6 +252,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             status: newStatus,
             isActive: newBattery > 0,
             timestamp: Date.now(),
+            lastMessage: newLastMessage,
         };
       });
 
@@ -267,7 +274,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
         return newHistory;
       });
       
-      messagesToSend.forEach(msg => {
+      messagesForToast.forEach(msg => {
         onUnitMessage(msg.unitName, msg.message);
       });
       
@@ -334,6 +341,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             lastMessage: {
               text: message,
               timestamp: Date.now(),
+              source: 'control',
             }
           }
         }
