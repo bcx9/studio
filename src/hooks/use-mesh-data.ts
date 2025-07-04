@@ -70,11 +70,17 @@ const names: Record<UnitType, string[]> = {
     Personnel: ['GF', 'ZF', 'MA', 'SAN', 'PA-1', 'PA-2'],
 }
 
-export function useMeshData() {
+interface UseMeshDataProps {
+  onUnitMessage: (unitName: string, message: string) => void;
+}
+
+
+export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
   const [units, setUnits] = useState<MeshUnit[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const unitsRef = useRef(units);
   unitsRef.current = units;
+  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // This effect should only run once on the client after hydration
@@ -82,7 +88,12 @@ export function useMeshData() {
       const storedState = localStorage.getItem(MESH_DATA_STORAGE_KEY);
       if (storedState) {
         const parsedUnits = JSON.parse(storedState) as MeshUnit[];
-        setUnits(parsedUnits);
+        // Filter out any invalid units from storage
+        if(Array.isArray(parsedUnits)) {
+            setUnits(parsedUnits);
+        } else {
+            setUnits(initialUnits);
+        }
       } else {
         setUnits(initialUnits);
       }
@@ -109,13 +120,17 @@ export function useMeshData() {
     };
   }, []);
 
-
-  useEffect(() => {
-    if (!isInitialized) {
-      return;
+  const stopSimulation = useCallback(() => {
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
     }
+  }, []);
 
-    const interval = setInterval(() => {
+  const startSimulation = useCallback(() => {
+    if (simulationIntervalRef.current) return; // Already running
+
+    simulationIntervalRef.current = setInterval(() => {
       setUnits(currentUnits =>
         currentUnits.map(unit => {
           if (!unit.isActive) {
@@ -129,15 +144,12 @@ export function useMeshData() {
           let newHeading = unit.heading;
           let newSpeed = unit.speed;
           
-          // Simulate more realistic movement based on unit type
           if (unit.type === 'Vehicle') {
-            // Tends to accelerate, caps at 60 km/h, less sharp turns
             newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
             if (newSpeed > 1) {
               newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
             }
-          } else { // Personnel
-            // Caps at running speed, can change direction sharply
+          } else { 
             newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
             if (newSpeed > 0.5) {
               newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
@@ -145,7 +157,7 @@ export function useMeshData() {
           }
 
           if (newSpeed > 1) {
-             const distance = (newSpeed / 3600) * 1; // 1s interval
+             const distance = (newSpeed / 3600) * 1; 
              const angleRad = (newHeading * Math.PI) / 180;
              lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
              lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
@@ -159,6 +171,12 @@ export function useMeshData() {
             else newStatus = 'Idle';
           }
 
+          // Simulate a unit sending a message back to the control center
+          if (Math.random() < 0.005 && newStatus !== 'Offline') { // ~once every 200s per active unit
+            const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
+            const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+            onUnitMessage(unit.name, messageText);
+          }
 
           return {
             ...unit,
@@ -173,9 +191,13 @@ export function useMeshData() {
         })
       );
     }, 1000);
+  }, [setUnits, onUnitMessage]);
 
-    return () => clearInterval(interval);
-  }, [isInitialized]);
+  useEffect(() => {
+    // Cleanup simulation on component unmount
+    return () => stopSimulation();
+  }, [stopSimulation]);
+
 
   const updateUnit = useCallback((updatedUnit: MeshUnit) => {
     setUnits(currentUnits =>
@@ -244,5 +266,5 @@ export function useMeshData() {
   }, []);
 
 
-  return { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits };
+  return { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits, startSimulation, stopSimulation };
 }

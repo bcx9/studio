@@ -37,7 +37,6 @@ const MapView = dynamic(() => import('@/components/map-view'), {
 
 
 export default function Home() {
-  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits } = useMeshData();
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
   const [isLeitstellePanelOpen, setLeitstellePanelOpen] = React.useState(false);
@@ -50,6 +49,17 @@ export default function Home() {
   const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
   const [isConnecting, setIsConnecting] = React.useState(false);
   const { toast } = useToast();
+
+  const handleUnitMessage = React.useCallback((unitName: string, message: string) => {
+    setGatewayLogs(prev => [...prev, `[EINGANG] ${unitName}: ${message}`]);
+    toast({
+        title: `Nachricht von ${unitName}`,
+        description: message,
+    });
+  }, [toast, setGatewayLogs]);
+
+  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits, startSimulation, stopSimulation } = useMeshData({ onUnitMessage: handleUnitMessage });
+
 
   const handleConfigureUnit = (unit: MeshUnit) => {
     setSelectedUnit(unit);
@@ -91,6 +101,7 @@ export default function Home() {
     if (result.success) {
         setGatewayStatus('connected');
         toast({ title: 'Gateway verbunden', description: result.message });
+        startSimulation();
     } else {
         setGatewayStatus('error');
         toast({ variant: 'destructive', title: 'Verbindungsfehler', description: result.message });
@@ -103,6 +114,7 @@ export default function Home() {
       setGatewayStatus('disconnected');
       setGatewayLogs(prev => [...prev, 'Verbindung durch Benutzer getrennt.']);
       toast({ title: 'Gateway getrennt' });
+      stopSimulation();
   };
   
   const handleSendMessageToAll = (message: string) => {
