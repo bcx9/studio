@@ -95,8 +95,14 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
   const [groups, setGroups] = useState<Group[]>([]);
   const [unitHistory, setUnitHistory] = useState<Record<number, UnitHistoryPoint[]>>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  
   const unitsRef = useRef(units);
   unitsRef.current = units;
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
+  const unitHistoryRef = useRef(unitHistory);
+  unitHistoryRef.current = unitHistory;
+
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refs to hold the latest values of props to avoid stale closures in setInterval
@@ -128,18 +134,19 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     setIsInitialized(true);
 
     const handleBeforeUnload = () => {
-        if(unitsRef.current.length > 0) {
-            try {
-                const stateToSave = {
-                    units: unitsRef.current,
-                    groups: groups,
-                    unitHistory: unitHistory,
-                };
-                localStorage.setItem(MESH_DATA_STORAGE_KEY, JSON.stringify(stateToSave));
-            } catch (error) {
-                console.error("Failed to save state to localStorage", error);
-            }
+      // Use refs to get the latest state, avoiding stale closures.
+      if (unitsRef.current.length > 0) {
+        try {
+          const stateToSave = {
+            units: unitsRef.current,
+            groups: groupsRef.current,
+            unitHistory: unitHistoryRef.current,
+          };
+          localStorage.setItem(MESH_DATA_STORAGE_KEY, JSON.stringify(stateToSave));
+        } catch (error) {
+          console.error("Failed to save state to localStorage", error);
         }
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
