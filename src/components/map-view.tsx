@@ -76,7 +76,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         // We need to manually set the default icon paths for Leaflet.
         // We do this inside useEffect to ensure it only runs once on the client,
         // after the L object is available.
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
             iconRetinaUrl: markerIcon2x.src,
             iconUrl: markerIcon.src,
