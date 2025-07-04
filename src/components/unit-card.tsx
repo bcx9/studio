@@ -88,7 +88,7 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
       </CardHeader>
       <CardContent className="p-4 pt-0">
       <TooltipProvider delayDuration={200}>
-        <div className="flex justify-between items-center text-xs text-muted-foreground">
+        <div className="flex justify-between items-center text-xs text-green-400">
           <Tooltip>
             <TooltipTrigger className='flex items-center gap-1'>
                 <BatteryIcon /> {unit.battery}%
