@@ -18,13 +18,12 @@ const getStatusColor = (status: MeshUnit['status'], battery: number) => {
 
 const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   const bgColor = getStatusColor(unit.status, unit.battery);
-  // Using hardcoded HSL values from the dark theme to ensure Leaflet renders them correctly.
   const borderColor = isHighlighted ? 'hsl(221, 83%, 58%)' : 'hsl(222, 47%, 15%)';
   const iconColor = 'hsl(210, 40%, 98%)';
   const scale = isHighlighted ? '1.25' : '1';
 
   const iconSvg = unit.type === 'Vehicle'
-    ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9L2 12v9c0 .6.4 1 1 1h2"/><path d="M14 17H9"/><path d="M19 17H6.5c-1 0-1.8-.6-2-1.4L2 12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9L2 12v9c0 .6.4 1 1h2"/><path d="M14 17H9"/><path d="M19 17H6.5c-1 0-1.8-.6-2-1.4L2 12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`
     : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
   const iconHtml = `
@@ -54,7 +53,6 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
 };
 
 const createControlCenterIcon = () => {
-    // Using hardcoded HSL values from the dark theme to ensure Leaflet renders them correctly.
     const primaryColor = 'hsl(221, 83%, 58%)';
     const cardColor = 'hsl(222, 47%, 11%)';
     const foregroundColor = 'hsl(210, 40%, 98%)';
@@ -138,6 +136,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     }
   }, [units]);
 
+  // Initialize map
   React.useEffect(() => {
     if (mapContainerRef.current && !mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
@@ -152,6 +151,10 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       }).addTo(map);
       
       setTimeout(() => map.invalidateSize(), 100);
+      
+      map.on('click', (e: L.LeafletMouseEvent) => {
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      });
     }
 
     return () => {
@@ -161,23 +164,9 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             mapInstanceRef.current = null;
         }
     };
-  }, []);
-
-  React.useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-
-    const handleClick = (e: L.LeafletMouseEvent) => {
-      onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-    };
-
-    map.on('click', handleClick);
-
-    return () => {
-      map.off('click', handleClick);
-    };
   }, [onMapClick]);
 
+  // Update tile layer style
   React.useEffect(() => {
       if (tileLayerRef.current && mapInstanceRef.current) {
           tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
@@ -185,61 +174,57 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       }
   }, [mapStyle]);
   
+  // Manage unit markers
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const currentMarkerIds = Object.keys(markersRef.current).map(Number);
-    const incomingUnitIds = units.map(u => u.id);
-    
-    // Remove markers for units that no longer exist
-    currentMarkerIds.forEach(id => {
-      if (!incomingUnitIds.includes(id)) {
-        markersRef.current[id].remove();
-        delete markersRef.current[id];
-      }
-    });
-
-
+    // Sync markers with units data
     units.forEach(unit => {
       if (!unit.isActive) {
-         if (markersRef.current[unit.id]) {
-            markersRef.current[unit.id].remove();
-            delete markersRef.current[unit.id];
+        // Remove marker if unit is inactive
+        if (markersRef.current[unit.id]) {
+          markersRef.current[unit.id].remove();
+          delete markersRef.current[unit.id];
         }
         return;
       }
 
       const isHighlighted = unit.id === highlightedUnitId;
-      const icon = createUnitIcon(unit, isHighlighted);
       const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
+      const icon = createUnitIcon(unit, isHighlighted);
       const tooltipContent = `
-            <strong style="font-family: Inter, sans-serif; font-size: 14px;">${unit.name}</strong><br>
-            <span style="font-family: Inter, sans-serif; font-size: 12px;">
-                Status: ${unit.status}<br>
-                Akku: ${unit.battery}%
-            </span>
-          `;
-      
-      if (markersRef.current[unit.id]) {
-        // Update existing marker
-        markersRef.current[unit.id].setLatLng(position);
-        markersRef.current[unit.id].setIcon(icon);
-        markersRef.current[unit.id].setZIndexOffset(isHighlighted ? 1000 : 0);
-        markersRef.current[unit.id].setTooltipContent(tooltipContent);
-      } else {
-        // Create new marker
-         const marker = L.marker(position, {
-            icon: icon,
-            zIndexOffset: isHighlighted ? 1000 : 0,
-        }).bindTooltip(tooltipContent).addTo(map);
+        <strong style="font-family: Inter, sans-serif; font-size: 14px;">${unit.name}</strong><br>
+        <span style="font-family: Inter, sans-serif; font-size: 12px;">
+            Status: ${unit.status}<br>
+            Akku: ${unit.battery}%
+        </span>`;
 
-        marker.on('click', () => {
-            if (onUnitClick) {
-                onUnitClick(unit.id);
-            }
-        });
+      if (markersRef.current[unit.id]) {
+        // Marker exists, update it
+        markersRef.current[unit.id]
+          .setLatLng(position)
+          .setIcon(icon)
+          .setZIndexOffset(isHighlighted ? 1000 : 0)
+          .setTooltipContent(tooltipContent);
+      } else {
+        // Marker doesn't exist, create it
+        const marker = L.marker(position, { icon, zIndexOffset: isHighlighted ? 1000 : 0 })
+          .addTo(map)
+          .bindTooltip(tooltipContent);
+
+        marker.on('click', () => onUnitClick?.(unit.id));
         markersRef.current[unit.id] = marker;
+      }
+    });
+
+    // Remove markers for units that are no longer in the units array
+    const currentMarkerIds = Object.keys(markersRef.current).map(Number);
+    const unitIds = units.map(u => u.id);
+    currentMarkerIds.forEach(id => {
+      if (!unitIds.includes(id)) {
+        markersRef.current[id].remove();
+        delete markersRef.current[id];
       }
     });
       
@@ -247,8 +232,9 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       handleRecenter();
       isInitiallyCenteredRef.current = true;
     }
-  }, [units, highlightedUnitId, handleRecenter, onUnitClick]);
+  }, [units, highlightedUnitId, onUnitClick, handleRecenter]);
 
+  // Manage control center marker
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
