@@ -166,13 +166,23 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       const messagesForToast: Array<{ unitName: string; message: string }> = [];
       const isRallyingMode = isRallyingRef.current && controlCenterPositionRef.current;
       const rallyPosition = controlCenterPositionRef.current;
+      const now = Date.now();
       
       const nextUnits = unitsRef.current.map(unit => {
         if (!unit.isActive) {
-          return {...unit, status: 'Offline'};
+          if (unit.status !== 'Offline') {
+            return { ...unit, status: 'Offline' };
+          }
+          return unit;
+        }
+
+        const timeSinceLastUpdate = (now - unit.timestamp) / 1000;
+
+        if (timeSinceLastUpdate < unit.sendInterval) {
+          return unit;
         }
         
-        const batteryDrain = unit.battery > 0 ? 0.05 / (unit.sendInterval / 5) : 0;
+        const batteryDrain = unit.battery > 0 ? 0.05 * (timeSinceLastUpdate / 5) : 0;
         const newBattery = Math.max(0, unit.battery - batteryDrain);
 
         let { lat, lng } = unit.position;
@@ -182,14 +192,14 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
         if (isRallyingMode && rallyPosition) {
           const distanceToCenter = calculateDistance(lat, lng, rallyPosition.lat, rallyPosition.lng);
 
-          if (distanceToCenter > 0.5) { // more than 500m away
+          if (distanceToCenter > 0.5) {
             newHeading = calculateBearing(lat, lng, rallyPosition.lat, rallyPosition.lng);
              if (unit.type === 'Vehicle') {
                 newSpeed = Math.max(10, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
               } else { 
                 newSpeed = Math.max(2, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
               }
-          } else { // within 500m radius, patrol
+          } else {
              if (unit.type === 'Vehicle') {
                 newSpeed = Math.max(0, Math.min(15, unit.speed + (Math.random() - 0.5) * 4)); 
                  if (newSpeed > 1) {
@@ -202,7 +212,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
                 }
             }
           }
-        } else { // Regular movement
+        } else {
             if (unit.type === 'Vehicle') {
               newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
               if (newSpeed > 1) {
@@ -217,7 +227,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
         }
 
         if (newSpeed > 1) {
-           const distance = (newSpeed / 3600) * 1; 
+           const distance = (newSpeed / 3600) * timeSinceLastUpdate; 
            const angleRad = (newHeading * Math.PI) / 180;
            lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
            lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
@@ -237,7 +247,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
           const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
           newLastMessage = {
               text: messageText,
-              timestamp: Date.now(),
+              timestamp: now,
               source: 'unit',
           };
           messagesForToast.push({ unitName: unit.name, message: messageText });
@@ -251,7 +261,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             battery: parseFloat(newBattery.toFixed(2)),
             status: newStatus,
             isActive: newBattery > 0,
-            timestamp: Date.now(),
+            timestamp: now,
             lastMessage: newLastMessage,
         };
       });
@@ -261,15 +271,17 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       setUnitHistory(prevHistory => {
         const newHistory = { ...prevHistory };
         nextUnits.forEach(unit => {
-          const currentUnitHistory = newHistory[unit.id] || [];
-          const newHistoryPoint: UnitHistoryPoint = {
-            position: unit.position,
-            status: unit.status,
-            timestamp: unit.timestamp,
-            battery: unit.battery,
-            lastMessage: unit.lastMessage,
-          };
-          newHistory[unit.id] = [newHistoryPoint, ...currentUnitHistory].slice(0, HISTORY_LIMIT);
+          if (!prevHistory[unit.id] || prevHistory[unit.id][0]?.timestamp !== unit.timestamp) {
+            const currentUnitHistory = newHistory[unit.id] || [];
+            const newHistoryPoint: UnitHistoryPoint = {
+              position: unit.position,
+              status: unit.status,
+              timestamp: unit.timestamp,
+              battery: unit.battery,
+              lastMessage: unit.lastMessage,
+            };
+            newHistory[unit.id] = [newHistoryPoint, ...currentUnitHistory].slice(0, HISTORY_LIMIT);
+          }
         });
         return newHistory;
       });
