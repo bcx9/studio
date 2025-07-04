@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   BatteryCharging,
   Milestone,
+  MessageSquare,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
 import { cn, calculateDistance } from '@/lib/utils';
@@ -22,6 +23,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { formatDistanceToNow } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 interface UnitCardProps {
   unit: MeshUnit;
@@ -65,7 +68,7 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
         className={cn("transition-all cursor-pointer", isSelected ? "border-primary shadow-lg" : "border-card hover:border-muted-foreground/50")}
         onClick={() => onSelect(unit)}
     >
-      <CardHeader className="p-4">
+      <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
             {unit.type === 'Vehicle' ? (
@@ -108,7 +111,7 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
+      <CardContent className="p-4 pt-2">
       <TooltipProvider delayDuration={200}>
         <div className="flex justify-between items-center text-xs text-green-400">
           <Tooltip>
@@ -139,6 +142,17 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
           )}
         </div>
         </TooltipProvider>
+        {unit.lastMessage && (
+            <div className="mt-3 pt-3 border-t border-muted-foreground/20">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <MessageSquare className="h-4 w-4 shrink-0 mt-0.5 text-primary/80" />
+                    <div className="flex-1">
+                        <p className="text-foreground leading-snug">{unit.lastMessage.text}</p>
+                        <p>{formatDistanceToNow(new Date(unit.lastMessage.timestamp), { addSuffix: true, locale: de })}</p>
+                    </div>
+                </div>
+            </div>
+        )}
       </CardContent>
     </Card>
   );

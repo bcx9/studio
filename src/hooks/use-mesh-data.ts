@@ -19,6 +19,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now(),
     sendInterval: 5,
     isActive: true,
+    lastMessage: null,
   },
   {
     id: 2,
@@ -32,6 +33,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now(),
     sendInterval: 10,
     isActive: true,
+    lastMessage: null,
   },
   {
     id: 3,
@@ -45,6 +47,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now(),
     sendInterval: 5,
     isActive: true,
+    lastMessage: null,
   },
     {
     id: 4,
@@ -58,6 +61,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now() - 600000,
     sendInterval: 30,
     isActive: false,
+    lastMessage: null,
   },
 ];
 
@@ -73,6 +77,7 @@ export function useMeshData() {
   unitsRef.current = units;
 
   useEffect(() => {
+    // This effect should only run once on the client after hydration
     try {
       const storedState = localStorage.getItem(MESH_DATA_STORAGE_KEY);
       if (storedState) {
@@ -124,25 +129,24 @@ export function useMeshData() {
           let newHeading = unit.heading;
           let newSpeed = unit.speed;
           
+          // Simulate more realistic movement based on unit type
           if (unit.type === 'Vehicle') {
-            // Simulate driving on roads: higher speed, less erratic turns
-            newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); // Tends to accelerate, caps at 60 km/h
+            // Tends to accelerate, caps at 60 km/h, less sharp turns
+            newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
             if (newSpeed > 1) {
-              newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; // Less sharp turns
+              newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
             }
           } else { // Personnel
-            // Simulate walking/running off-road: lower speed, more erratic turns
-            newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); // Caps at running speed
+            // Caps at running speed, can change direction sharply
+            newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
             if (newSpeed > 0.5) {
-              newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360; // Can change direction sharply
+              newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
             }
           }
 
           if (newSpeed > 1) {
              const distance = (newSpeed / 3600) * 1; // 1s interval
              const angleRad = (newHeading * Math.PI) / 180;
-             // The 0.01 scaling factor is to make movement visible on the map.
-             // It's a simplification and doesn't correspond to real-world distances.
              lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
              lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
           }
@@ -196,6 +200,7 @@ export function useMeshData() {
             timestamp: Date.now(),
             sendInterval: 10,
             isActive: true,
+            lastMessage: null,
         };
         return [...currentUnits, newUnit];
     });
@@ -221,6 +226,23 @@ export function useMeshData() {
     );
   }, []);
 
+  const sendMessageToAllUnits = useCallback((message: string) => {
+    setUnits(currentUnits => 
+      currentUnits.map(unit => {
+        if (unit.isActive) {
+          return {
+            ...unit,
+            lastMessage: {
+              text: message,
+              timestamp: Date.now(),
+            }
+          }
+        }
+        return unit;
+      })
+    )
+  }, []);
 
-  return { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized };
+
+  return { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits };
 }

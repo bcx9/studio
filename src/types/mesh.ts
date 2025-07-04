@@ -28,6 +28,11 @@ export const CODE_TO_UNIT_STATUS: { [key: number]: UnitStatus } = {
   4: 'Offline',
 };
 
+export interface UnitMessage {
+  text: string;
+  timestamp: number;
+}
+
 export interface MeshUnit {
   id: number;
   name: string;
@@ -43,4 +48,5 @@ export interface MeshUnit {
   timestamp: number; // Unix timestamp
   sendInterval: number; // seconds
   isActive: boolean;
+  lastMessage: UnitMessage | null;
 }

@@ -37,7 +37,7 @@ const MapView = dynamic(() => import('@/components/map-view'), {
 
 
 export default function Home() {
-  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized } = useMeshData();
+  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits } = useMeshData();
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
   const [isLeitstellePanelOpen, setLeitstellePanelOpen] = React.useState(false);
@@ -106,11 +106,11 @@ export default function Home() {
   };
   
   const handleSendMessageToAll = (message: string) => {
+    sendMessageToAllUnits(message);
     toast({
-      title: 'Nachricht gesendet',
-      description: `Ihre Nachricht wurde an alle Einheiten übermittelt: "${message}"`,
+      title: 'Rundnachricht gesendet',
+      description: `Ihre Nachricht wurde an alle aktiven Einheiten übermittelt.`,
     });
-    // In a real app, this would trigger an API call.
   };
 
 
