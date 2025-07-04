@@ -72,7 +72,11 @@ const RecenterAutomatically = ({ units }: { units: MeshUnit[] }) => {
     if (units.length === 0) return;
 
     const activeUnits = units.filter(u => u.isActive);
-    if (activeUnits.length === 0) return;
+    if (activeUnits.length === 0) {
+        // If no units are active, zoom out to a default view
+        map.setView([52.52, 13.405], 10);
+        return;
+    };
 
     const bounds = L.latLngBounds(activeUnits.map(u => [u.position.lat, u.position.lng]));
     if (bounds.isValid()) {
