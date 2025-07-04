@@ -15,11 +15,13 @@ import type { MeshUnit } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// This is the robust fix for Leaflet in React/Next.js environments.
-// We create a single, explicit icon instance with the correct asset paths
-// and pass it to every marker. This avoids all issues with patching
-// Leaflet's global default icon.
-const defaultIcon = L.icon({
+// This is a robust fix for Leaflet in React/Next.js environments.
+// We patch Leaflet's global default icon options to use the correctly
+// imported image assets. This must happen before any markers are created.
+// The 'delete' is a workaround for a bug in some Leaflet versions/bundlers.
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+L.Icon.Default.mergeOptions({
     iconRetinaUrl: markerIcon2x.src,
     iconUrl: markerIcon.src,
     shadowUrl: markerShadow.src,
@@ -148,7 +150,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
                 Akku: ${unit.battery}%
             </span>`;
         
-        const marker = L.marker(position, { icon: defaultIcon })
+        const marker = L.marker(position)
           .addTo(map)
           .bindTooltip(tooltipContent);
         
@@ -169,7 +171,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const tooltipContent = `<strong>Leitstelle</strong>`;
         
         const marker = L.marker(position, {
-            icon: defaultIcon,
             zIndexOffset: 1100,
         }).bindTooltip(tooltipContent).addTo(map);
 
