@@ -1,11 +1,8 @@
 
 'use client';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import * as React from 'react';
 import L, { type Map } from 'leaflet';
-import 'leaflet-defaulticon-compatibility';
-
 
 import type { MeshUnit } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
