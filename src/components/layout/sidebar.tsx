@@ -16,6 +16,7 @@ interface AppSidebarProps {
   onConfigureUnit: (unit: MeshUnit) => void;
   onCreateUnit: () => void;
   onDeleteUnit: (id: number) => void;
+  onChargeUnit: (id: number) => void;
   onUnitHover: (id: number | null) => void;
   selectedUnitId?: number | null;
   onSelectUnit: (unit: MeshUnit | null) => void;
@@ -26,6 +27,7 @@ export default function AppSidebar({
   onConfigureUnit,
   onCreateUnit,
   onDeleteUnit,
+  onChargeUnit,
   onUnitHover,
   selectedUnitId,
   onSelectUnit,
@@ -42,6 +44,7 @@ export default function AppSidebar({
           units={units} 
           onConfigureUnit={onConfigureUnit} 
           onDeleteUnit={onDeleteUnit}
+          onChargeUnit={onChargeUnit}
           onUnitHover={onUnitHover}
           selectedUnitId={selectedUnitId}
           onSelectUnit={onSelectUnit}

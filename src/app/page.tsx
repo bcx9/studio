@@ -35,7 +35,7 @@ const MapView = dynamic(() => import('@/components/map-view'), {
 
 
 export default function Home() {
-  const { units, updateUnit, addUnit, removeUnit } = useMeshData();
+  const { units, updateUnit, addUnit, removeUnit, chargeUnit } = useMeshData();
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
@@ -100,6 +100,7 @@ export default function Home() {
           onConfigureUnit={handleConfigureUnit}
           onCreateUnit={handleCreateNewUnit}
           onDeleteUnit={handleDeleteUnit}
+          onChargeUnit={chargeUnit}
           onUnitHover={setHighlightedUnitId}
           selectedUnitId={selectedUnit?.id}
           onSelectUnit={setSelectedUnit}

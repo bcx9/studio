@@ -11,6 +11,7 @@ import {
   Settings,
   Trash2,
   AlertTriangle,
+  BatteryCharging,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
 import { cn } from '@/lib/utils';
@@ -25,11 +26,12 @@ interface UnitCardProps {
   unit: MeshUnit;
   onConfigure: (unit: MeshUnit) => void;
   onDelete: (id: number) => void;
+  onCharge: (id: number) => void;
   onSelect: (unit: MeshUnit) => void;
   isSelected: boolean;
 }
 
-export default function UnitCard({ unit, onConfigure, onDelete, onSelect, isSelected }: UnitCardProps) {
+export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSelect, isSelected }: UnitCardProps) {
   const BatteryIcon = () => {
     if (!unit.isActive || unit.battery <= 0) return <Battery className="text-muted-foreground" />;
     if (unit.battery < 20) return <AlertTriangle className="h-4 w-4 text-destructive" />;
@@ -54,13 +56,33 @@ export default function UnitCard({ unit, onConfigure, onDelete, onSelect, isSele
               <StatusBadge status={unit.status} />
             </div>
           </div>
-          <div className="flex items-center gap-1">
-             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); onConfigure(unit)}}>
-                <Settings className="h-4 w-4" />
-             </Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={(e) => {e.stopPropagation(); onDelete(unit.id)}}>
-                <Trash2 className="h-4 w-4" />
-             </Button>
+          <div className="flex items-center gap-0.5">
+            <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); onCharge(unit.id)}}>
+                            <BatteryCharging className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Akku laden</TooltipContent>
+                </Tooltip>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); onConfigure(unit)}}>
+                            <Settings className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Konfigurieren</TooltipContent>
+                </Tooltip>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={(e) => {e.stopPropagation(); onDelete(unit.id)}}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Löschen</TooltipContent>
+                </Tooltip>
+             </TooltipProvider>
           </div>
         </div>
       </CardHeader>

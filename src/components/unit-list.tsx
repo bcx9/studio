@@ -11,12 +11,13 @@ interface UnitListProps {
   units: MeshUnit[];
   onConfigureUnit: (unit: MeshUnit) => void;
   onDeleteUnit: (id: number) => void;
+  onChargeUnit: (id: number) => void;
   onUnitHover: (id: number | null) => void;
   selectedUnitId?: number | null;
   onSelectUnit: (unit: MeshUnit | null) => void;
 }
 
-export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onUnitHover, selectedUnitId, onSelectUnit }: UnitListProps) {
+export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onChargeUnit, onUnitHover, selectedUnitId, onSelectUnit }: UnitListProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
 
@@ -64,6 +65,7 @@ export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onUnitH
                   unit={unit} 
                   onConfigure={onConfigureUnit} 
                   onDelete={onDeleteUnit}
+                  onCharge={onChargeUnit}
                   onSelect={onSelectUnit}
                   isSelected={unit.id === selectedUnitId}
                 />

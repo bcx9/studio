@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MeshUnit, UnitType } from '@/types/mesh';
 
+const baseCoords = { lat: 53.19745, lng: 10.84507 };
+
 const initialUnits: MeshUnit[] = [
   {
     id: 1,
     name: 'HLF-20',
     type: 'Vehicle',
     status: 'Online',
-    position: { lat: 52.52, lng: 13.405 },
+    position: { lat: baseCoords.lat, lng: baseCoords.lng },
     speed: 0,
     heading: 45,
     battery: 95,
@@ -22,7 +24,7 @@ const initialUnits: MeshUnit[] = [
     name: 'AT-1',
     type: 'Personnel',
     status: 'Online',
-    position: { lat: 52.521, lng: 13.41 },
+    position: { lat: baseCoords.lat + 0.001, lng: baseCoords.lng + 0.001 },
     speed: 3,
     heading: 180,
     battery: 88,
@@ -35,7 +37,7 @@ const initialUnits: MeshUnit[] = [
     name: 'ELW-1',
     type: 'Vehicle',
     status: 'Alarm',
-    position: { lat: 52.519, lng: 13.4 },
+    position: { lat: baseCoords.lat - 0.001, lng: baseCoords.lng - 0.001 },
     speed: 0,
     heading: 270,
     battery: 15,
@@ -48,7 +50,7 @@ const initialUnits: MeshUnit[] = [
     name: 'AT-2',
     type: 'Personnel',
     status: 'Offline',
-    position: { lat: 52.523, lng: 13.401 },
+    position: { lat: baseCoords.lat + 0.002, lng: baseCoords.lng - 0.002 },
     speed: 0,
     heading: 0,
     battery: 0,
@@ -75,7 +77,7 @@ export function useMeshData() {
           }
 
           // Simulate battery drain
-          const batteryDrain = 0.05 / (unit.sendInterval / 5);
+          const batteryDrain = unit.battery > 0 ? 0.05 / (unit.sendInterval / 5) : 0;
           const newBattery = Math.max(0, unit.battery - batteryDrain);
 
           // Simulate movement
@@ -86,15 +88,17 @@ export function useMeshData() {
           if (newSpeed > 1) {
              const distance = (newSpeed / 3600) * 1; // 1s interval
              const angleRad = (newHeading * Math.PI) / 180;
-             lat += distance * Math.cos(angleRad) * 0.05; // Scaling factor for visibility
-             lng += distance * Math.sin(angleRad) * 0.05;
+             lat += distance * Math.cos(angleRad) * 0.01; // Scaled for visibility
+             lng += distance * Math.sin(angleRad) * 0.01;
           }
 
           let newStatus = unit.status;
-          if (newBattery < 20 && newStatus !== 'Alarm') newStatus = 'Idle';
-          if (newBattery === 0) newStatus = 'Offline';
-          else if(newSpeed > 1) newStatus = 'Moving';
-          else if (unit.status !== 'Alarm') newStatus = 'Idle';
+          if (newBattery === 0) {
+            newStatus = 'Offline';
+          } else if (newStatus !== 'Alarm') {
+            if (newSpeed > 1) newStatus = 'Moving';
+            else newStatus = 'Idle';
+          }
 
 
           return {
@@ -104,6 +108,7 @@ export function useMeshData() {
             heading: parseInt(newHeading.toFixed(0)),
             battery: parseFloat(newBattery.toFixed(2)),
             status: newStatus,
+            isActive: newBattery > 0,
             timestamp: Date.now(),
           };
         })
@@ -129,7 +134,7 @@ export function useMeshData() {
             name,
             type,
             status: 'Online',
-            position: { lat: 52.52 + (Math.random() - 0.5) * 0.02, lng: 13.405 + (Math.random() - 0.5) * 0.02 },
+            position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.01, lng: baseCoords.lng + (Math.random() - 0.5) * 0.01 },
             speed: 0,
             heading: Math.floor(Math.random() * 360),
             battery: 100,
@@ -145,6 +150,22 @@ export function useMeshData() {
     setUnits(currentUnits => currentUnits.filter(u => u.id !== unitId));
   }, []);
 
+  const chargeUnit = useCallback((unitId: number) => {
+    setUnits(currentUnits =>
+      currentUnits.map(u => {
+        if (u.id === unitId) {
+          return {
+            ...u,
+            battery: 100,
+            status: u.status === 'Offline' ? 'Online' : u.status,
+            isActive: true,
+          };
+        }
+        return u;
+      })
+    );
+  }, []);
 
-  return { units, updateUnit, addUnit, removeUnit };
+
+  return { units, updateUnit, addUnit, removeUnit, chargeUnit };
 }

@@ -72,7 +72,7 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
-  const center: L.LatLngExpression = [52.52, 13.405];
+  const center: L.LatLngExpression = [53.19745, 10.84507];
 
   const handleRecenter = React.useCallback(() => {
     const map = mapInstanceRef.current;
@@ -85,8 +85,10 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
       }
+    } else {
+        map.setView(center, 13);
     }
-  }, [units]);
+  }, [units, center]);
 
   // Effect to initialize and destroy the map
   React.useEffect(() => {
@@ -116,7 +118,7 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
             mapInstanceRef.current = null;
         }
     };
-  }, []); // Empty dependency array ensures this runs only once.
+  }, [center]); // Re-run if center changes, though it's constant
 
   // Effect to update tile layer style when mapStyle changes
   React.useEffect(() => {
