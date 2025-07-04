@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import L, { type Map } from 'leaflet';
 
 import type { MeshUnit } from '@/types/mesh';
-import { Car, User, Globe, Map as MapIcon, Target } from 'lucide-react';
+import { Car, User, Globe, Map as MapIcon, Target, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -44,14 +44,30 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   });
 };
 
+const createControlCenterIcon = () => {
+    const iconHtml = renderToStaticMarkup(
+        <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-white/80 shadow-lg bg-primary">
+            <Building2 className="h-5 w-5 text-primary-foreground" />
+        </div>
+    );
+    return L.divIcon({
+        html: iconHtml,
+        className: 'bg-transparent border-0',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
+};
+
+
 interface MapViewProps {
   units: MeshUnit[];
   highlightedUnitId: number | null;
+  controlCenterPosition: { lat: number; lng: number } | null;
+  onMapClick: (position: { lat: number; lng: number }) => void;
 }
 
 type MapStyle = 'satellite' | 'street';
 
-// Move these constants outside the component to prevent re-creation on every render
 const TILE_LAYERS = {
   street: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -65,11 +81,12 @@ const TILE_LAYERS = {
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
 
 
-export default function MapView({ units, highlightedUnitId }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId, controlCenterPosition, onMapClick }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
   const markersRef = React.useRef<Record<number, L.Marker>>({});
+  const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
@@ -104,17 +121,21 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
           attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
 
-      // Invalidate size after initial creation
+      map.on('click', (e: L.LeafletMouseEvent) => {
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      });
+
       setTimeout(() => map.invalidateSize(), 100);
     }
 
     return () => {
         if (mapInstanceRef.current) {
+            mapInstanceRef.current.off('click');
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
         }
     };
-  }, []); // Empty dependency array ensures this only runs once
+  }, [onMapClick]);
 
   // Effect to update tile layer style
   React.useEffect(() => {
@@ -124,16 +145,21 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
       }
   }, [mapStyle]);
   
-  // Effect to update markers when units or highlighted unit change
+  // Effect to update unit markers
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // First, remove all existing markers from the map.
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
+    const existingMarkerIds = Object.keys(markersRef.current).map(Number);
+    const activeUnitIds = units.filter(u => u.isActive).map(u => u.id);
 
-    // Then, add markers for all currently active units.
+    existingMarkerIds.forEach(id => {
+      if (!activeUnitIds.includes(id)) {
+        markersRef.current[id].remove();
+        delete markersRef.current[id];
+      }
+    });
+
     units.forEach(unit => {
       if (!unit.isActive) {
         return;
@@ -149,13 +175,18 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
                 Akku: ${unit.battery}%
             </span>
           `;
-
-      const marker = L.marker(position, {
-        icon: icon,
-        zIndexOffset: isHighlighted ? 1000 : 0,
-      }).bindTooltip(tooltipContent).addTo(map);
       
-      markersRef.current[unit.id] = marker;
+      if (markersRef.current[unit.id]) {
+        markersRef.current[unit.id].setLatLng(position);
+        markersRef.current[unit.id].setIcon(icon);
+        markersRef.current[unit.id].setZIndexOffset(isHighlighted ? 1000 : 0);
+      } else {
+         const marker = L.marker(position, {
+          icon: icon,
+          zIndexOffset: isHighlighted ? 1000 : 0,
+        }).bindTooltip(tooltipContent).addTo(map);
+        markersRef.current[unit.id] = marker;
+      }
     });
       
     if (!isInitiallyCenteredRef.current && units.some(u => u.isActive)) {
@@ -163,6 +194,33 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
       isInitiallyCenteredRef.current = true;
     }
   }, [units, highlightedUnitId, handleRecenter]);
+
+  // Effect to manage the control center marker
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (controlCenterPosition) {
+        const icon = createControlCenterIcon();
+        const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
+        const tooltipContent = `<strong style="font-family: Inter, sans-serif; font-size: 14px;">Leitstelle</strong>`;
+
+        if (controlCenterMarkerRef.current) {
+            controlCenterMarkerRef.current.setLatLng(position);
+        } else {
+            const marker = L.marker(position, {
+                icon,
+                zIndexOffset: 1100, // Make sure it's on top
+            }).bindTooltip(tooltipContent).addTo(map);
+            controlCenterMarkerRef.current = marker;
+        }
+    } else {
+        if (controlCenterMarkerRef.current) {
+            controlCenterMarkerRef.current.remove();
+            controlCenterMarkerRef.current = null;
+        }
+    }
+  }, [controlCenterPosition]);
 
 
   return (

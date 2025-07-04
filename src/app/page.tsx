@@ -20,6 +20,7 @@ import { connectToGateway } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Keep map-view dynamic to avoid SSR issues with Leaflet
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
   loading: () => (
@@ -39,6 +40,9 @@ export default function Home() {
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
+  
+  // Add state for the control center position
+  const [controlCenterPosition, setControlCenterPosition] = React.useState<{ lat: number; lng: number } | null>(null);
 
   const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('disconnected');
   const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
@@ -66,6 +70,14 @@ export default function Home() {
       setSelectedUnit(null);
     }
   }
+  
+  const handleMapClick = (position: { lat: number; lng: number }) => {
+    setControlCenterPosition(position);
+    toast({
+        title: 'Leitstelle positioniert',
+        description: `Die Position wurde auf der Karte festgelegt.`,
+    })
+  };
 
   const handleConnect = async (settings: ConnectionSettings) => {
     setIsConnecting(true);
@@ -121,7 +133,12 @@ export default function Home() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
-                <MapView units={units} highlightedUnitId={highlightedUnitId} />
+                <MapView 
+                  units={units} 
+                  highlightedUnitId={highlightedUnitId} 
+                  onMapClick={handleMapClick}
+                  controlCenterPosition={controlCenterPosition}
+                />
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
                 <AiAnomalyDetector units={units} />
