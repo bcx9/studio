@@ -1,17 +1,14 @@
+
 'use client';
 // CSS must be imported first
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 
 import * as React from 'react';
-// Import Leaflet and the compatibility patch
 import L, { type Map } from 'leaflet';
-import 'leaflet-defaulticon-compatibility';
 
 import type { MeshUnit } from '@/types/mesh';
-import { Globe, Map as MapIcon, Target } from 'lucide-react';
+import { Globe, Map as MapIcon, Target, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
 
 interface MapViewProps {
   units: MeshUnit[];
@@ -30,10 +27,74 @@ const TILE_LAYERS = {
   },
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    attribution: 'Tiles &copy; Esri',
   },
 };
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
+
+const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
+  const isVehicle = unit.type === 'Vehicle';
+  const size = isHighlighted ? 32 : 28;
+  const color = unit.status === 'Alarm' ? '#ef4444' : '#2962FF'; // Red-500 or Primary Blue
+  const borderColor = isHighlighted ? '#ffffff' : '#f8fafc'; // White or Slate-50
+  const zIndex = isHighlighted ? 1000 : unit.id;
+
+  const iconHtml = `
+    <div style="
+      width: ${size}px;
+      height: ${size}px;
+      background-color: ${color};
+      border-radius: 50%;
+      border: 2px solid ${borderColor};
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      z-index: ${zIndex};
+    ">
+      ${isVehicle 
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16.5V18a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-1.5"/><path d="M19 16.5h.5a2.5 2.5 0 0 0 0-5H19"/><path d="M5 16.5H4.5a2.5 2.5 0 0 1 0-5H5"/><path d="M15 11.5H9v-3.41c0-.42.23-.8.6-.99l2.8-1.4a2 2 0 0 1 1.2 0l2.8 1.4c.37.19.6.57.6.99V11.5Z"/><path d="M8 12v-2"/><path d="M16 12v-2"/></svg>` 
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+      }
+    </div>
+  `;
+
+  return L.divIcon({
+    html: iconHtml,
+    className: '', // Important to have an empty class name to avoid conflicts
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+};
+
+const createControlCenterIcon = () => {
+    const size = 32;
+    const color = '#161A39'; // Dark Blue Background
+    const borderColor = '#C58BF7'; // Purple Accent
+    const iconHtml = `
+    <div style="
+      width: ${size}px;
+      height: ${size}px;
+      background-color: ${color};
+      border-radius: 50%;
+      border: 3px solid ${borderColor};
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: ${borderColor};
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    ">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 17H5.5a2.5 2.5 0 0 1 0-5H9"/><path d="M15 17h3.5a2.5 2.5 0 0 0 0-5H15"/><path d="M12 12v-2.5a4.5 4.5 0 0 1 9 0V12"/><path d="M12 12V9.5a4.5 4.5 0 0 0-9 0V12"/><path d="M12 12H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h9"/><path d="M12 12h9a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-9"/></svg>
+    </div>
+  `;
+   return L.divIcon({
+    html: iconHtml,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
 
 
 export default function MapView({ units, highlightedUnitId, controlCenterPosition, onMapClick, onUnitClick }: MapViewProps) {
@@ -46,7 +107,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
 
-  const recenterMap = React.useCallback(() => {
+  const handleRecenter = React.useCallback(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
@@ -54,13 +115,19 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
     if (activeUnits.length > 0) {
       const bounds = L.latLngBounds(activeUnits.map(u => [u.position.lat, u.position.lng]));
+      if (controlCenterPosition) {
+        bounds.extend([controlCenterPosition.lat, controlCenterPosition.lng]);
+      }
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
       }
-    } else {
+    } else if (controlCenterPosition) {
+        map.setView([controlCenterPosition.lat, controlCenterPosition.lng], 13);
+    } 
+    else {
         map.setView(INITIAL_CENTER, 13);
     }
-  }, [units]);
+  }, [units, controlCenterPosition]);
 
   // Initialize map
   React.useEffect(() => {
@@ -131,11 +198,15 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         // Marker exists, update it
         markersRef.current[unit.id]
           .setLatLng(position)
-          .setZIndexOffset(isHighlighted ? 1000 : 0)
+          .setIcon(createUnitIcon(unit, isHighlighted))
+          .setZIndexOffset(isHighlighted ? 1000 : unit.id)
           .getTooltip()?.setContent(tooltipContent);
       } else {
-        // Marker doesn't exist, create it with default icon
-        const marker = L.marker(position, { zIndexOffset: isHighlighted ? 1000 : 0 })
+        // Marker doesn't exist, create it
+        const marker = L.marker(position, { 
+            icon: createUnitIcon(unit, isHighlighted),
+            zIndexOffset: isHighlighted ? 1000 : unit.id 
+        })
           .addTo(map)
           .bindTooltip(tooltipContent);
 
@@ -159,11 +230,11 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
   // Perform initial centering
   React.useEffect(() => {
-    if (!isInitiallyCenteredRef.current && units.some(u => u.isActive)) {
-      recenterMap();
+    if (!isInitiallyCenteredRef.current && (units.some(u => u.isActive) || controlCenterPosition)) {
+      handleRecenter();
       isInitiallyCenteredRef.current = true;
     }
-  }, [units, recenterMap]);
+  }, [units, controlCenterPosition, handleRecenter]);
 
 
   // Manage control center marker
@@ -178,8 +249,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         if (controlCenterMarkerRef.current) {
             controlCenterMarkerRef.current.setLatLng(position);
         } else {
-             // Create with default icon
             const marker = L.marker(position, {
+                icon: createControlCenterIcon(),
                 zIndexOffset: 1100,
             }).bindTooltip(tooltipContent).addTo(map);
             controlCenterMarkerRef.current = marker;
@@ -200,7 +271,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         <Button
             variant="secondary"
             size="icon"
-            onClick={recenterMap}
+            onClick={handleRecenter}
             title="Auf Einheiten zentrieren"
         >
             <Target className="h-5 w-5" />
@@ -217,3 +288,4 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     </div>
   );
 }
+ 
