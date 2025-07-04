@@ -12,7 +12,7 @@ const initialUnits: MeshUnit[] = [
     name: 'HLF-20',
     type: 'Vehicle',
     status: 'Online',
-    position: { lat: baseCoords.lat, lng: baseCoords.lng },
+    position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 },
     speed: 0,
     heading: 45,
     battery: 95,
@@ -25,7 +25,7 @@ const initialUnits: MeshUnit[] = [
     name: 'AT-1',
     type: 'Personnel',
     status: 'Online',
-    position: { lat: baseCoords.lat + 0.001, lng: baseCoords.lng + 0.001 },
+    position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 },
     speed: 3,
     heading: 180,
     battery: 88,
@@ -38,7 +38,7 @@ const initialUnits: MeshUnit[] = [
     name: 'ELW-1',
     type: 'Vehicle',
     status: 'Alarm',
-    position: { lat: baseCoords.lat - 0.001, lng: baseCoords.lng - 0.001 },
+    position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 },
     speed: 0,
     heading: 270,
     battery: 15,
@@ -51,7 +51,7 @@ const initialUnits: MeshUnit[] = [
     name: 'AT-2',
     type: 'Personnel',
     status: 'Offline',
-    position: { lat: baseCoords.lat + 0.002, lng: baseCoords.lng - 0.002 },
+    position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 },
     speed: 0,
     heading: 0,
     battery: 0,
@@ -77,7 +77,7 @@ export function useMeshData() {
       const storedState = localStorage.getItem(MESH_DATA_STORAGE_KEY);
       if (storedState) {
         const parsedUnits = JSON.parse(storedState) as MeshUnit[];
-        setUnits(parsedUnits.map(unit => ({ ...unit, timestamp: Date.now() })));
+        setUnits(parsedUnits);
       } else {
         setUnits(initialUnits);
       }
@@ -121,14 +121,30 @@ export function useMeshData() {
           const newBattery = Math.max(0, unit.battery - batteryDrain);
 
           let { lat, lng } = unit.position;
-          const newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360;
-          const newSpeed = Math.max(0, unit.speed + (Math.random() - 0.5) * 2);
+          let newHeading = unit.heading;
+          let newSpeed = unit.speed;
           
+          if (unit.type === 'Vehicle') {
+            // Simulate driving on roads: higher speed, less erratic turns
+            newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); // Tends to accelerate, caps at 60 km/h
+            if (newSpeed > 1) {
+              newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; // Less sharp turns
+            }
+          } else { // Personnel
+            // Simulate walking/running off-road: lower speed, more erratic turns
+            newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); // Caps at running speed
+            if (newSpeed > 0.5) {
+              newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360; // Can change direction sharply
+            }
+          }
+
           if (newSpeed > 1) {
              const distance = (newSpeed / 3600) * 1; // 1s interval
              const angleRad = (newHeading * Math.PI) / 180;
-             lat += distance * Math.cos(angleRad) * 0.01; // Scaled for visibility
-             lng += distance * Math.sin(angleRad) * 0.01;
+             // The 0.01 scaling factor is to make movement visible on the map.
+             // It's a simplification and doesn't correspond to real-world distances.
+             lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
+             lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
           }
 
           let newStatus = unit.status;
@@ -173,7 +189,7 @@ export function useMeshData() {
             name,
             type,
             status: 'Online',
-            position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.01, lng: baseCoords.lng + (Math.random() - 0.5) * 0.01 },
+            position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 },
             speed: 0,
             heading: Math.floor(Math.random() * 360),
             battery: 100,
