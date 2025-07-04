@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { CODE_TO_UNIT_STATUS, CODE_TO_UNIT_TYPE } from '@/types/mesh';
+import type { ConnectionSettings } from '@/types/gateway';
 
 // Represents the data format for network analysis, which is compact.
 // Name is not included, as it's managed by the control center (Leitstelle) and linked via ID.
@@ -80,4 +81,38 @@ export async function getNetworkAnalysis(
     summary: 'Netzwerkstatus: Optimal',
     details: 'Alle Einheiten arbeiten innerhalb der normalen Parameter. Keine ungewöhnlichen Aktivitäten festgestellt.',
   };
+}
+
+
+export async function connectToGateway(
+    settings: ConnectionSettings
+): Promise<{ success: boolean; message: string }> {
+    console.log('Verbindungsversuch mit Einstellungen:', settings);
+
+    // WICHTIGER HINWEIS:
+    // Dies ist eine SIMULATION. In einer echten Next.js-Umgebung (besonders bei Serverless-Deployment)
+    // kann man keine persistenten Verbindungen wie zu einem seriellen Port aufbauen.
+    // Dafür wäre ein separater, langlaufender "Bridge"-Service (z.B. in Node.js oder Python) nötig,
+    // der die Daten vom Meshtastic-Gerät empfängt und an einen API-Endpunkt dieser Web-App sendet.
+
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simuliere Verbindungsaufbau
+
+    if (settings.type === 'serial' && settings.serialPort?.toLowerCase().includes('error')) {
+         return {
+            success: false,
+            message: `Fehler: Serieller Port ${settings.serialPort} konnte nicht geöffnet werden. (Simuliert)`,
+        };
+    }
+    
+    if (settings.type === 'network' && settings.ipAddress?.includes('0.0.0.0')) {
+        return {
+            success: false,
+            message: `Fehler: Verbindung zu ${settings.ipAddress}:${settings.port} fehlgeschlagen. (Simuliert)`,
+        };
+    }
+
+    return {
+        success: true,
+        message: 'Verbindung zum Gateway erfolgreich hergestellt. Warte auf Daten... (Simuliert)',
+    };
 }

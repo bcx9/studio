@@ -14,12 +14,22 @@ import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
 import { Code } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
+import GatewayConfig from '@/components/gateway-config';
+import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
+import { connectToGateway } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+
 
 export default function Home() {
   const { units, updateUnit, addUnit, removeUnit } = useMeshData();
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
+
+  const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('disconnected');
+  const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
+  const [isConnecting, setIsConnecting] = React.useState(false);
+  const { toast } = useToast();
 
   const handleConfigureUnit = (unit: MeshUnit) => {
     setSelectedUnit(unit);
@@ -43,6 +53,31 @@ export default function Home() {
     }
   }
 
+  const handleConnect = async (settings: ConnectionSettings) => {
+    setIsConnecting(true);
+    setGatewayStatus('connecting');
+    setGatewayLogs(prev => [...prev, `Verbindungsversuch zu ${settings.type === 'serial' ? settings.serialPort : `${settings.ipAddress}:${settings.port}`}...`]);
+    
+    const result = await connectToGateway(settings);
+
+    if (result.success) {
+        setGatewayStatus('connected');
+        toast({ title: 'Gateway verbunden', description: result.message });
+    } else {
+        setGatewayStatus('error');
+        toast({ variant: 'destructive', title: 'Verbindungsfehler', description: result.message });
+    }
+    setGatewayLogs(prev => [...prev, result.message]);
+    setIsConnecting(false);
+  };
+
+  const handleDisconnect = () => {
+      setGatewayStatus('disconnected');
+      setGatewayLogs(prev => [...prev, 'Verbindung durch Benutzer getrennt.']);
+      toast({ title: 'Gateway getrennt' });
+  };
+
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -65,6 +100,7 @@ export default function Home() {
                 <TabsTrigger value="map">Live-Karte</TabsTrigger>
                 <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
                 <TabsTrigger value="device-registry">Geräteverwaltung</TabsTrigger>
+                <TabsTrigger value="gateway-config">Gateway-Konfiguration</TabsTrigger>
                 <TabsTrigger value="json-view" disabled={!selectedUnit}>
                   Datenansicht
                 </TabsTrigger>
@@ -80,6 +116,15 @@ export default function Home() {
                     units={units} 
                     updateUnit={updateUnit} 
                     addUnit={handleCreateNewUnit} 
+                />
+              </TabsContent>
+               <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
+                <GatewayConfig
+                    status={gatewayStatus}
+                    logs={gatewayLogs}
+                    onConnect={handleConnect}
+                    onDisconnect={handleDisconnect}
+                    isConnecting={isConnecting}
                 />
               </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
