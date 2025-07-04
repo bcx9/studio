@@ -179,7 +179,7 @@ export default function Home() {
     });
   };
 
-  const handleRepositionAllUnits = () => {
+  const handleRepositionAllUnits = (radius: number) => {
     if (!controlCenterPosition) {
         toast({
             variant: 'destructive',
@@ -188,10 +188,10 @@ export default function Home() {
         });
         return;
     }
-    repositionAllUnits();
+    repositionAllUnits(radius);
     toast({
         title: 'Einheiten neu positioniert',
-        description: 'Alle Einheiten wurden in einem 20km-Umkreis um die Leitstelle neu positioniert.',
+        description: `Alle Einheiten wurden in einem ${radius}km-Umkreis um die Leitstelle neu positioniert.`,
     });
   };
 

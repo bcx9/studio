@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Users, PlusCircle, Save, Trash2, Edit, X, Move } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
 
 
 interface GroupManagementProps {
@@ -17,7 +18,7 @@ interface GroupManagementProps {
   onAddGroup: (name: string) => void;
   onUpdateGroup: (group: Group) => void;
   onRemoveGroup: (groupId: number) => void;
-  onRepositionAllUnits: () => void;
+  onRepositionAllUnits: (radius: number) => void;
   isRepositionPossible: boolean;
 }
 
@@ -25,6 +26,7 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
     const [newGroupName, setNewGroupName] = React.useState('');
     const [editingGroup, setEditingGroup] = React.useState<Group | null>(null);
     const [editingName, setEditingName] = React.useState('');
+    const [repositionRadius, setRepositionRadius] = React.useState(20);
     const { toast } = useToast();
 
     const handleAddGroup = () => {
@@ -52,6 +54,10 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
             handleCancelEditing();
         }
     };
+
+    const handleRepositionClick = () => {
+        onRepositionAllUnits(repositionRadius);
+    }
 
     return (
         <div className="container mx-auto max-w-4xl py-8">
@@ -152,12 +158,25 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                             <div>
                                 <h4 className="font-semibold">Einheiten neu positionieren</h4>
                                 <p className="text-sm text-muted-foreground mb-3">
-                                    Positioniert alle Einheiten zufällig in einem 20km-Radius um die Leitstelle. Nützlich, um neue Szenarien zu testen.
+                                    Positioniert alle Einheiten zufällig in einem definierten Radius um die Leitstelle. Nützlich, um neue Szenarien zu testen.
                                 </p>
-                                <Button onClick={onRepositionAllUnits} disabled={!isRepositionPossible}>
-                                    <Move className="mr-2" />
-                                    Alle Einheiten neu positionieren
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button onClick={handleRepositionClick} disabled={!isRepositionPossible}>
+                                        <Move className="mr-2" />
+                                        Alle Einheiten neu positionieren
+                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            id="radius"
+                                            type="number"
+                                            value={repositionRadius}
+                                            onChange={(e) => setRepositionRadius(Math.max(1, Number(e.target.value)))}
+                                            className="w-24"
+                                            disabled={!isRepositionPossible}
+                                        />
+                                        <Label htmlFor="radius" className="text-sm text-muted-foreground">km Radius</Label>
+                                    </div>
+                                </div>
                                 {!isRepositionPossible && (
                                     <p className="text-xs text-yellow-500 mt-2">
                                         Setzen Sie zuerst einen Leitstellen-Marker auf der Karte, um diese Funktion zu nutzen.

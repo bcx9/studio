@@ -380,14 +380,13 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     )
   }, []);
 
-  const repositionAllUnits = useCallback(() => {
+  const repositionAllUnits = useCallback((radiusKm: number) => {
     if (!controlCenterPositionRef.current) {
       console.warn("Cannot reposition units without a control center position.");
       return;
     }
 
     const { lat: centerLat, lng: centerLng } = controlCenterPositionRef.current;
-    const radiusKm = 20; // 20 km radius
     const earthRadiusKm = 6371;
 
     const toRadians = (deg: number) => deg * Math.PI / 180;
