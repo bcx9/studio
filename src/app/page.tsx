@@ -119,7 +119,7 @@ export default function Home() {
                   Datenansicht
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg">
+              <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
                 <MapView units={units} highlightedUnitId={highlightedUnitId} />
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">

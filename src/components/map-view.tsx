@@ -12,13 +12,32 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import StatusBadge from './status-badge';
 
+const InvalidateSizeWhenVisible = () => {
+  const map = useMap();
 
-interface MapViewProps {
-  units: MeshUnit[];
-  highlightedUnitId: number | null;
-}
+  React.useEffect(() => {
+    const mapContainer = map.getContainer();
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 100);
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-type MapStyle = 'satellite' | 'street';
+    observer.observe(mapContainer);
+
+    return () => {
+      observer.unobserve(mapContainer);
+    };
+  }, [map]);
+
+  return null;
+};
 
 const getStatusColorClass = (status: MeshUnit['status'], battery: number) => {
   if (status === 'Offline') return 'bg-gray-500';
@@ -84,7 +103,7 @@ const RecenterAutomatically = ({ units }: { units: MeshUnit[] }) => {
   return null;
 };
 
-const UnitMarkers = ({ units, highlightedUnitId }: MapViewProps) => {
+const UnitMarkers = ({ units, highlightedUnitId }: { units: MeshUnit[], highlightedUnitId: number | null }) => {
   return (
     <>
       {units.filter(u => u.isActive).map(unit => {
@@ -109,10 +128,19 @@ const UnitMarkers = ({ units, highlightedUnitId }: MapViewProps) => {
   );
 };
 
+
+interface MapViewProps {
+  units: MeshUnit[];
+  highlightedUnitId: number | null;
+}
+
+type MapStyle = 'satellite' | 'street';
+
+
 export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
   const center: L.LatLngExpression = [52.52, 13.405];
-  
+
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
       <MapContainer center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
@@ -122,6 +150,7 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
           url={tileLayers[mapStyle].url}
         />
         <UnitMarkers units={units} highlightedUnitId={highlightedUnitId} />
+        <InvalidateSizeWhenVisible />
       </MapContainer>
       <div className="absolute top-2 right-2 z-10">
         <Button
