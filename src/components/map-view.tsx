@@ -1,9 +1,12 @@
 
 'use client';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import L, { type Map } from 'leaflet';
+import 'leaflet-defaulticon-compatibility';
+
 
 import type { MeshUnit } from '@/types/mesh';
 import { Car, User, Globe, Map as MapIcon, Target, Building2 } from 'lucide-react';
@@ -27,7 +30,7 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   const iconHtml = renderToStaticMarkup(
     <div
       className={cn(
-        'w-7 h-7 rounded-full flex items-center justify-center border-2 border-background shadow-lg transition-transform duration-300',
+        'w-7 h-7 rounded-full flex items-center justify-center border-2 border-card shadow-lg transition-transform duration-300',
         getStatusColorClass(unit.status, unit.battery),
         isHighlighted ? 'scale-125 ring-4 ring-primary' : 'scale-100'
       )}
