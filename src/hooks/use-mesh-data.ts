@@ -99,6 +99,18 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
   unitsRef.current = units;
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Refs to hold the latest values of props to avoid stale closures in setInterval
+  const isRallyingRef = useRef(isRallying);
+  const controlCenterPositionRef = useRef(controlCenterPosition);
+
+  useEffect(() => {
+    isRallyingRef.current = isRallying;
+  }, [isRallying]);
+
+  useEffect(() => {
+    controlCenterPositionRef.current = controlCenterPosition;
+  }, [controlCenterPosition]);
+
   useEffect(() => {
     let loadedState;
     try {
@@ -152,113 +164,115 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
 
     simulationIntervalRef.current = setInterval(() => {
       const messagesToSend: Array<{ unitName: string; message: string }> = [];
-      const isRallyingMode = isRallying && controlCenterPosition;
+      const isRallyingMode = isRallyingRef.current && controlCenterPositionRef.current;
+      const rallyPosition = controlCenterPositionRef.current;
       
-      const newHistory: Record<number, UnitHistoryPoint[]> = {};
-
       const nextUnits = unitsRef.current.map(unit => {
-        let newUnitState: MeshUnit;
         if (!unit.isActive) {
-          newUnitState = {...unit, status: 'Offline'};
-        } else {
-            const batteryDrain = unit.battery > 0 ? 0.05 / (unit.sendInterval / 5) : 0;
-            const newBattery = Math.max(0, unit.battery - batteryDrain);
-
-            let { lat, lng } = unit.position;
-            let newHeading = unit.heading;
-            let newSpeed = unit.speed;
-            
-            if (isRallyingMode) {
-              const distanceToCenter = calculateDistance(lat, lng, controlCenterPosition.lat, controlCenterPosition.lng);
-
-              if (distanceToCenter > 0.5) { // more than 500m away
-                newHeading = calculateBearing(lat, lng, controlCenterPosition.lat, controlCenterPosition.lng);
-                 if (unit.type === 'Vehicle') {
-                    newSpeed = Math.max(10, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
-                  } else { 
-                    newSpeed = Math.max(2, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
-                  }
-              } else { // within 500m radius, patrol
-                 if (unit.type === 'Vehicle') {
-                    newSpeed = Math.max(0, Math.min(15, unit.speed + (Math.random() - 0.5) * 4)); 
-                     if (newSpeed > 1) {
-                        newHeading = (unit.heading + (Math.random() - 0.5) * 25) % 360; 
-                    }
-                } else { 
-                    newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.5) * 2));
-                    if (newSpeed > 0.5) {
-                        newHeading = (unit.heading + (Math.random() - 0.5) * 60) % 360;
-                    }
-                }
-              }
-            } else { // Regular movement
-                if (unit.type === 'Vehicle') {
-                  newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
-                  if (newSpeed > 1) {
-                    newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
-                  }
-                } else { 
-                  newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
-                  if (newSpeed > 0.5) {
-                    newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
-                  }
-                }
-            }
-
-            if (newSpeed > 1) {
-               const distance = (newSpeed / 3600) * 1; 
-               const angleRad = (newHeading * Math.PI) / 180;
-               lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
-               lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
-            }
-
-            let newStatus = unit.status;
-            if (newBattery === 0) {
-              newStatus = 'Offline';
-            } else if (newStatus !== 'Alarm') {
-              if (newSpeed > 1) newStatus = 'Moving';
-              else newStatus = 'Idle';
-            }
-
-            if (Math.random() < 0.005 && newStatus !== 'Offline') {
-              const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
-              const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
-              messagesToSend.push({ unitName: unit.name, message: messageText });
-            }
-            newUnitState = {
-                ...unit,
-                position: { lat, lng },
-                speed: parseFloat(newSpeed.toFixed(1)),
-                heading: parseInt(newHeading.toFixed(0)),
-                battery: parseFloat(newBattery.toFixed(2)),
-                status: newStatus,
-                isActive: newBattery > 0,
-                timestamp: Date.now(),
-            };
+          return {...unit, status: 'Offline'};
         }
         
-        const currentHistory = unitHistory[unit.id] || [];
-        const newHistoryPoint: UnitHistoryPoint = {
-            position: newUnitState.position,
-            status: newUnitState.status,
-            timestamp: newUnitState.timestamp,
-            battery: newUnitState.battery,
-            lastMessage: newUnitState.lastMessage,
-        };
-        newHistory[unit.id] = [newHistoryPoint, ...currentHistory].slice(0, HISTORY_LIMIT);
+        const batteryDrain = unit.battery > 0 ? 0.05 / (unit.sendInterval / 5) : 0;
+        const newBattery = Math.max(0, unit.battery - batteryDrain);
 
-        return newUnitState;
+        let { lat, lng } = unit.position;
+        let newHeading = unit.heading;
+        let newSpeed = unit.speed;
+        
+        if (isRallyingMode && rallyPosition) {
+          const distanceToCenter = calculateDistance(lat, lng, rallyPosition.lat, rallyPosition.lng);
+
+          if (distanceToCenter > 0.5) { // more than 500m away
+            newHeading = calculateBearing(lat, lng, rallyPosition.lat, rallyPosition.lng);
+             if (unit.type === 'Vehicle') {
+                newSpeed = Math.max(10, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
+              } else { 
+                newSpeed = Math.max(2, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
+              }
+          } else { // within 500m radius, patrol
+             if (unit.type === 'Vehicle') {
+                newSpeed = Math.max(0, Math.min(15, unit.speed + (Math.random() - 0.5) * 4)); 
+                 if (newSpeed > 1) {
+                    newHeading = (unit.heading + (Math.random() - 0.5) * 25) % 360; 
+                }
+            } else { 
+                newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.5) * 2));
+                if (newSpeed > 0.5) {
+                    newHeading = (unit.heading + (Math.random() - 0.5) * 60) % 360;
+                }
+            }
+          }
+        } else { // Regular movement
+            if (unit.type === 'Vehicle') {
+              newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
+              if (newSpeed > 1) {
+                newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
+              }
+            } else { 
+              newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
+              if (newSpeed > 0.5) {
+                newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
+              }
+            }
+        }
+
+        if (newSpeed > 1) {
+           const distance = (newSpeed / 3600) * 1; 
+           const angleRad = (newHeading * Math.PI) / 180;
+           lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
+           lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
+        }
+
+        let newStatus = unit.status;
+        if (newBattery === 0) {
+          newStatus = 'Offline';
+        } else if (newStatus !== 'Alarm') {
+          if (newSpeed > 1) newStatus = 'Moving';
+          else newStatus = 'Idle';
+        }
+
+        if (Math.random() < 0.005 && newStatus !== 'Offline') {
+          const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
+          const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+          messagesToSend.push({ unitName: unit.name, message: messageText });
+        }
+        
+        return {
+            ...unit,
+            position: { lat, lng },
+            speed: parseFloat(newSpeed.toFixed(1)),
+            heading: parseInt(newHeading.toFixed(0)),
+            battery: parseFloat(newBattery.toFixed(2)),
+            status: newStatus,
+            isActive: newBattery > 0,
+            timestamp: Date.now(),
+        };
       });
 
       setUnits(nextUnits);
-      setUnitHistory(newHistory);
+      
+      setUnitHistory(prevHistory => {
+        const newHistory = { ...prevHistory };
+        nextUnits.forEach(unit => {
+          const currentUnitHistory = newHistory[unit.id] || [];
+          const newHistoryPoint: UnitHistoryPoint = {
+            position: unit.position,
+            status: unit.status,
+            timestamp: unit.timestamp,
+            battery: unit.battery,
+            lastMessage: unit.lastMessage,
+          };
+          newHistory[unit.id] = [newHistoryPoint, ...currentUnitHistory].slice(0, HISTORY_LIMIT);
+        });
+        return newHistory;
+      });
       
       messagesToSend.forEach(msg => {
         onUnitMessage(msg.unitName, msg.message);
       });
       
     }, 1000);
-  }, [onUnitMessage, isRallying, controlCenterPosition, unitHistory]);
+  }, [onUnitMessage]);
 
   const updateUnit = useCallback((updatedUnit: MeshUnit) => {
     setUnits(currentUnits =>
