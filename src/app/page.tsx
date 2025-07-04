@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
 import { Code } from 'lucide-react';
+import DeviceRegistry from '@/components/device-registry';
 
 export default function Home() {
   const { units, updateUnit, addUnit, removeUnit } = useMeshData();
@@ -63,6 +64,7 @@ export default function Home() {
               <TabsList className="mb-4 self-start">
                 <TabsTrigger value="map">Live-Karte</TabsTrigger>
                 <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
+                <TabsTrigger value="device-registry">Geräteverwaltung</TabsTrigger>
                 <TabsTrigger value="json-view" disabled={!selectedUnit}>
                   Datenansicht
                 </TabsTrigger>
@@ -72,6 +74,9 @@ export default function Home() {
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
                 <AiAnomalyDetector units={units} />
+              </TabsContent>
+               <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
+                <DeviceRegistry units={units} updateUnit={updateUnit} />
               </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (
