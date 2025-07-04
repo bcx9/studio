@@ -45,7 +45,6 @@
     "framer-motion": "^11.2.10",
     "genkit": "^1.13.0",
     "leaflet": "^1.9.4",
-    "leaflet-defaulticon-compatibility": "^0.1.2",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
