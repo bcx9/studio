@@ -6,21 +6,22 @@ import 'leaflet/dist/leaflet.css';
 import * as React from 'react';
 import L, { type Map } from 'leaflet';
 
-// Manually import the marker icons and patch Leaflet's default icon paths.
-// This is the most robust way to fix icon issues in Next.js/Webpack.
+// Manually import the marker icons.
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// By deleting the original _getIconUrl and merging options, we force Leaflet
-// to use the correct image paths that are handled by Webpack.
-// This must be done before any markers are created.
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
+// Create a stable, explicit icon instance. This avoids issues with
+// Webpack/Next.js's asset handling and Leaflet's default icon path detection.
+const defaultIcon = L.icon({
     iconRetinaUrl: markerIcon2x.src,
     iconUrl: markerIcon.src,
     shadowUrl: markerShadow.src,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    tooltipAnchor: [16, -28],
+    shadowSize: [41, 41]
 });
 
 import type { MeshUnit } from '@/types/mesh';
@@ -144,8 +145,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
                 Akku: ${unit.battery}%
             </span>`;
         
-        // No need to pass icon options; it uses the patched default settings.
-        const marker = L.marker(position)
+        const marker = L.marker(position, { icon: defaultIcon })
           .addTo(map)
           .bindTooltip(tooltipContent);
         
@@ -165,8 +165,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
         const tooltipContent = `<strong>Leitstelle</strong>`;
         
-        // No need to pass icon options; it uses the patched default settings.
-        const marker = L.marker(position, { zIndexOffset: 1100 })
+        const marker = L.marker(position, { icon: defaultIcon, zIndexOffset: 1100 })
           .bindTooltip(tooltipContent).addTo(map);
 
         controlCenterMarkerRef.current = marker;
