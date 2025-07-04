@@ -89,7 +89,7 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
       if (storedState) {
         const parsedUnits = JSON.parse(storedState) as MeshUnit[];
         // Filter out any invalid units from storage
-        if(Array.isArray(parsedUnits)) {
+        if(Array.isArray(parsedUnits) && parsedUnits.length > 0) {
             setUnits(parsedUnits);
         } else {
             setUnits(initialUnits);
@@ -131,67 +131,74 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
     if (simulationIntervalRef.current) return; // Already running
 
     simulationIntervalRef.current = setInterval(() => {
-      setUnits(currentUnits =>
-        currentUnits.map(unit => {
-          if (!unit.isActive) {
-            return {...unit, status: 'Offline'};
-          }
+      const messagesToSend: Array<{ unitName: string; message: string }> = [];
+      
+      const nextUnits = unitsRef.current.map(unit => {
+        if (!unit.isActive) {
+          return {...unit, status: 'Offline'};
+        }
 
-          const batteryDrain = unit.battery > 0 ? 0.05 / (unit.sendInterval / 5) : 0;
-          const newBattery = Math.max(0, unit.battery - batteryDrain);
+        const batteryDrain = unit.battery > 0 ? 0.05 / (unit.sendInterval / 5) : 0;
+        const newBattery = Math.max(0, unit.battery - batteryDrain);
 
-          let { lat, lng } = unit.position;
-          let newHeading = unit.heading;
-          let newSpeed = unit.speed;
-          
-          if (unit.type === 'Vehicle') {
-            newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
-            if (newSpeed > 1) {
-              newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
-            }
-          } else { 
-            newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
-            if (newSpeed > 0.5) {
-              newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
-            }
-          }
-
+        let { lat, lng } = unit.position;
+        let newHeading = unit.heading;
+        let newSpeed = unit.speed;
+        
+        if (unit.type === 'Vehicle') {
+          newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
           if (newSpeed > 1) {
-             const distance = (newSpeed / 3600) * 1; 
-             const angleRad = (newHeading * Math.PI) / 180;
-             lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
-             lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
+            newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
           }
-
-          let newStatus = unit.status;
-          if (newBattery === 0) {
-            newStatus = 'Offline';
-          } else if (newStatus !== 'Alarm') {
-            if (newSpeed > 1) newStatus = 'Moving';
-            else newStatus = 'Idle';
+        } else { 
+          newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
+          if (newSpeed > 0.5) {
+            newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
           }
+        }
 
-          // Simulate a unit sending a message back to the control center
-          if (Math.random() < 0.005 && newStatus !== 'Offline') { // ~once every 200s per active unit
-            const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
-            const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
-            onUnitMessage(unit.name, messageText);
-          }
+        if (newSpeed > 1) {
+           const distance = (newSpeed / 3600) * 1; 
+           const angleRad = (newHeading * Math.PI) / 180;
+           lat += (distance * Math.cos(angleRad)) / 111.32 * 0.5;
+           lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180)) * 0.5;
+        }
 
-          return {
-            ...unit,
-            position: { lat, lng },
-            speed: parseFloat(newSpeed.toFixed(1)),
-            heading: parseInt(newHeading.toFixed(0)),
-            battery: parseFloat(newBattery.toFixed(2)),
-            status: newStatus,
-            isActive: newBattery > 0,
-            timestamp: Date.now(),
-          };
-        })
-      );
+        let newStatus = unit.status;
+        if (newBattery === 0) {
+          newStatus = 'Offline';
+        } else if (newStatus !== 'Alarm') {
+          if (newSpeed > 1) newStatus = 'Moving';
+          else newStatus = 'Idle';
+        }
+
+        // Simulate a unit sending a message back to the control center
+        if (Math.random() < 0.005 && newStatus !== 'Offline') { // ~once every 200s per active unit
+          const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
+          const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+          messagesToSend.push({ unitName: unit.name, message: messageText });
+        }
+
+        return {
+          ...unit,
+          position: { lat, lng },
+          speed: parseFloat(newSpeed.toFixed(1)),
+          heading: parseInt(newHeading.toFixed(0)),
+          battery: parseFloat(newBattery.toFixed(2)),
+          status: newStatus,
+          isActive: newBattery > 0,
+          timestamp: Date.now(),
+        };
+      });
+
+      setUnits(nextUnits);
+
+      messagesToSend.forEach(msg => {
+        onUnitMessage(msg.unitName, msg.message);
+      });
+      
     }, 1000);
-  }, [setUnits, onUnitMessage]);
+  }, [onUnitMessage]);
 
   useEffect(() => {
     // Cleanup simulation on component unmount
