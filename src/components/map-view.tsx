@@ -1,7 +1,6 @@
 
 'use client';
 import 'leaflet/dist/leaflet.css';
-
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import L, { type Map } from 'leaflet';
@@ -68,7 +67,7 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
-  const markersLayerRef = React.useRef<L.LayerGroup | null>(null);
+  const markersRef = React.useRef<Record<number, L.Marker>>({});
   const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
@@ -92,7 +91,6 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
 
   // Effect to initialize and destroy the map
   React.useEffect(() => {
-    // Only run if the container div exists and the map isn't already initialized.
     if (mapContainerRef.current && !mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
           center: center,
@@ -105,22 +103,19 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
           attribution: tileLayers.street.attribution,
       }).addTo(map);
 
-      markersLayerRef.current = L.layerGroup().addTo(map);
-
       // Invalidate size after initial creation
       setTimeout(() => map.invalidateSize(), 100);
     }
 
-    // Cleanup function to run when component unmounts
     return () => {
         if (mapInstanceRef.current) {
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
         }
     };
-  }, [center]); // Re-run if center changes, though it's constant
+  }, [center]);
 
-  // Effect to update tile layer style when mapStyle changes
+  // Effect to update tile layer style
   React.useEffect(() => {
       if (tileLayerRef.current) {
           tileLayerRef.current.setUrl(tileLayers[mapStyle].url);
@@ -131,30 +126,57 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   // Effect to update markers when units or highlighted unit change
   React.useEffect(() => {
       const map = mapInstanceRef.current;
-      const markersLayer = markersLayerRef.current;
-      if (!map || !markersLayer) return;
+      if (!map) return;
 
-      markersLayer.clearLayers();
-
+      const currentMarkers = markersRef.current;
       const activeUnits = units.filter(u => u.isActive);
+      const activeUnitIds = new Set(activeUnits.map(u => u.id));
 
+      // 1. Remove markers for units that are no longer active/exist
+      Object.keys(currentMarkers).forEach(unitIdStr => {
+        const unitId = Number(unitIdStr);
+        if (!activeUnitIds.has(unitId)) {
+          currentMarkers[unitId].remove();
+          delete currentMarkers[unitId];
+        }
+      });
+      
+      // 2. Add or update markers for active units
       activeUnits.forEach(unit => {
-          const isHighlighted = unit.id === highlightedUnitId;
-          const tooltipContent = `
+        const isHighlighted = unit.id === highlightedUnitId;
+        const icon = createUnitIcon(unit, isHighlighted);
+        const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
+        const tooltipContent = `
             <strong style="font-family: Inter, sans-serif; font-size: 14px;">${unit.name}</strong><br>
             <span style="font-family: Inter, sans-serif; font-size: 12px;">
                 Status: ${unit.status}<br>
                 Akku: ${unit.battery}%
             </span>
           `;
-          const marker = L.marker([unit.position.lat, unit.position.lng], {
-              icon: createUnitIcon(unit, isHighlighted),
+
+        if (currentMarkers[unit.id]) {
+          // Marker exists: update position, icon, and z-index
+          const marker = currentMarkers[unit.id];
+          marker.setLatLng(position);
+          marker.setIcon(icon);
+          marker.setZIndexOffset(isHighlighted ? 1000 : 0);
+
+          if (marker.getTooltip()) {
+            marker.setTooltipContent(tooltipContent);
+          } else {
+            marker.bindTooltip(tooltipContent);
+          }
+        } else {
+          // Marker doesn't exist: create and add it
+          const marker = L.marker(position, {
+              icon: icon,
               zIndexOffset: isHighlighted ? 1000 : 0,
-          }).bindTooltip(tooltipContent);
-          markersLayer.addLayer(marker);
+          }).bindTooltip(tooltipContent).addTo(map);
+
+          currentMarkers[unit.id] = marker;
+        }
       });
       
-      // Auto-recenter logic, but only on the first load of units
       if (!isInitiallyCenteredRef.current && activeUnits.length > 0) {
         handleRecenter();
         isInitiallyCenteredRef.current = true;
