@@ -116,6 +116,7 @@ export default function Home() {
           onUnitHover={setHighlightedUnitId}
           selectedUnitId={selectedUnit?.id}
           onSelectUnit={setSelectedUnit}
+          controlCenterPosition={controlCenterPosition}
         />
       </Sidebar>
       <SidebarInset>

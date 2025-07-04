@@ -15,9 +15,10 @@ interface UnitListProps {
   onUnitHover: (id: number | null) => void;
   selectedUnitId?: number | null;
   onSelectUnit: (unit: MeshUnit | null) => void;
+  controlCenterPosition: { lat: number; lng: number } | null;
 }
 
-export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onChargeUnit, onUnitHover, selectedUnitId, onSelectUnit }: UnitListProps) {
+export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onChargeUnit, onUnitHover, selectedUnitId, onSelectUnit, controlCenterPosition }: UnitListProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
 
@@ -68,6 +69,7 @@ export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onCharg
                   onCharge={onChargeUnit}
                   onSelect={onSelectUnit}
                   isSelected={unit.id === selectedUnitId}
+                  controlCenterPosition={controlCenterPosition}
                 />
               </motion.div>
             ))}

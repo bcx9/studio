@@ -20,6 +20,7 @@ interface AppSidebarProps {
   onUnitHover: (id: number | null) => void;
   selectedUnitId?: number | null;
   onSelectUnit: (unit: MeshUnit | null) => void;
+  controlCenterPosition: { lat: number; lng: number } | null;
 }
 
 export default function AppSidebar({
@@ -31,6 +32,7 @@ export default function AppSidebar({
   onUnitHover,
   selectedUnitId,
   onSelectUnit,
+  controlCenterPosition,
 }: AppSidebarProps) {
   return (
     <>
@@ -48,6 +50,7 @@ export default function AppSidebar({
           onUnitHover={onUnitHover}
           selectedUnitId={selectedUnitId}
           onSelectUnit={onSelectUnit}
+          controlCenterPosition={controlCenterPosition}
         />
       </SidebarContent>
       <SidebarFooter>

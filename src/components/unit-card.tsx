@@ -12,9 +12,10 @@ import {
   Trash2,
   AlertTriangle,
   BatteryCharging,
+  Milestone,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
-import { cn } from '@/lib/utils';
+import { cn, calculateDistance } from '@/lib/utils';
 import {
   Tooltip,
   TooltipContent,
@@ -29,14 +30,35 @@ interface UnitCardProps {
   onCharge: (id: number) => void;
   onSelect: (unit: MeshUnit) => void;
   isSelected: boolean;
+  controlCenterPosition: { lat: number; lng: number } | null;
 }
 
-export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSelect, isSelected }: UnitCardProps) {
+export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSelect, isSelected, controlCenterPosition }: UnitCardProps) {
   const BatteryIcon = () => {
     if (!unit.isActive || unit.battery <= 0) return <Battery className="text-muted-foreground" />;
     if (unit.battery < 20) return <AlertTriangle className="h-4 w-4 text-destructive" />;
     return <Battery className="text-green-500" />;
   };
+
+  const distanceToCenter = controlCenterPosition
+    ? calculateDistance(
+        unit.position.lat,
+        unit.position.lng,
+        controlCenterPosition.lat,
+        controlCenterPosition.lng
+      )
+    : null;
+
+  const formatDistance = (distance: number | null) => {
+    if (distance === null) return null;
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)} m`;
+    }
+    return `${distance.toFixed(2)} km`;
+  };
+  
+  const formattedDistance = formatDistance(distanceToCenter);
+
 
   return (
     <Card 
@@ -107,6 +129,14 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
             </TooltipTrigger>
             <TooltipContent>Richtung</TooltipContent>
           </Tooltip>
+          {formattedDistance && (
+            <Tooltip>
+              <TooltipTrigger className='flex items-center gap-1'>
+                  <Milestone className="h-4 w-4" /> {formattedDistance}
+              </TooltipTrigger>
+              <TooltipContent>Entfernung zur Leitstelle</TooltipContent>
+            </Tooltip>
+          )}
         </div>
         </TooltipProvider>
       </CardContent>
