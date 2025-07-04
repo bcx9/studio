@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Lightbulb, Zap, AlertTriangle } from 'lucide-react';
 import { getNetworkAnalysis } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UNIT_STATUS_TO_CODE, UNIT_TYPE_TO_CODE } from '@/types/mesh';
 
 interface AiAnomalyDetectorProps {
   units: MeshUnit[];
@@ -20,7 +21,23 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
     setIsLoading(true);
     setAnalysis(null);
     try {
-      const result = await getNetworkAnalysis(units);
+      // --- Compaction Step ---
+      // Transform the hydrated frontend data into a compact format for the server action.
+      // This simulates sending efficient messages over a real network.
+      const compactUnits = units.map(unit => ({
+        id: unit.id,
+        type: UNIT_TYPE_TO_CODE[unit.type],
+        status: UNIT_STATUS_TO_CODE[unit.status],
+        position: unit.position,
+        speed: unit.speed,
+        heading: unit.heading,
+        battery: unit.battery,
+        timestamp: unit.timestamp,
+        sendInterval: unit.sendInterval,
+        isActive: unit.isActive,
+      }));
+
+      const result = await getNetworkAnalysis(compactUnits);
       setAnalysis(result);
     } catch (error) {
       console.error('Analyse fehlgeschlagen:', error);
