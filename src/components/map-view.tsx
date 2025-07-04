@@ -1,43 +1,15 @@
+
 'use client';
 import 'leaflet/dist/leaflet.css';
 
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, useMap, Tooltip as LeafletTooltip } from 'react-leaflet';
+import L, { type Map } from 'leaflet';
 
 import type { MeshUnit } from '@/types/mesh';
 import { Car, User, Globe, Map as MapIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import StatusBadge from './status-badge';
-
-const InvalidateSizeWhenVisible = () => {
-  const map = useMap();
-
-  React.useEffect(() => {
-    const mapContainer = map.getContainer();
-    
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => {
-            map.invalidateSize();
-          }, 100); 
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(mapContainer);
-
-    return () => {
-      observer.unobserve(mapContainer);
-    };
-  }, [map]);
-
-  return null;
-};
 
 const getStatusColorClass = (status: MeshUnit['status'], battery: number) => {
   if (status === 'Offline') return 'bg-gray-500';
@@ -73,6 +45,13 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   });
 };
 
+interface MapViewProps {
+  units: MeshUnit[];
+  highlightedUnitId: number | null;
+}
+
+type MapStyle = 'satellite' | 'street';
+
 const tileLayers = {
   street: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -84,74 +63,93 @@ const tileLayers = {
   },
 };
 
-const RecenterAutomatically = ({ units }: { units: MeshUnit[] }) => {
-  const map = useMap();
-  React.useEffect(() => {
-    if (units.length === 0) return;
-
-    const activeUnits = units.filter(u => u.isActive);
-    if (activeUnits.length === 0) {
-        map.setView([52.52, 13.405], 10);
-        return;
-    };
-
-    const bounds = L.latLngBounds(activeUnits.map(u => [u.position.lat, u.position.lng]));
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-    }
-  }, [units, map]);
-  return null;
-};
-
-const UnitMarkers = ({ units, highlightedUnitId }: { units: MeshUnit[], highlightedUnitId: number | null }) => {
-  return (
-    <>
-      {units.filter(u => u.isActive).map(unit => {
-        const isHighlighted = unit.id === highlightedUnitId;
-        return (
-          <Marker
-            key={unit.id}
-            position={[unit.position.lat, unit.position.lng]}
-            icon={createUnitIcon(unit, isHighlighted)}
-            zIndexOffset={isHighlighted ? 1000 : 0}
-          >
-            <LeafletTooltip>
-              <p className='font-bold'>{unit.name}</p>
-              <div className='flex items-center gap-1.5'>Status: <StatusBadge status={unit.status} /></div>
-              <p>Akku: {unit.battery}%</p>
-            </LeafletTooltip>
-          </Marker>
-        );
-      })}
-      <RecenterAutomatically units={units} />
-    </>
-  );
-};
-
-
-interface MapViewProps {
-  units: MeshUnit[];
-  highlightedUnitId: number | null;
-}
-
-type MapStyle = 'satellite' | 'street';
-
 
 export default function MapView({ units, highlightedUnitId }: MapViewProps) {
+  const mapContainerRef = React.useRef<HTMLDivElement>(null);
+  const mapInstanceRef = React.useRef<Map | null>(null);
+  const tileLayerRef = React.useRef<L.TileLayer | null>(null);
+  const markersLayerRef = React.useRef<L.LayerGroup | null>(null);
+  
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
   const center: L.LatLngExpression = [52.52, 13.405];
 
+  // Effect to initialize and destroy the map
+  React.useEffect(() => {
+    // Only run if the container div exists and the map isn't already initialized.
+    if (mapContainerRef.current && !mapInstanceRef.current) {
+      const map = L.map(mapContainerRef.current, {
+          center: center,
+          zoom: 13,
+          scrollWheelZoom: true,
+      });
+      mapInstanceRef.current = map;
+
+      tileLayerRef.current = L.tileLayer(tileLayers.street.url, {
+          attribution: tileLayers.street.attribution,
+      }).addTo(map);
+
+      markersLayerRef.current = L.layerGroup().addTo(map);
+
+      // Invalidate size after initial creation
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+
+    // Cleanup function to run when component unmounts
+    return () => {
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+        }
+    };
+  }, []); // Empty dependency array ensures this runs only once.
+
+  // Effect to update tile layer style when mapStyle changes
+  React.useEffect(() => {
+      if (tileLayerRef.current) {
+          tileLayerRef.current.setUrl(tileLayers[mapStyle].url);
+          tileLayerRef.current.options.attribution = tileLayers[mapStyle].attribution;
+      }
+  }, [mapStyle]);
+  
+  // Effect to update markers when units or highlighted unit change
+  React.useEffect(() => {
+      const map = mapInstanceRef.current;
+      const markersLayer = markersLayerRef.current;
+      if (!map || !markersLayer) return;
+
+      markersLayer.clearLayers();
+
+      const activeUnits = units.filter(u => u.isActive);
+
+      activeUnits.forEach(unit => {
+          const isHighlighted = unit.id === highlightedUnitId;
+          const tooltipContent = `
+            <strong style="font-family: Inter, sans-serif; font-size: 14px;">${unit.name}</strong><br>
+            <span style="font-family: Inter, sans-serif; font-size: 12px;">
+                Status: ${unit.status}<br>
+                Akku: ${unit.battery}%
+            </span>
+          `;
+          const marker = L.marker([unit.position.lat, unit.position.lng], {
+              icon: createUnitIcon(unit, isHighlighted),
+              zIndexOffset: isHighlighted ? 1000 : 0,
+          }).bindTooltip(tooltipContent);
+          markersLayer.addLayer(marker);
+      });
+      
+      // Auto-recenter logic
+      if (activeUnits.length > 0) {
+          const bounds = L.latLngBounds(activeUnits.map(u => [u.position.lat, u.position.lng]));
+          if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+          }
+      }
+  }, [units, highlightedUnitId]);
+
+
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
-      <MapContainer center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
-        <TileLayer
-          key={mapStyle}
-          attribution={tileLayers[mapStyle].attribution}
-          url={tileLayers[mapStyle].url}
-        />
-        <UnitMarkers units={units} highlightedUnitId={highlightedUnitId} />
-        <InvalidateSizeWhenVisible />
-      </MapContainer>
+      <div ref={mapContainerRef} className="h-full w-full z-0" />
       <div className="absolute top-2 right-2 z-10">
         <Button
           variant="secondary"
