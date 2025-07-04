@@ -1,92 +1,16 @@
-
 'use client';
+// CSS must be imported first
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import 'leaflet-defaulticon-compatibility';
+
 import * as React from 'react';
+// Import Leaflet and the compatibility patch
 import L, { type Map } from 'leaflet';
+import 'leaflet-defaulticon-compatibility';
 
 import type { MeshUnit } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const getStatusColor = (status: MeshUnit['status'], battery: number) => {
-  if (status === 'Offline') return 'hsl(215, 14%, 34%)'; // gray-500
-  if (status === 'Alarm') return 'hsl(0, 72%, 51%)'; // red-500
-  if (battery < 20) return 'hsl(45, 93%, 47%)'; // yellow-500
-  if (status === 'Moving') return 'hsl(142, 64%, 42%)'; // green-500
-  return 'hsl(217, 91%, 60%)'; // blue-500
-};
-
-const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
-  const bgColor = getStatusColor(unit.status, unit.battery);
-  const borderColor = isHighlighted ? 'hsl(221, 83%, 58%)' : 'hsl(222, 47%, 15%)';
-  const iconColor = 'hsl(210, 40%, 98%)';
-  const scale = isHighlighted ? '1.25' : '1';
-
-  const iconSvg = unit.type === 'Vehicle'
-    ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9L2 12v9c0 .6.4 1 1h2"/><path d="M14 17H9"/><path d="M19 17H6.5c-1 0-1.8-.6-2-1.4L2 12"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`
-    : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-
-  const iconHtml = `
-    <div style="
-      width: 28px; 
-      height: 28px; 
-      border-radius: 50%; 
-      background-color: ${bgColor}; 
-      border: 3px solid ${borderColor};
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      transform: scale(${scale});
-      transition: transform 0.2s ease-out;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    ">
-      ${iconSvg}
-    </div>
-  `;
-
-  return L.divIcon({
-    html: iconHtml,
-    className: '', 
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-  });
-};
-
-const createControlCenterIcon = () => {
-    const primaryColor = 'hsl(221, 83%, 58%)';
-    const cardColor = 'hsl(222, 47%, 11%)';
-    const foregroundColor = 'hsl(210, 40%, 98%)';
-
-    const iconHtml = `
-      <div style="
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: ${primaryColor};
-        border: 2px solid ${cardColor};
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      ">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${foregroundColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22v-5"/>
-          <path d="M9 17H5.5a2.5 2.5 0 0 1-2.5-2.5V7.5A2.5 2.5 0 0 1 5.5 5H7"/>
-          <path d="M17 5h1.5a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1-2.5 2.5H15"/>
-          <path d="M7 17v-1a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>
-          <path d="M7 5V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>
-        </svg>
-      </div>
-    `;
-    return L.divIcon({
-        html: iconHtml,
-        className: '',
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-    });
-};
 
 
 interface MapViewProps {
@@ -196,10 +120,9 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
       const isHighlighted = unit.id === highlightedUnitId;
       const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
-      const icon = createUnitIcon(unit, isHighlighted);
       const tooltipContent = `
-        <strong style="font-family: Inter, sans-serif; font-size: 14px;">${unit.name}</strong><br>
-        <span style="font-family: Inter, sans-serif; font-size: 12px;">
+        <strong>${unit.name}</strong><br>
+        <span>
             Status: ${unit.status}<br>
             Akku: ${unit.battery}%
         </span>`;
@@ -208,12 +131,11 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         // Marker exists, update it
         markersRef.current[unit.id]
           .setLatLng(position)
-          .setIcon(icon)
           .setZIndexOffset(isHighlighted ? 1000 : 0)
           .getTooltip()?.setContent(tooltipContent);
       } else {
-        // Marker doesn't exist, create it
-        const marker = L.marker(position, { icon, zIndexOffset: isHighlighted ? 1000 : 0 })
+        // Marker doesn't exist, create it with default icon
+        const marker = L.marker(position, { zIndexOffset: isHighlighted ? 1000 : 0 })
           .addTo(map)
           .bindTooltip(tooltipContent);
 
@@ -250,15 +172,14 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     if (!map) return;
 
     if (controlCenterPosition) {
-        const icon = createControlCenterIcon();
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
-        const tooltipContent = `<strong style="font-family: Inter, sans-serif; font-size: 14px;">Leitstelle</strong>`;
+        const tooltipContent = `<strong>Leitstelle</strong>`;
 
         if (controlCenterMarkerRef.current) {
             controlCenterMarkerRef.current.setLatLng(position);
         } else {
+             // Create with default icon
             const marker = L.marker(position, {
-                icon,
                 zIndexOffset: 1100,
             }).bindTooltip(tooltipContent).addTo(map);
             controlCenterMarkerRef.current = marker;
