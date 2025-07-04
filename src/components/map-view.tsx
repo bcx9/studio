@@ -85,10 +85,11 @@ const RecenterAutomatically = ({ units }: { units: MeshUnit[] }) => {
 export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
   const center: L.LatLngExpression = [52.52, 13.405]; // Fallback to Berlin center
+  const mapKey = React.useId();
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
-      <MapContainer center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
+      <MapContainer key={mapKey} center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
         <TileLayer
           key={mapStyle}
           attribution={tileLayers[mapStyle].attribution}
