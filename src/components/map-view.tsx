@@ -126,28 +126,23 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   
   // Effect to update markers when units or highlighted unit change
   React.useEffect(() => {
-      const map = mapInstanceRef.current;
-      if (!map) return;
+    const map = mapInstanceRef.current;
+    if (!map) return;
 
-      const currentMarkers = markersRef.current;
-      const activeUnits = units.filter(u => u.isActive);
-      const activeUnitIds = new Set(activeUnits.map(u => u.id));
+    // First, remove all existing markers from the map.
+    Object.values(markersRef.current).forEach(marker => marker.remove());
+    markersRef.current = {};
 
-      // 1. Remove markers for units that are no longer active/exist
-      Object.keys(currentMarkers).forEach(unitIdStr => {
-        const unitId = Number(unitIdStr);
-        if (!activeUnitIds.has(unitId)) {
-          currentMarkers[unitId].remove();
-          delete currentMarkers[unitId];
-        }
-      });
-      
-      // 2. Add or update markers for active units
-      activeUnits.forEach(unit => {
-        const isHighlighted = unit.id === highlightedUnitId;
-        const icon = createUnitIcon(unit, isHighlighted);
-        const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
-        const tooltipContent = `
+    // Then, add markers for all currently active units.
+    units.forEach(unit => {
+      if (!unit.isActive) {
+        return;
+      }
+
+      const isHighlighted = unit.id === highlightedUnitId;
+      const icon = createUnitIcon(unit, isHighlighted);
+      const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
+      const tooltipContent = `
             <strong style="font-family: Inter, sans-serif; font-size: 14px;">${unit.name}</strong><br>
             <span style="font-family: Inter, sans-serif; font-size: 12px;">
                 Status: ${unit.status}<br>
@@ -155,33 +150,18 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
             </span>
           `;
 
-        if (currentMarkers[unit.id]) {
-          // Marker exists: update position, icon, and z-index
-          const marker = currentMarkers[unit.id];
-          marker.setLatLng(position);
-          marker.setIcon(icon);
-          marker.setZIndexOffset(isHighlighted ? 1000 : 0);
-
-          if (marker.getTooltip()) {
-            marker.setTooltipContent(tooltipContent);
-          } else {
-            marker.bindTooltip(tooltipContent);
-          }
-        } else {
-          // Marker doesn't exist: create and add it
-          const marker = L.marker(position, {
-              icon: icon,
-              zIndexOffset: isHighlighted ? 1000 : 0,
-          }).bindTooltip(tooltipContent).addTo(map);
-
-          currentMarkers[unit.id] = marker;
-        }
-      });
+      const marker = L.marker(position, {
+        icon: icon,
+        zIndexOffset: isHighlighted ? 1000 : 0,
+      }).bindTooltip(tooltipContent).addTo(map);
       
-      if (!isInitiallyCenteredRef.current && activeUnits.length > 0) {
-        handleRecenter();
-        isInitiallyCenteredRef.current = true;
-      }
+      markersRef.current[unit.id] = marker;
+    });
+      
+    if (!isInitiallyCenteredRef.current && units.some(u => u.isActive)) {
+      handleRecenter();
+      isInitiallyCenteredRef.current = true;
+    }
   }, [units, highlightedUnitId, handleRecenter]);
 
 
