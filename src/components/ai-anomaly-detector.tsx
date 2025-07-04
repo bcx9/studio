@@ -37,7 +37,13 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
         isActive: unit.isActive,
       }));
 
-      const result = await getNetworkAnalysis(compactUnits);
+      // Create a map of IDs to names to simulate the central registry lookup on the server.
+      const unitNames = units.reduce((acc, unit) => {
+        acc[unit.id] = unit.name;
+        return acc;
+      }, {} as Record<number, string>);
+
+      const result = await getNetworkAnalysis(compactUnits, unitNames);
       setAnalysis(result);
     } catch (error) {
       console.error('Analyse fehlgeschlagen:', error);

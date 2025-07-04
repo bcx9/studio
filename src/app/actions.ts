@@ -21,7 +21,8 @@ const compactUnitSchema = z.object({
 const analyzeNetworkSchema = z.array(compactUnitSchema);
 
 export async function getNetworkAnalysis(
-  compactUnitsData: z.infer<typeof analyzeNetworkSchema>
+  compactUnitsData: z.infer<typeof analyzeNetworkSchema>,
+  unitNames: Record<number, string>
 ): Promise<{ summary: string; details: string }> {
   const validation = analyzeNetworkSchema.safeParse(compactUnitsData);
   if (!validation.success) {
@@ -30,12 +31,11 @@ export async function getNetworkAnalysis(
   const compactUnits = validation.data;
 
   // --- Hydration Step ---
-  // The server receives compact data and "hydrates" it for its internal logic.
+  // The server receives compact data and "hydrates" it with centrally stored information (names).
   const hydratedUnits = compactUnits.map(unit => ({
     ...unit,
-    // On the server, we use the ID to look up the name. For this simulation, we'll just use the ID as a placeholder.
-    // The key point is that the name is not transmitted over the "network".
-    name: `Einheit #${unit.id}`,
+    // The name is now retrieved from the provided map, which simulates the central registry.
+    name: unitNames[unit.id] || `Unbekannte Einheit #${unit.id}`,
     type: CODE_TO_UNIT_TYPE[unit.type] || 'Vehicle',
     status: CODE_TO_UNIT_STATUS[unit.status] || 'Offline',
   }));
