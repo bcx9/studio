@@ -73,7 +73,6 @@ const RecenterAutomatically = ({ units }: { units: MeshUnit[] }) => {
 
     const activeUnits = units.filter(u => u.isActive);
     if (activeUnits.length === 0) {
-        // If no units are active, zoom out to a default view
         map.setView([52.52, 13.405], 10);
         return;
     };
@@ -86,7 +85,32 @@ const RecenterAutomatically = ({ units }: { units: MeshUnit[] }) => {
   return null;
 };
 
-export default function MapView({ units, highlightedUnitId }: MapViewProps) {
+const UnitMarkers = ({ units, highlightedUnitId }: MapViewProps) => {
+  return (
+    <>
+      {units.filter(u => u.isActive).map(unit => {
+        const isHighlighted = unit.id === highlightedUnitId;
+        return (
+          <Marker
+            key={unit.id}
+            position={[unit.position.lat, unit.position.lng]}
+            icon={createUnitIcon(unit, isHighlighted)}
+            zIndexOffset={isHighlighted ? 1000 : 0}
+          >
+            <LeafletTooltip>
+              <p className='font-bold'>{unit.name}</p>
+              <div className='flex items-center gap-1.5'>Status: <StatusBadge status={unit.status} /></div>
+              <p>Akku: {unit.battery}%</p>
+            </LeafletTooltip>
+          </Marker>
+        );
+      })}
+      <RecenterAutomatically units={units} />
+    </>
+  );
+};
+
+const MapView = React.memo(function MapView({ units, highlightedUnitId }: MapViewProps) {
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
   const center: L.LatLngExpression = [52.52, 13.405];
 
@@ -98,24 +122,7 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
           attribution={tileLayers[mapStyle].attribution}
           url={tileLayers[mapStyle].url}
         />
-        {units.filter(u => u.isActive).map(unit => {
-          const isHighlighted = unit.id === highlightedUnitId;
-          return (
-            <Marker
-              key={unit.id}
-              position={[unit.position.lat, unit.position.lng]}
-              icon={createUnitIcon(unit, isHighlighted)}
-              zIndexOffset={isHighlighted ? 1000 : 0}
-            >
-              <LeafletTooltip>
-                <p className='font-bold'>{unit.name}</p>
-                <div className='flex items-center gap-1.5'>Status: <StatusBadge status={unit.status} /></div>
-                <p>Akku: {unit.battery}%</p>
-              </LeafletTooltip>
-            </Marker>
-          );
-        })}
-        <RecenterAutomatically units={units} />
+        <UnitMarkers units={units} highlightedUnitId={highlightedUnitId} />
       </MapContainer>
       <div className="absolute top-2 right-2 z-10">
         <Button
@@ -129,4 +136,6 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
       </div>
     </div>
   );
-}
+});
+
+export default MapView;
