@@ -85,15 +85,10 @@ const RecenterAutomatically = ({ units }: { units: MeshUnit[] }) => {
 export default function MapView({ units, highlightedUnitId }: MapViewProps) {
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
   const center: L.LatLngExpression = [52.52, 13.405];
-  
-  // This key is stable for a component instance, but a new one is generated
-  // if the component is unmounted and remounted. This is the key to fixing the
-  // "container already initialized" error in development environments.
-  const mapKey = React.useMemo(() => Math.random(), []);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
-      <MapContainer key={mapKey} center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
+      <MapContainer center={center} zoom={13} scrollWheelZoom={true} className="h-full w-full z-0">
         <TileLayer
           key={mapStyle}
           attribution={tileLayers[mapStyle].attribution}

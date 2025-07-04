@@ -119,20 +119,20 @@ export default function Home() {
                   Datenansicht
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg">
+              <TabsContent forceMount value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden">
                 <MapView units={units} highlightedUnitId={highlightedUnitId} />
               </TabsContent>
-              <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
+              <TabsContent forceMount value="ai-monitor" className="flex-1 overflow-y-auto data-[state=inactive]:hidden">
                 <AiAnomalyDetector units={units} />
               </TabsContent>
-               <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
+               <TabsContent forceMount value="device-registry" className="flex-1 overflow-y-auto data-[state=inactive]:hidden">
                 <DeviceRegistry 
                     units={units} 
                     updateUnit={updateUnit} 
                     addUnit={handleCreateNewUnit} 
                 />
               </TabsContent>
-               <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
+               <TabsContent forceMount value="gateway-config" className="flex-1 overflow-y-auto data-[state=inactive]:hidden">
                 <GatewayConfig
                     status={gatewayStatus}
                     logs={gatewayLogs}
@@ -141,7 +141,7 @@ export default function Home() {
                     isConnecting={isConnecting}
                 />
               </TabsContent>
-               <TabsContent value="json-view" className="flex-1 overflow-y-auto">
+               <TabsContent forceMount value="json-view" className="flex-1 overflow-y-auto data-[state=inactive]:hidden">
                 {selectedUnit ? (
                   <JsonView unit={selectedUnit} />
                 ) : (
