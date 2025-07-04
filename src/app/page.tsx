@@ -45,7 +45,7 @@ export default function Home() {
   const [isLeitstellePanelOpen, setLeitstellePanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
   
-  const [controlCenterPosition, setControlCenterPosition] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [controlCenterPosition, setControlCenterPosition] = React.useState<{ lat: number; lng: number } | null>({ lat: 53.19745, lng: 10.84507 });
   const [isRallying, setIsRallying] = React.useState(false);
 
   const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('disconnected');
