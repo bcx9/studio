@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import * as React from 'react';
 import L, { type Map } from 'leaflet';
 
-import type { MeshUnit, UnitStatus } from '@/types/mesh';
+import type { MeshUnit, UnitStatus, UnitType } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -41,16 +41,37 @@ const STATUS_COLORS: Record<UnitStatus, string> = {
   Offline: '#9ca3af',   // tailwind gray-400
 };
 
-const createStatusIcon = (status: UnitStatus, isHighlighted: boolean) => {
+const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
   const color = STATUS_COLORS[status] || '#9ca3af';
   const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
   const highlightDropShadow = isHighlighted ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]' : '';
+
+  // SVG paths for lucide icons (Car and User)
+  const iconPaths = {
+    Vehicle: `
+      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1 1h2"></path>
+      <path d="M14 17h-4"></path>
+      <path d="M15 7h-5"></path>
+      <path d="M5 17v-4h4"></path>
+      <circle cx="7" cy="17" r="2"></circle>
+      <circle cx="17" cy="17" r="2"></circle>
+    `,
+    Personnel: `
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+      <circle cx="12" cy="7" r="4"></circle>
+    `,
+  };
+
+  const iconPath = iconPaths[unitType] || '';
 
   const iconHtml = `
     <div class="relative flex items-center justify-center ${alarmAnimationClass}">
       <svg class="h-10 w-10 ${highlightDropShadow}" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 42 16 42C16 42 32 24.837 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
-        <circle cx="16" cy="16" r="6" fill="white"/>
+        <circle cx="16" cy="16" r="8" fill="white"/>
+        <svg x="8" y="8" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          ${iconPath}
+        </svg>
       </svg>
     </div>
   `;
@@ -181,7 +202,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             </span>`;
         
         const isHighlighted = unit.id === highlightedUnitId;
-        const icon = createStatusIcon(unit.status, isHighlighted);
+        const icon = createStatusIcon(unit.status, unit.type, isHighlighted);
         
         const marker = L.marker(position, { icon })
           .addTo(map)
