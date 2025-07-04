@@ -16,6 +16,7 @@ import {
   Milestone,
   ArrowDown,
   ArrowUp,
+  Plug,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
 import { cn, calculateDistance } from '@/lib/utils';
@@ -115,13 +116,23 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
       </CardHeader>
       <CardContent className="p-4 pt-2">
       <TooltipProvider delayDuration={200}>
-        <div className="flex justify-between items-center text-xs text-green-400">
-          <Tooltip>
-            <TooltipTrigger className='flex items-center gap-1'>
-                <BatteryIcon /> {unit.battery}%
-            </TooltipTrigger>
-            <TooltipContent>Akkustand</TooltipContent>
-          </Tooltip>
+        <div className="flex justify-between items-center text-xs text-muted-foreground">
+          {unit.isExternallyPowered ? (
+             <Tooltip>
+                <TooltipTrigger className='flex items-center gap-1 text-green-500'>
+                    <Plug className="h-4 w-4" /> {unit.battery}%
+                </TooltipTrigger>
+                <TooltipContent>Extern versorgt</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+                <TooltipTrigger className='flex items-center gap-1'>
+                    <BatteryIcon /> {unit.battery}%
+                </TooltipTrigger>
+                <TooltipContent>Akkustand</TooltipContent>
+            </Tooltip>
+          )}
+
           <Tooltip>
             <TooltipTrigger className='flex items-center gap-1'>
                 <GaugeCircle className="h-4 w-4" /> {unit.speed} km/h

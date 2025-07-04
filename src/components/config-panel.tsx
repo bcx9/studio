@@ -22,6 +22,7 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { Plug } from 'lucide-react';
 
 interface ConfigPanelProps {
   isOpen: boolean;
@@ -141,6 +142,19 @@ export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigP
             <Switch
                 checked={editedUnit.isActive}
                 onCheckedChange={checked => setEditedUnit({ ...editedUnit, isActive: checked })}
+            />
+          </div>
+           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+            <div className="space-y-0.5">
+                <Label htmlFor='external-power'>Externe Stromversorgung</Label>
+                <p className="text-xs text-muted-foreground">
+                    Wenn aktiv, lädt die Einheit und sendet häufiger Updates.
+                </p>
+            </div>
+            <Switch
+                id='external-power'
+                checked={editedUnit.isExternallyPowered}
+                onCheckedChange={checked => setEditedUnit({ ...editedUnit, isExternallyPowered: checked })}
             />
           </div>
           <div className='space-y-4'>

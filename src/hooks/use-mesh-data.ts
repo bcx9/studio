@@ -22,6 +22,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now(),
     sendInterval: 5,
     isActive: true,
+    isExternallyPowered: false,
     lastMessage: null,
     groupId: 1,
   },
@@ -37,6 +38,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now(),
     sendInterval: 10,
     isActive: true,
+    isExternallyPowered: false,
     lastMessage: null,
     groupId: 2,
   },
@@ -52,6 +54,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now(),
     sendInterval: 5,
     isActive: true,
+    isExternallyPowered: false,
     lastMessage: null,
     groupId: 1,
   },
@@ -67,6 +70,7 @@ const initialUnits: MeshUnit[] = [
     timestamp: Date.now() - 600000,
     sendInterval: 30,
     isActive: false,
+    isExternallyPowered: false,
     lastMessage: null,
     groupId: 2,
   },
@@ -183,14 +187,20 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
           return unit;
         }
 
+        const effectiveSendInterval = unit.isExternallyPowered ? 2 : unit.sendInterval;
         const timeSinceLastUpdate = (now - unit.timestamp) / 1000;
 
-        if (timeSinceLastUpdate < unit.sendInterval) {
+        if (timeSinceLastUpdate < effectiveSendInterval) {
           return unit;
         }
         
-        const batteryDrain = unit.battery > 0 ? 0.05 * (timeSinceLastUpdate / 5) : 0;
-        const newBattery = Math.max(0, unit.battery - batteryDrain);
+        let newBattery = unit.battery;
+        if (unit.isExternallyPowered) {
+          newBattery = Math.min(100, unit.battery + 0.5 * (timeSinceLastUpdate / 5)); // Charging logic
+        } else {
+          const batteryDrain = unit.battery > 0 ? 0.05 * (timeSinceLastUpdate / 5) : 0;
+          newBattery = Math.max(0, unit.battery - batteryDrain);
+        }
 
         let { lat, lng } = unit.position;
         let newHeading = unit.heading;
@@ -241,7 +251,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
         }
 
         let newStatus = unit.status;
-        if (newBattery === 0) {
+        if (newBattery === 0 && !unit.isExternallyPowered) {
           newStatus = 'Offline';
         } else if (newStatus !== 'Alarm') {
           if (newSpeed > 1) newStatus = 'Moving';
@@ -267,7 +277,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             heading: parseInt(newHeading.toFixed(0)),
             battery: parseFloat(newBattery.toFixed(2)),
             status: newStatus,
-            isActive: newBattery > 0,
+            isActive: newBattery > 0 || unit.isExternallyPowered,
             timestamp: now,
             lastMessage: newLastMessage,
         };
@@ -323,6 +333,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             timestamp: Date.now(),
             sendInterval: 10,
             isActive: true,
+            isExternallyPowered: false,
             lastMessage: null,
             groupId: null,
         };
