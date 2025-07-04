@@ -6,11 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import * as React from 'react';
 import L, { type Map } from 'leaflet';
 
-// Manually import the marker icons to ensure they are processed by Next.js.
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import type { MeshUnit } from '@/types/mesh';
+import type { MeshUnit, UnitStatus } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -34,7 +30,62 @@ const TILE_LAYERS = {
     attribution: 'Tiles &copy; Esri',
   },
 };
+
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
+
+const STATUS_COLORS: Record<UnitStatus, string> = {
+  Online: '#60a5fa',    // tailwind blue-400
+  Moving: '#4ade80',    // tailwind green-400
+  Idle: '#38bdf8',      // tailwind sky-400
+  Alarm: '#f87171',     // tailwind red-400
+  Offline: '#9ca3af',   // tailwind gray-400
+};
+
+const createStatusIcon = (status: UnitStatus, isHighlighted: boolean) => {
+  const color = STATUS_COLORS[status] || '#9ca3af';
+  const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
+  const highlightDropShadow = isHighlighted ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]' : '';
+
+  const iconHtml = `
+    <div class="relative flex items-center justify-center ${alarmAnimationClass}">
+      <svg class="h-10 w-10 ${highlightDropShadow}" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 42 16 42C16 42 32 24.837 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
+        <circle cx="16" cy="16" r="6" fill="white"/>
+      </svg>
+    </div>
+  `;
+
+  return L.divIcon({
+    html: iconHtml,
+    className: '', // Important to override default Leaflet styles
+    iconSize: [40, 42],
+    iconAnchor: [20, 42],
+    popupAnchor: [0, -42],
+  });
+};
+
+const createControlCenterIcon = () => {
+  // Use a fixed color for stability, similar to the dark theme's primary color
+  const color = 'hsl(221, 83%, 58%)'; 
+  
+  const iconHtml = `
+    <div class="relative flex items-center justify-center">
+      <svg class="h-10 w-10" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 42 16 42C16 42 32 24.837 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
+        <path d="M16 11L18.09 15.26L23 15.9L19.5 19.29L20.18 24L16 21.75L11.82 24L12.5 19.29L9 15.9L13.91 15.26L16 11Z" fill="white"/>
+      </svg>
+    </div>
+  `;
+
+  return L.divIcon({
+    html: iconHtml,
+    className: '',
+    iconSize: [40, 42],
+    iconAnchor: [20, 42],
+    popupAnchor: [0, -42],
+  });
+};
+
 
 export default function MapView({ units, highlightedUnitId, controlCenterPosition, onMapClick, onUnitClick }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
@@ -71,17 +122,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   // Initialize map
   React.useEffect(() => {
     if (mapContainerRef.current && !mapInstanceRef.current) {
-        
-        // This is a common issue with bundlers like Webpack used by Next.js.
-        // We need to manually set the default icon paths for Leaflet.
-        // We do this inside useEffect to ensure it only runs once on the client,
-        // after the L object is available.
-        L.Icon.Default.mergeOptions({
-            iconRetinaUrl: markerIcon2x.src,
-            iconUrl: markerIcon.src,
-            shadowUrl: markerShadow.src,
-        });
-
       const map = L.map(mapContainerRef.current, {
           center: INITIAL_CENTER,
           zoom: 13,
@@ -132,8 +172,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
     // --- Redraw unit markers ---
     units.forEach(unit => {
-        if (!unit.isActive) return;
-
         const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
         const tooltipContent = `
             <strong>${unit.name} (${unit.type})</strong><br>
@@ -142,13 +180,14 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
                 Akku: ${unit.battery}%
             </span>`;
         
-        // No need to pass icon options; it uses the patched default settings.
-        const marker = L.marker(position)
+        const isHighlighted = unit.id === highlightedUnitId;
+        const icon = createStatusIcon(unit.status, isHighlighted);
+        
+        const marker = L.marker(position, { icon })
           .addTo(map)
           .bindTooltip(tooltipContent);
         
-        marker.setOpacity(unit.id === highlightedUnitId ? 0.7 : 1.0);
-        marker.setZIndexOffset(unit.id === highlightedUnitId ? 1000 : unit.id);
+        marker.setZIndexOffset(isHighlighted ? 1000 : unit.id);
 
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
@@ -163,7 +202,9 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
         const tooltipContent = `<strong>Leitstelle</strong>`;
         
-        const marker = L.marker(position, { zIndexOffset: 1100 })
+        const icon = createControlCenterIcon();
+        
+        const marker = L.marker(position, { icon, zIndexOffset: 1100 })
           .bindTooltip(tooltipContent).addTo(map);
 
         controlCenterMarkerRef.current = marker;
