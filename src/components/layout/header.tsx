@@ -10,7 +10,7 @@ export default function AppHeader() {
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <BotMessageSquare className="h-7 w-7 text-primary" />
-        <h1 className="text-xl font-semibold tracking-tight">MeshControl</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Leitstelle</h1>
       </div>
       <div className="flex items-center gap-4">
         <ThemeToggle />

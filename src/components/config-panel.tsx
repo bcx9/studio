@@ -30,6 +30,15 @@ interface ConfigPanelProps {
   onSave: (unit: MeshUnit) => void;
 }
 
+const statusTranslations: Record<MeshUnit['status'], string> = {
+  Online: 'Online',
+  Moving: 'In Bewegung',
+  Idle: 'Inaktiv',
+  Alarm: 'Alarm',
+  Offline: 'Offline',
+};
+
+
 export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigPanelProps) {
   const [editedUnit, setEditedUnit] = React.useState(unit);
   const { toast } = useToast();
@@ -41,22 +50,22 @@ export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigP
   const handleSave = () => {
     onSave(editedUnit);
     toast({
-        title: 'Configuration Saved',
-        description: `Settings for unit ${editedUnit.name} have been updated.`,
+        title: 'Konfiguration gespeichert',
+        description: `Die Einstellungen für die Einheit ${editedUnit.name} wurden aktualisiert.`,
     })
   };
 
   const handleSendTestMessage = () => {
     toast({
-        title: `Test Message Sent`,
-        description: `A test message has been queued for unit ${unit.name}.`,
+        title: `Testnachricht gesendet`,
+        description: `Eine Testnachricht wurde für die Einheit ${unit.name} in die Warteschlange gestellt.`,
     })
   }
 
   const handleFirmwareUpdate = () => {
      toast({
-        title: `Firmware Update Prepared`,
-        description: `Simulated firmware update command sent to ${unit.name}.`,
+        title: `Firmware-Update vorbereitet`,
+        description: `Simulierter Firmware-Update-Befehl an ${unit.name} gesendet.`,
     })
   }
 
@@ -64,14 +73,14 @@ export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigP
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent className="w-[400px] sm:w-[540px] flex flex-col">
         <SheetHeader>
-          <SheetTitle>Configure: {unit.name}</SheetTitle>
+          <SheetTitle>Konfigurieren: {unit.name}</SheetTitle>
           <SheetDescription>
-            Remotely configure the mesh tracker. Changes will be sent over the network.
+            Konfigurieren Sie den Mesh-Tracker aus der Ferne. Änderungen werden über das Netzwerk gesendet.
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 space-y-6 overflow-y-auto p-1 pr-6">
           <div className="space-y-2">
-            <Label htmlFor="unit-name">Unit Name</Label>
+            <Label htmlFor="unit-name">Einheitenname</Label>
             <Input
               id="unit-name"
               value={editedUnit.name}
@@ -88,11 +97,9 @@ export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigP
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Online">Online</SelectItem>
-                <SelectItem value="Moving">Moving</SelectItem>
-                <SelectItem value="Idle">Idle</SelectItem>
-                <SelectItem value="Alarm">Alarm</SelectItem>
-                <SelectItem value="Offline">Offline</SelectItem>
+                {Object.entries(statusTranslations).map(([statusValue, statusLabel]) => (
+                    <SelectItem key={statusValue} value={statusValue}>{statusLabel}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -114,7 +121,7 @@ export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigP
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="send-interval">Send Interval: {editedUnit.sendInterval}s</Label>
+            <Label htmlFor="send-interval">Sendeintervall: {editedUnit.sendInterval}s</Label>
             <Slider
               id="send-interval"
               min={1}
@@ -126,9 +133,9 @@ export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigP
           </div>
           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
             <div className="space-y-0.5">
-                <Label>Activate Unit</Label>
+                <Label>Einheit aktivieren</Label>
                 <p className="text-xs text-muted-foreground">
-                    Enable or disable data transmission from this unit.
+                    Aktivieren oder deaktivieren Sie die Datenübertragung von dieser Einheit.
                 </p>
             </div>
             <Switch
@@ -137,13 +144,13 @@ export default function ConfigPanel({ isOpen, setIsOpen, unit, onSave }: ConfigP
             />
           </div>
           <div className='space-y-4'>
-            <Button variant="outline" className="w-full" onClick={handleSendTestMessage}>Send Test Message</Button>
-            <Button variant="secondary" className="w-full" onClick={handleFirmwareUpdate}>Prepare Firmware Update (Simulated)</Button>
+            <Button variant="outline" className="w-full" onClick={handleSendTestMessage}>Testnachricht senden</Button>
+            <Button variant="secondary" className="w-full" onClick={handleFirmwareUpdate}>Firmware-Update vorbereiten (Simuliert)</Button>
           </div>
         </div>
         <SheetFooter>
-          <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save Changes</Button>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>Abbrechen</Button>
+          <Button onClick={handleSave}>Änderungen speichern</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

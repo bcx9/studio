@@ -7,6 +7,14 @@ interface StatusBadgeProps {
   className?: string;
 }
 
+const statusTranslations: Record<UnitStatus, string> = {
+  Online: 'Online',
+  Moving: 'In Bewegung',
+  Idle: 'Inaktiv',
+  Alarm: 'Alarm',
+  Offline: 'Offline',
+};
+
 export default function StatusBadge({ status, className }: StatusBadgeProps) {
   const statusStyles: Record<UnitStatus, string> = {
     Online: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -21,7 +29,7 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
       variant="outline"
       className={cn('text-xs font-normal', statusStyles[status], className)}
     >
-      {status}
+      {statusTranslations[status]}
     </Badge>
   );
 }

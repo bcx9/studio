@@ -34,7 +34,7 @@ const initialUnits: MeshUnit[] = [
     id: 3,
     name: 'ELW-1',
     type: 'Vehicle',
-    status: 'Online',
+    status: 'Alarm',
     position: { lat: 52.519, lng: 13.4 },
     speed: 0,
     heading: 270,
@@ -94,8 +94,7 @@ export function useMeshData() {
           if (newBattery < 20 && newStatus !== 'Alarm') newStatus = 'Idle';
           if (newBattery === 0) newStatus = 'Offline';
           else if(newSpeed > 1) newStatus = 'Moving';
-          else newStatus = 'Idle';
-          if (unit.status === 'Alarm') newStatus = 'Alarm';
+          else if (unit.status !== 'Alarm') newStatus = 'Idle';
 
 
           return {

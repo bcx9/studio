@@ -23,10 +23,10 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
       const result = await getNetworkAnalysis(units);
       setAnalysis(result);
     } catch (error) {
-      console.error('Analysis failed:', error);
+      console.error('Analyse fehlgeschlagen:', error);
       setAnalysis({
-        summary: 'Analysis Failed',
-        details: 'Could not retrieve analysis from the server. Please try again later.',
+        summary: 'Analyse Fehlgeschlagen',
+        details: 'Die Analyse konnte nicht vom Server abgerufen werden. Bitte versuchen Sie es später erneut.',
       });
     } finally {
       setIsLoading(false);
@@ -37,7 +37,7 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
     if (summary.includes('Optimal') || summary.includes('Normal')) {
         return <Lightbulb className="h-6 w-6 text-green-500" />;
     }
-    if (summary.includes('Anomaly') || summary.includes('Attention')) {
+    if (summary.includes('Anomalie') || summary.includes('Aufmerksamkeit')) {
         return <AlertTriangle className="h-6 w-6 text-yellow-500" />;
     }
     return <Zap className="h-6 w-6 text-primary" />;
@@ -50,9 +50,9 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
           <div className='flex items-center gap-3'>
             <Zap className="h-8 w-8 text-primary" />
             <div>
-              <CardTitle className="text-2xl">AI Network Monitor</CardTitle>
+              <CardTitle className="text-2xl">KI-Netzwerküberwachung</CardTitle>
               <CardDescription>
-                Use generative AI to identify unusual data transmissions or behaviors to locate malfunctioning MESH nodes.
+                Nutzen Sie generative KI, um ungewöhnliche Datenübertragungen oder Verhaltensweisen zu identifizieren und fehlerhafte MESH-Knoten zu lokalisieren.
               </CardDescription>
             </div>
           </div>
@@ -60,7 +60,7 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
         <CardContent>
           <div className="flex flex-col items-start gap-6">
             <Button onClick={handleAnalyze} disabled={isLoading}>
-              {isLoading ? 'Analyzing Network...' : 'Run Anomaly Detection'}
+              {isLoading ? 'Netzwerk wird analysiert...' : 'Anomalieerkennung durchführen'}
             </Button>
             
             {isLoading && (

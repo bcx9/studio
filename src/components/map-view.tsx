@@ -1,7 +1,8 @@
 'use client';
 import Image from 'next/image';
+import * as React from 'react';
 import type { MeshUnit } from '@/types/mesh';
-import { Car, User, Bot, AlertTriangle, Battery, BatteryLow } from 'lucide-react';
+import { Car, User, Globe, Map as MapIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -9,11 +10,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Button } from '@/components/ui/button';
+import StatusBadge from './status-badge';
 
 interface MapViewProps {
   units: MeshUnit[];
   highlightedUnitId: number | null;
 }
+
+type MapStyle = 'satellite' | 'street';
 
 const getStatusColor = (status: MeshUnit['status'], battery: number) => {
   if (status === 'Offline') return 'bg-gray-500';
@@ -29,6 +34,8 @@ const UnitIcon = ({type}: {type: MeshUnit['type']}) => {
 }
 
 export default function MapView({ units, highlightedUnitId }: MapViewProps) {
+  const [mapStyle, setMapStyle] = React.useState<MapStyle>('satellite');
+
   // Normalize positions to a 0-1 scale for placement on the map.
   // This is a simplified approach for demonstration.
   const latMin = 52.51, latMax = 52.53;
@@ -40,17 +47,39 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
   };
 
+  const mapImages: Record<MapStyle, { src: string, hint: string }> = {
+    satellite: { src: "https://placehold.co/1200x800.png", hint: "satellite map" },
+    street: { src: "https://placehold.co/1200x800.png", hint: "street map" },
+  };
+
   return (
     <div className="relative w-full h-full bg-background rounded-lg overflow-hidden border">
       <Image
-        src="https://placehold.co/1200x800.png"
-        alt="Map of central Berlin"
+        key={mapStyle}
+        src={mapImages[mapStyle].src}
+        alt="Kartenansicht von Berlin"
         layout="fill"
         objectFit="cover"
-        className="opacity-20"
-        data-ai-hint="satellite map"
+        className="opacity-20 animate-in fade-in-50"
+        data-ai-hint={mapImages[mapStyle].hint}
       />
       <TooltipProvider>
+        <div className="absolute top-2 right-2 z-10">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        onClick={() => setMapStyle(style => style === 'satellite' ? 'street' : 'satellite')}
+                        >
+                        {mapStyle === 'satellite' ? <MapIcon className="h-5 w-5"/> : <Globe className="h-5 w-5"/>}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{mapStyle === 'satellite' ? 'Straßenansicht' : 'Satellitenansicht'}</p>
+                </TooltipContent>
+            </Tooltip>
+        </div>
         <div className="absolute inset-0">
           {units.filter(u => u.isActive).map(unit => {
             const { x, y } = normalizePosition(unit.position);
@@ -71,8 +100,8 @@ export default function MapView({ units, highlightedUnitId }: MapViewProps) {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className='font-bold'>{unit.name}</p>
-                  <p>Status: {unit.status}</p>
-                  <p>Battery: {unit.battery}%</p>
+                  <div className='flex items-center gap-1.5'>Status: <StatusBadge status={unit.status} /></div>
+                  <p>Akku: {unit.battery}%</p>
                 </TooltipContent>
               </Tooltip>
             );

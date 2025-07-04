@@ -18,6 +18,7 @@ interface AppSidebarProps {
   onDeleteUnit: (id: number) => void;
   onUnitHover: (id: number | null) => void;
   selectedUnitId?: number | null;
+  onSelectUnit: (unit: MeshUnit | null) => void;
 }
 
 export default function AppSidebar({
@@ -27,12 +28,13 @@ export default function AppSidebar({
   onDeleteUnit,
   onUnitHover,
   selectedUnitId,
+  onSelectUnit,
 }: AppSidebarProps) {
   return (
     <>
       <SidebarHeader>
         <SidebarGroup>
-          <SidebarGroupLabel>Network Overview</SidebarGroupLabel>
+          <SidebarGroupLabel>Netzwerkübersicht</SidebarGroupLabel>
         </SidebarGroup>
       </SidebarHeader>
       <SidebarContent>
@@ -42,12 +44,13 @@ export default function AppSidebar({
           onDeleteUnit={onDeleteUnit}
           onUnitHover={onUnitHover}
           selectedUnitId={selectedUnitId}
+          onSelectUnit={onSelectUnit}
         />
       </SidebarContent>
       <SidebarFooter>
         <Button variant="ghost" onClick={onCreateUnit}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add New Unit
+          Neue Einheit hinzufügen
         </Button>
       </SidebarFooter>
     </>

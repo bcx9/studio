@@ -13,9 +13,10 @@ interface UnitListProps {
   onDeleteUnit: (id: number) => void;
   onUnitHover: (id: number | null) => void;
   selectedUnitId?: number | null;
+  onSelectUnit: (unit: MeshUnit | null) => void;
 }
 
-export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onUnitHover, selectedUnitId }: UnitListProps) {
+export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onUnitHover, selectedUnitId, onSelectUnit }: UnitListProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
 
@@ -27,20 +28,20 @@ export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onUnitH
     <div className="flex flex-col h-full px-2">
       <div className="flex flex-col gap-2 p-2">
         <Input
-          placeholder="Filter units..."
+          placeholder="Einheiten filtern..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger>
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder="Nach Status filtern" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">Alle Status</SelectItem>
             <SelectItem value="online">Online</SelectItem>
             <SelectItem value="offline">Offline</SelectItem>
-            <SelectItem value="moving">Moving</SelectItem>
-            <SelectItem value="idle">Idle</SelectItem>
+            <SelectItem value="moving">In Bewegung</SelectItem>
+            <SelectItem value="idle">Inaktiv</SelectItem>
             <SelectItem value="alarm">Alarm</SelectItem>
           </SelectContent>
         </Select>
@@ -63,6 +64,7 @@ export default function UnitList({ units, onConfigureUnit, onDeleteUnit, onUnitH
                   unit={unit} 
                   onConfigure={onConfigureUnit} 
                   onDelete={onDeleteUnit}
+                  onSelect={onSelectUnit}
                   isSelected={unit.id === selectedUnitId}
                 />
               </motion.div>

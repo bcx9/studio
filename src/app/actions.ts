@@ -25,7 +25,7 @@ export async function getNetworkAnalysis(
 ): Promise<{ summary: string; details: string }> {
   const validation = analyzeNetworkSchema.safeParse(unitsData);
   if (!validation.success) {
-    throw new Error('Invalid unit data provided.');
+    throw new Error('Ungültige Einheitsdaten bereitgestellt.');
   }
   const units = validation.data;
 
@@ -43,30 +43,30 @@ export async function getNetworkAnalysis(
   for (const unit of units) {
     if (unit.status === 'Offline' && unit.isActive) {
       anomalies.push(
-        `Unit ${unit.name} (${unit.id}) is unexpectedly offline. This could indicate a critical failure or loss of signal.`
+        `Einheit ${unit.name} (${unit.id}) ist unerwartet offline. Dies könnte auf einen kritischen Fehler oder Signalverlust hindeuten.`
       );
     }
     if (unit.battery < 20 && unit.isActive) {
       anomalies.push(
-        `Unit ${unit.name} (${unit.id}) has a low battery (${unit.battery}%). Recommend immediate recharge or replacement.`
+        `Einheit ${unit.name} (${unit.id}) hat einen niedrigen Akkustand (${unit.battery}%). Sofortiges Aufladen oder Austauschen wird empfohlen.`
       );
     }
     if ((now - unit.timestamp) > (unit.sendInterval * 1000 * 5) && unit.isActive) {
        anomalies.push(
-        `Unit ${unit.name} (${unit.id}) has not reported in over 5 send intervals. Last seen ${new Date(unit.timestamp).toLocaleTimeString()}. Possible malfunction.`
+        `Einheit ${unit.name} (${unit.id}) hat sich seit über 5 Sendeintervallen nicht gemeldet. Zuletzt gesehen um ${new Date(unit.timestamp).toLocaleTimeString()}. Mögliche Fehlfunktion.`
       );
     }
   }
 
   if (anomalies.length > 0) {
     return {
-      summary: `Anomaly Detected! ${anomalies.length} issue(s) require attention.`,
+      summary: `Anomalie entdeckt! ${anomalies.length} Problem(e) erfordern Aufmerksamkeit.`,
       details: anomalies.join('\n\n'),
     };
   }
 
   return {
-    summary: 'Network Status: Optimal',
-    details: 'All units are operating within normal parameters. No unusual activity detected.',
+    summary: 'Netzwerkstatus: Optimal',
+    details: 'Alle Einheiten arbeiten innerhalb der normalen Parameter. Keine ungewöhnlichen Aktivitäten festgestellt.',
   };
 }
