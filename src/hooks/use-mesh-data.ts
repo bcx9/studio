@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MeshUnit, UnitType } from '@/types/mesh';
 
+const MESH_DATA_STORAGE_KEY = 'mesh-data-state';
 const baseCoords = { lat: 53.19745, lng: 10.84507 };
 
 const initialUnits: MeshUnit[] = [
@@ -66,8 +67,49 @@ const names: Record<UnitType, string[]> = {
 }
 
 export function useMeshData() {
-  const [units, setUnits] = useState<MeshUnit[]>(initialUnits);
+  const [units, setUnits] = useState<MeshUnit[]>(() => {
+    // This function runs only on the initial render.
+    if (typeof window === 'undefined') {
+      return initialUnits;
+    }
+    try {
+      const storedState = localStorage.getItem(MESH_DATA_STORAGE_KEY);
+      if (storedState) {
+        const parsedUnits = JSON.parse(storedState) as MeshUnit[];
+        // Reset timestamps to avoid units appearing immediately offline after a long break.
+        return parsedUnits.map(unit => ({ ...unit, timestamp: Date.now() }));
+      }
+    } catch (error) {
+      console.error("Failed to load units from localStorage", error);
+      // Fallback to initial units if there's an error.
+    }
+    return initialUnits;
+  });
 
+  // Use a ref to hold the latest units state for the unload event listener.
+  // This avoids re-registering the event listener on every state change.
+  const unitsRef = useRef(units);
+  unitsRef.current = units;
+
+  // Effect for saving state before the page is closed/reloaded.
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        localStorage.setItem(MESH_DATA_STORAGE_KEY, JSON.stringify(unitsRef.current));
+      } catch (error) {
+        console.error("Failed to save units to localStorage", error);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []); // Empty dependency array ensures this runs only once on mount.
+
+
+  // Effect for the simulation interval
   useEffect(() => {
     const interval = setInterval(() => {
       setUnits(currentUnits =>
@@ -126,7 +168,7 @@ export function useMeshData() {
 
   const addUnit = useCallback(() => {
     setUnits(currentUnits => {
-        const newId = Math.max(0, ...currentUnits.map(u => u.id)) + 1;
+        const newId = currentUnits.length > 0 ? Math.max(...currentUnits.map(u => u.id)) + 1 : 1;
         const type: UnitType = Math.random() > 0.5 ? 'Vehicle' : 'Personnel';
         const name = `${names[type][Math.floor(Math.random() * names[type].length)]}-${newId}`;
         const newUnit: MeshUnit = {
