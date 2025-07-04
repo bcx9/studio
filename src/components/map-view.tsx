@@ -4,31 +4,28 @@
 import 'leaflet/dist/leaflet.css';
 
 import * as React from 'react';
-import L, { type Map, type Icon } from 'leaflet';
+import L, { type Map } from 'leaflet';
 
-// Manually import the marker icons and create a stable, explicit icon instance.
+// Manually import the marker icons and patch Leaflet's default icon paths.
+// This is the most robust way to fix icon issues in Next.js/Webpack.
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-import type { MeshUnit } from '@/types/mesh';
-import { Globe, Map as MapIcon, Target } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-
-// Create a single, stable icon instance to be reused.
-// This is the most robust way to fix icon issues in Next.js/Webpack.
-const defaultIcon: Icon = L.icon({
+// By deleting the original _getIconUrl and merging options, we force Leaflet
+// to use the correct image paths that are handled by Webpack.
+// This must be done before any markers are created.
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
     iconRetinaUrl: markerIcon2x.src,
     iconUrl: markerIcon.src,
     shadowUrl: markerShadow.src,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    tooltipAnchor: [16, -28],
-    shadowSize: [41, 41]
 });
 
+import type { MeshUnit } from '@/types/mesh';
+import { Globe, Map as MapIcon, Target } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface MapViewProps {
   units: MeshUnit[];
@@ -147,7 +144,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
                 Akku: ${unit.battery}%
             </span>`;
         
-        const marker = L.marker(position, { icon: defaultIcon })
+        // No need to pass icon options; it uses the patched default settings.
+        const marker = L.marker(position)
           .addTo(map)
           .bindTooltip(tooltipContent);
         
@@ -167,8 +165,9 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
         const tooltipContent = `<strong>Leitstelle</strong>`;
         
-        const marker = L.marker(position, { icon: defaultIcon, zIndexOffset: 1100 })
-        .bindTooltip(tooltipContent).addTo(map);
+        // No need to pass icon options; it uses the patched default settings.
+        const marker = L.marker(position, { zIndexOffset: 1100 })
+          .bindTooltip(tooltipContent).addTo(map);
 
         controlCenterMarkerRef.current = marker;
     }
