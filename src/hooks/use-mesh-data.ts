@@ -67,7 +67,7 @@ const names: Record<UnitType, string[]> = {
 }
 
 export function useMeshData() {
-  const [units, setUnits] = useState<MeshUnit[]>(initialUnits);
+  const [units, setUnits] = useState<MeshUnit[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const unitsRef = useRef(units);
   unitsRef.current = units;
@@ -78,17 +78,22 @@ export function useMeshData() {
       if (storedState) {
         const parsedUnits = JSON.parse(storedState) as MeshUnit[];
         setUnits(parsedUnits.map(unit => ({ ...unit, timestamp: Date.now() })));
+      } else {
+        setUnits(initialUnits);
       }
     } catch (error) {
-      console.error("Failed to load units from localStorage", error);
+      console.error("Failed to load units from localStorage, using initial data.", error);
+      setUnits(initialUnits);
     }
     setIsInitialized(true);
 
     const handleBeforeUnload = () => {
-      try {
-        localStorage.setItem(MESH_DATA_STORAGE_KEY, JSON.stringify(unitsRef.current));
-      } catch (error) {
-        console.error("Failed to save units to localStorage", error);
+      if(unitsRef.current.length > 0) {
+        try {
+          localStorage.setItem(MESH_DATA_STORAGE_KEY, JSON.stringify(unitsRef.current));
+        } catch (error) {
+          console.error("Failed to save units to localStorage", error);
+        }
       }
     };
 
@@ -201,5 +206,5 @@ export function useMeshData() {
   }, []);
 
 
-  return { units, updateUnit, addUnit, removeUnit, chargeUnit };
+  return { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized };
 }

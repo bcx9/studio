@@ -121,31 +121,44 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
 
-      map.on('click', (e: L.LeafletMouseEvent) => {
-        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-      });
-
+      // Invalidate size after a short delay to ensure it renders correctly in the tab
       setTimeout(() => map.invalidateSize(), 100);
     }
 
     return () => {
         if (mapInstanceRef.current) {
-            mapInstanceRef.current.off('click');
+            mapInstanceRef.current.off();
             mapInstanceRef.current.remove();
             mapInstanceRef.current = null;
         }
+    };
+  }, []); // Empty dependency array ensures this runs only once.
+
+  // Effect for map click events
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const handleClick = (e: L.LeafletMouseEvent) => {
+      onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+    };
+
+    map.on('click', handleClick);
+
+    return () => {
+      map.off('click', handleClick);
     };
   }, [onMapClick]);
 
   // Effect to update tile layer style
   React.useEffect(() => {
-      if (tileLayerRef.current) {
+      if (tileLayerRef.current && mapInstanceRef.current) {
           tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
           tileLayerRef.current.options.attribution = TILE_LAYERS[mapStyle].attribution;
       }
   }, [mapStyle]);
   
-  // Effect to update unit markers
+  // Effect to update unit markers and handle initial centering
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;

@@ -27,7 +27,7 @@ const MapView = dynamic(() => import('@/components/map-view'), {
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">
       <Skeleton className="w-full h-full" />
       <div className="absolute flex flex-col items-center text-muted-foreground">
-        <MapIcon className="h-16 w-16 mb-4 animate-pulse" />
+        <MapIcon className="h-16 w-16 animate-pulse" />
         <p>Lade Karte...</p>
       </div>
     </div>
@@ -36,7 +36,7 @@ const MapView = dynamic(() => import('@/components/map-view'), {
 
 
 export default function Home() {
-  const { units, updateUnit, addUnit, removeUnit, chargeUnit } = useMeshData();
+  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized } = useMeshData();
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
@@ -71,13 +71,13 @@ export default function Home() {
     }
   }
   
-  const handleMapClick = (position: { lat: number; lng: number }) => {
+  const handleMapClick = React.useCallback((position: { lat: number; lng: number }) => {
     setControlCenterPosition(position);
     toast({
         title: 'Leitstelle positioniert',
         description: `Die Position wurde auf der Karte festgelegt.`,
     })
-  };
+  }, [toast]);
 
   const handleConnect = async (settings: ConnectionSettings) => {
     setIsConnecting(true);
@@ -133,12 +133,22 @@ export default function Home() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
-                <MapView 
-                  units={units} 
-                  highlightedUnitId={highlightedUnitId} 
-                  onMapClick={handleMapClick}
-                  controlCenterPosition={controlCenterPosition}
-                />
+                {isInitialized ? (
+                  <MapView 
+                    units={units} 
+                    highlightedUnitId={highlightedUnitId} 
+                    onMapClick={handleMapClick}
+                    controlCenterPosition={controlCenterPosition}
+                  />
+                ) : (
+                   <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">
+                    <Skeleton className="w-full h-full" />
+                    <div className="absolute flex flex-col items-center text-muted-foreground">
+                      <MapIcon className="h-16 w-16 mb-4 animate-pulse" />
+                      <p>Lade Karte...</p>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
                 <AiAnomalyDetector units={units} />
