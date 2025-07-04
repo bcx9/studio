@@ -1,4 +1,3 @@
-
 'use client';
 // CSS must be imported first
 import 'leaflet/dist/leaflet.css';
@@ -6,9 +5,26 @@ import 'leaflet/dist/leaflet.css';
 import * as React from 'react';
 import L, { type Map } from 'leaflet';
 
+// Manually import the marker icons to ensure they are processed by the bundler.
+// This is the most robust way to fix icon path issues with Leaflet and Next.js.
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
 import type { MeshUnit } from '@/types/mesh';
-import { Globe, Map as MapIcon, Target, Building2 } from 'lucide-react';
+import { Globe, Map as MapIcon, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// Remove the default icon's link to a non-existent image path and manually set it.
+// This is a common and necessary fix for Leaflet in React/Next.js environments.
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: markerIcon2x.src,
+    iconUrl: markerIcon.src,
+    shadowUrl: markerShadow.src,
+});
+
 
 interface MapViewProps {
   units: MeshUnit[];
@@ -31,69 +47,6 @@ const TILE_LAYERS = {
   },
 };
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
-
-const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
-  const size = isHighlighted ? 32 : 28;
-  // Using direct hex codes to avoid any theme/variable resolution issues.
-  const color = unit.status === 'Alarm' ? '#ef4444' : '#2962FF'; // red-500, blue-600
-  const borderColor = isHighlighted ? '#ffffff' : '#f8fafc'; // white, slate-50
-
-  const iconHtml = `
-    <div style="
-      width: ${size}px;
-      height: ${size}px;
-      background-color: ${color};
-      border-radius: 50%;
-      border: 2px solid ${borderColor};
-      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-      z-index: ${isHighlighted ? 1000 : unit.id};
-      font-size: 14px;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
-    ">
-      ${unit.type === 'Vehicle' ? 'V' : 'P'}
-    </div>
-  `;
-
-  return L.divIcon({
-    html: iconHtml,
-    className: '', // Important to prevent default leaflet styles
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-};
-
-const createControlCenterIcon = () => {
-    const size = 32;
-    const color = '#161A39'; // Dark Blue Background
-    const borderColor = '#C58BF7'; // Purple Accent
-    const iconHtml = `
-    <div style="
-      width: ${size}px;
-      height: ${size}px;
-      background-color: ${color};
-      border-radius: 50%;
-      border: 3px solid ${borderColor};
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: ${borderColor};
-      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    ">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 17H5.5a2.5 2.5 0 0 1 0-5H9"/><path d="M15 17h3.5a2.5 2.5 0 0 0 0-5H15"/><path d="M12 12v-2.5a4.5 4.5 0 0 1 9 0V12"/><path d="M12 12V9.5a4.5 4.5 0 0 0-9 0V12"/><path d="M12 12H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h9"/><path d="M12 12h9a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-9"/></svg>
-    </div>
-  `;
-   return L.divIcon({
-    html: iconHtml,
-    className: '',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
-
 
 export default function MapView({ units, highlightedUnitId, controlCenterPosition, onMapClick, onUnitClick }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
@@ -183,10 +136,9 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         return;
       }
 
-      const isHighlighted = unit.id === highlightedUnitId;
       const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
       const tooltipContent = `
-        <strong>${unit.name}</strong><br>
+        <strong>${unit.name} (${unit.type})</strong><br>
         <span>
             Status: ${unit.status}<br>
             Akku: ${unit.battery}%
@@ -196,15 +148,19 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         // Marker exists, update it
         markersRef.current[unit.id]
           .setLatLng(position)
-          .setIcon(createUnitIcon(unit, isHighlighted))
-          .setZIndexOffset(isHighlighted ? 1000 : unit.id)
           .getTooltip()?.setContent(tooltipContent);
+        
+        // Simple highlight effect
+        markersRef.current[unit.id].setOpacity(unit.id === highlightedUnitId ? 0.7 : 1.0);
+        if (unit.id === highlightedUnitId) {
+            markersRef.current[unit.id].setZIndexOffset(1000);
+        } else {
+            markersRef.current[unit.id].setZIndexOffset(unit.id);
+        }
+
       } else {
         // Marker doesn't exist, create it
-        const marker = L.marker(position, { 
-            icon: createUnitIcon(unit, isHighlighted),
-            zIndexOffset: isHighlighted ? 1000 : unit.id 
-        })
+        const marker = L.marker(position)
           .addTo(map)
           .bindTooltip(tooltipContent);
 
@@ -248,7 +204,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             controlCenterMarkerRef.current.setLatLng(position);
         } else {
             const marker = L.marker(position, {
-                icon: createControlCenterIcon(),
                 zIndexOffset: 1100,
             }).bindTooltip(tooltipContent).addTo(map);
             controlCenterMarkerRef.current = marker;
@@ -286,4 +241,3 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     </div>
   );
 }
- 
