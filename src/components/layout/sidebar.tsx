@@ -1,3 +1,4 @@
+
 'use client';
 import {
   SidebarHeader,
@@ -8,7 +9,7 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import UnitList from '@/components/unit-list';
-import type { MeshUnit } from '@/types/mesh';
+import type { MeshUnit, Group } from '@/types/mesh';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Building2, Settings, Plug } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface AppSidebarProps {
   units: MeshUnit[];
+  groups: Group[];
   onConfigureUnit: (unit: MeshUnit) => void;
   onCreateUnit: () => void;
   onDeleteUnit: (id: number) => void;
@@ -29,6 +31,7 @@ interface AppSidebarProps {
 
 export default function AppSidebar({
   units,
+  groups,
   onConfigureUnit,
   onCreateUnit,
   onDeleteUnit,
@@ -75,6 +78,7 @@ export default function AppSidebar({
       <SidebarContent className='-mt-2'>
         <UnitList 
           units={units} 
+          groups={groups}
           onConfigureUnit={onConfigureUnit} 
           onDeleteUnit={onDeleteUnit}
           onChargeUnit={onChargeUnit}

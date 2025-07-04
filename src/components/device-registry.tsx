@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import type { MeshUnit, UnitType } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -12,11 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface DeviceRegistryProps {
   units: MeshUnit[];
+  groups: Group[];
   updateUnit: (unit: MeshUnit) => void;
   addUnit: () => void;
+  onAssignGroup: (unitId: number, groupId: number | null) => void;
 }
 
-export default function DeviceRegistry({ units, updateUnit, addUnit }: DeviceRegistryProps) {
+export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup }: DeviceRegistryProps) {
   const [editableUnits, setEditableUnits] = React.useState<Record<number, Partial<Pick<MeshUnit, 'name' | 'type'>>>>({});
   const { toast } = useToast();
 
@@ -50,7 +53,7 @@ export default function DeviceRegistry({ units, updateUnit, addUnit }: DeviceReg
   };
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
+    <div className="container mx-auto max-w-5xl py-8">
       <Card className="bg-card/50">
         <CardHeader>
           <div className='flex items-center justify-between'>
@@ -59,7 +62,7 @@ export default function DeviceRegistry({ units, updateUnit, addUnit }: DeviceReg
                 <div>
                 <CardTitle className="text-2xl">Geräteverwaltung</CardTitle>
                 <CardDescription>
-                    Verwalten und erstellen Sie Einheiten. Namen und Typen werden an der Leitstelle mit der ID verknüpft, um den Datenverkehr zu reduzieren.
+                    Verwalten und erstellen Sie Einheiten. Namen und Typen werden an der Leitstelle mit der ID verknüpft.
                 </CardDescription>
                 </div>
             </div>
@@ -76,7 +79,8 @@ export default function DeviceRegistry({ units, updateUnit, addUnit }: DeviceReg
                 <TableRow>
                   <TableHead className="w-[80px]">ID</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead className="w-[200px]">Typ</TableHead>
+                  <TableHead className="w-[180px]">Typ</TableHead>
+                   <TableHead className="w-[220px]">Gruppe</TableHead>
                   <TableHead className="w-[130px] text-right">Aktion</TableHead>
                 </TableRow>
               </TableHeader>
@@ -123,6 +127,24 @@ export default function DeviceRegistry({ units, updateUnit, addUnit }: DeviceReg
                           </SelectItem>
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                         <Select
+                            value={unit.groupId?.toString() || 'none'}
+                            onValueChange={(value) => onAssignGroup(unit.id, value === 'none' ? null : Number(value))}
+                        >
+                            <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Gruppe auswählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Keine Gruppe</SelectItem>
+                                {groups.map(group => (
+                                    <SelectItem key={group.id} value={group.id.toString()}>
+                                        {group.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button 

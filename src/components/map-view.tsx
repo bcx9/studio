@@ -64,6 +64,7 @@ interface MapViewProps {
   highlightedUnitId: number | null;
   controlCenterPosition: { lat: number; lng: number } | null;
   onMapClick: (position: { lat: number; lng: number }) => void;
+  onUnitClick?: (unitId: number) => void;
 }
 
 type MapStyle = 'satellite' | 'street';
@@ -81,7 +82,7 @@ const TILE_LAYERS = {
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
 
 
-export default function MapView({ units, highlightedUnitId, controlCenterPosition, onMapClick }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId, controlCenterPosition, onMapClick, onUnitClick }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
@@ -107,7 +108,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     }
   }, [units]);
 
-  // Effect to initialize and destroy the map
   React.useEffect(() => {
     if (mapContainerRef.current && !mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
@@ -120,8 +120,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       tileLayerRef.current = L.tileLayer(TILE_LAYERS.street.url, {
           attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
-
-      // Invalidate size after a short delay to ensure it renders correctly in the tab
+      
       setTimeout(() => map.invalidateSize(), 100);
     }
 
@@ -132,9 +131,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             mapInstanceRef.current = null;
         }
     };
-  }, []); // Empty dependency array ensures this runs only once.
+  }, []);
 
-  // Effect for map click events
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -150,7 +148,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     };
   }, [onMapClick]);
 
-  // Effect to update tile layer style
   React.useEffect(() => {
       if (tileLayerRef.current && mapInstanceRef.current) {
           tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
@@ -158,18 +155,28 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       }
   }, [mapStyle]);
   
-  // Effect to update unit markers and handle initial centering
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Clear existing markers
-    Object.values(markersRef.current).forEach(marker => marker.remove());
-    markersRef.current = {};
+    const currentMarkerIds = Object.keys(markersRef.current).map(Number);
+    const incomingUnitIds = units.map(u => u.id);
+    
+    // Remove markers for units that no longer exist
+    currentMarkerIds.forEach(id => {
+      if (!incomingUnitIds.includes(id)) {
+        markersRef.current[id].remove();
+        delete markersRef.current[id];
+      }
+    });
 
-    // Add new markers
+
     units.forEach(unit => {
       if (!unit.isActive) {
+         if (markersRef.current[unit.id]) {
+            markersRef.current[unit.id].remove();
+            delete markersRef.current[unit.id];
+        }
         return;
       }
 
@@ -184,20 +191,34 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             </span>
           `;
       
-      const marker = L.marker(position, {
-          icon: icon,
-          zIndexOffset: isHighlighted ? 1000 : 0,
-      }).bindTooltip(tooltipContent).addTo(map);
-      markersRef.current[unit.id] = marker;
+      if (markersRef.current[unit.id]) {
+        // Update existing marker
+        markersRef.current[unit.id].setLatLng(position);
+        markersRef.current[unit.id].setIcon(icon);
+        markersRef.current[unit.id].setZIndexOffset(isHighlighted ? 1000 : 0);
+        markersRef.current[unit.id].setTooltipContent(tooltipContent);
+      } else {
+        // Create new marker
+         const marker = L.marker(position, {
+            icon: icon,
+            zIndexOffset: isHighlighted ? 1000 : 0,
+        }).bindTooltip(tooltipContent).addTo(map);
+
+        marker.on('click', () => {
+            if (onUnitClick) {
+                onUnitClick(unit.id);
+            }
+        });
+        markersRef.current[unit.id] = marker;
+      }
     });
       
     if (!isInitiallyCenteredRef.current && units.some(u => u.isActive)) {
       handleRecenter();
       isInitiallyCenteredRef.current = true;
     }
-  }, [units, highlightedUnitId, handleRecenter]);
+  }, [units, highlightedUnitId, handleRecenter, onUnitClick]);
 
-  // Effect to manage the control center marker
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -212,7 +233,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         } else {
             const marker = L.marker(position, {
                 icon,
-                zIndexOffset: 1100, // Make sure it's on top
+                zIndexOffset: 1100,
             }).bindTooltip(tooltipContent).addTo(map);
             controlCenterMarkerRef.current = marker;
         }

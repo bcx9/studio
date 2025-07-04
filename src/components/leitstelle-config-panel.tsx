@@ -1,3 +1,4 @@
+
 'use client';
 import * as React from 'react';
 import {
@@ -14,14 +15,17 @@ import { Label } from '@/components/ui/label';
 import { Plug, Send, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Group } from '@/types/mesh';
 
 interface LeitstelleConfigPanelProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, target: 'all' | number) => void;
   isRallying: boolean;
   onToggleRally: () => void;
   isRallyPossible: boolean;
+  groups: Group[];
 }
 
 export default function LeitstelleConfigPanel({ 
@@ -31,8 +35,10 @@ export default function LeitstelleConfigPanel({
     isRallying,
     onToggleRally,
     isRallyPossible,
+    groups,
  }: LeitstelleConfigPanelProps) {
   const [message, setMessage] = React.useState('');
+  const [target, setTarget] = React.useState<'all' | string>('all');
   const { toast } = useToast();
 
   const handleSend = () => {
@@ -44,7 +50,8 @@ export default function LeitstelleConfigPanel({
         });
         return;
     }
-    onSendMessage(message);
+    const messageTarget = target === 'all' ? 'all' : Number(target);
+    onSendMessage(message, messageTarget);
     setMessage('');
     setIsOpen(false);
   };
@@ -95,10 +102,25 @@ export default function LeitstelleConfigPanel({
                 </div>
             </div>
             <div className="space-y-2">
-                <Label htmlFor="message-to-all">Rundnachricht</Label>
+                <div className='flex justify-between items-end'>
+                  <Label htmlFor="message-to-all">Rundnachricht</Label>
+                  <div className='w-1/2'>
+                    <Select value={target} onValueChange={setTarget}>
+                      <SelectTrigger className='h-8'>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">An Alle</SelectItem>
+                        {groups.map(group => (
+                          <SelectItem key={group.id} value={group.id.toString()}>{group.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <Textarea
                     id="message-to-all"
-                    placeholder="Geben Sie Ihre Nachricht an alle Einheiten hier ein..."
+                    placeholder="Geben Sie Ihre Nachricht hier ein..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={5}
@@ -109,7 +131,7 @@ export default function LeitstelleConfigPanel({
           <Button variant="outline" onClick={() => setIsOpen(false)}>Abbrechen</Button>
           <Button onClick={handleSend} disabled={!message.trim()}>
             <Send className="mr-2 h-4 w-4"/>
-            An alle senden
+            Senden
           </Button>
         </SheetFooter>
       </SheetContent>

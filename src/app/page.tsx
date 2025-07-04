@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -6,7 +7,7 @@ import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/layout/sidebar';
 import AppHeader from '@/components/layout/header';
 import { useMeshData } from '@/hooks/use-mesh-data';
-import type { MeshUnit } from '@/types/mesh';
+import type { MeshUnit, Group } from '@/types/mesh';
 import ConfigPanel from '@/components/config-panel';
 import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,8 +21,10 @@ import { connectToGateway } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
+import HistoryReplay from '@/components/history-replay';
+import { getUnitStateAtTime } from '@/lib/utils';
+import GroupManagement from '@/components/group-management';
 
-// Keep map-view dynamic to avoid SSR issues with Leaflet
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
   loading: () => (
@@ -50,6 +53,9 @@ export default function Home() {
   const [isConnecting, setIsConnecting] = React.useState(false);
   const { toast } = useToast();
 
+  const [isReplayMode, setIsReplayMode] = React.useState(false);
+  const [replayTimestamp, setReplayTimestamp] = React.useState<number | null>(null);
+
   const handleUnitMessage = React.useCallback((unitName: string, message: string) => {
     setGatewayLogs(prev => [...prev, `[EINGANG] ${unitName}: ${message}`]);
     toast({
@@ -58,7 +64,23 @@ export default function Home() {
     });
   }, [toast]);
 
-  const { units, updateUnit, addUnit, removeUnit, chargeUnit, isInitialized, sendMessageToAllUnits, startSimulation, stopSimulation } = useMeshData({ 
+  const { 
+      units, 
+      updateUnit, 
+      addUnit, 
+      removeUnit, 
+      chargeUnit, 
+      isInitialized, 
+      sendMessage, 
+      startSimulation, 
+      stopSimulation,
+      unitHistory,
+      groups,
+      addGroup,
+      updateGroup,
+      removeGroup,
+      assignUnitToGroup,
+   } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
     isRallying,
     controlCenterPosition,
@@ -94,6 +116,13 @@ export default function Home() {
         description: `Die Position wurde auf der Karte festgelegt.`,
     })
   }, [toast]);
+  
+  const handleMapUnitClick = (unitId: number) => {
+    const unit = units.find(u => u.id === unitId);
+    if (unit) {
+      setSelectedUnit(unit);
+    }
+  };
 
   const handleConnect = async (settings: ConnectionSettings) => {
     setIsConnecting(true);
@@ -121,11 +150,12 @@ export default function Home() {
       stopSimulation();
   };
   
-  const handleSendMessageToAll = (message: string) => {
-    sendMessageToAllUnits(message);
+  const handleSendMessage = (message: string, target: 'all' | number) => {
+    sendMessage(message, target);
+    const targetGroup = groups.find(g => g.id === target);
     toast({
-      title: 'Rundnachricht gesendet',
-      description: `Ihre Nachricht wurde an alle aktiven Einheiten übermittelt.`,
+      title: `Rundnachricht gesendet`,
+      description: `Ihre Nachricht wurde an ${target === 'all' ? 'alle aktiven Einheiten' : `Gruppe '${targetGroup?.name}'`} übermittelt.`,
     });
   };
   
@@ -148,12 +178,30 @@ export default function Home() {
     });
   };
 
+  const displayedUnits = React.useMemo(() => {
+    if (isReplayMode && replayTimestamp) {
+        return getUnitStateAtTime(units, unitHistory, replayTimestamp);
+    }
+    return units;
+  }, [isReplayMode, replayTimestamp, units, unitHistory]);
+
+  const onReplayTimeChange = (time: number) => {
+      setReplayTimestamp(time);
+  };
+  
+  const onToggleReplayMode = (active: boolean) => {
+      setIsReplayMode(active);
+      if (!active) {
+          setReplayTimestamp(null);
+      }
+  };
 
   return (
     <SidebarProvider>
       <Sidebar>
         <AppSidebar
-          units={units}
+          units={displayedUnits}
+          groups={groups}
           onConfigureUnit={handleConfigureUnit}
           onCreateUnit={handleCreateNewUnit}
           onDeleteUnit={handleDeleteUnit}
@@ -174,7 +222,9 @@ export default function Home() {
                 <TabsTrigger value="map">Live-Karte</TabsTrigger>
                 <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
                 <TabsTrigger value="device-registry">Geräteverwaltung</TabsTrigger>
-                <TabsTrigger value="gateway-config">Gateway-Konfiguration</TabsTrigger>
+                <TabsTrigger value="group-management">Gruppenverwaltung</TabsTrigger>
+                <TabsTrigger value="gateway-config">Gateway</TabsTrigger>
+                <TabsTrigger value="history-replay">Verlauf & Replay</TabsTrigger>
                 <TabsTrigger value="json-view" disabled={!selectedUnit}>
                   Datenansicht
                 </TabsTrigger>
@@ -182,9 +232,10 @@ export default function Home() {
               <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
                 {isInitialized ? (
                   <MapView 
-                    units={units} 
+                    units={displayedUnits} 
                     highlightedUnitId={highlightedUnitId} 
                     onMapClick={handleMapClick}
+                    onUnitClick={handleMapUnitClick}
                     controlCenterPosition={controlCenterPosition}
                   />
                 ) : (
@@ -205,8 +256,18 @@ export default function Home() {
                     units={units} 
                     updateUnit={updateUnit} 
                     addUnit={handleCreateNewUnit} 
+                    groups={groups}
+                    onAssignGroup={assignUnitToGroup}
                 />
               </TabsContent>
+                <TabsContent value="group-management" className="flex-1 overflow-y-auto">
+                    <GroupManagement 
+                        groups={groups}
+                        onAddGroup={addGroup}
+                        onUpdateGroup={updateGroup}
+                        onRemoveGroup={removeGroup}
+                    />
+                </TabsContent>
                <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
                 <GatewayConfig
                     status={gatewayStatus}
@@ -216,6 +277,14 @@ export default function Home() {
                     isConnecting={isConnecting}
                 />
               </TabsContent>
+                <TabsContent value="history-replay" className="flex-1 overflow-y-auto">
+                  <HistoryReplay 
+                    unitHistory={unitHistory}
+                    isReplaying={isReplayMode}
+                    onToggleReplay={onToggleReplayMode}
+                    onTimeChange={onReplayTimeChange}
+                  />
+              </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (
                   <JsonView unit={selectedUnit} />
@@ -223,7 +292,7 @@ export default function Home() {
                   <Card className="h-full flex items-center justify-center bg-card/50 border-dashed">
                     <CardContent className="text-center text-muted-foreground pt-6">
                       <Code className="mx-auto h-12 w-12 mb-4" />
-                      <p>Wählen Sie eine Einheit aus der Liste aus, um die Rohdaten anzuzeigen.</p>
+                      <p>Wählen Sie eine Einheit aus der Liste oder auf der Karte aus, um die Rohdaten anzuzeigen.</p>
                     </CardContent>
                   </Card>
                 )}
@@ -243,10 +312,11 @@ export default function Home() {
        <LeitstelleConfigPanel
         isOpen={isLeitstellePanelOpen}
         setIsOpen={setLeitstellePanelOpen}
-        onSendMessage={handleSendMessageToAll}
+        onSendMessage={handleSendMessage}
         isRallying={isRallying}
         onToggleRally={handleToggleRally}
         isRallyPossible={!!controlCenterPosition}
+        groups={groups}
       />
     </SidebarProvider>
   );

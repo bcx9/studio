@@ -1,3 +1,4 @@
+
 export type UnitStatus = 'Online' | 'Offline' | 'Alarm' | 'Moving' | 'Idle';
 export type UnitType = 'Vehicle' | 'Personnel';
 
@@ -33,9 +34,14 @@ export interface UnitMessage {
   timestamp: number;
 }
 
-export interface MeshUnit {
+export interface Group {
   id: number;
   name: string;
+}
+
+export interface MeshUnit {
+  id: number;
+  name:string;
   type: UnitType;
   status: UnitStatus;
   position: {
@@ -48,5 +54,14 @@ export interface MeshUnit {
   timestamp: number; // Unix timestamp
   sendInterval: number; // seconds
   isActive: boolean;
+  lastMessage: UnitMessage | null;
+  groupId?: number | null;
+}
+
+export interface UnitHistoryPoint {
+  position: { lat: number; lng: number };
+  status: UnitStatus;
+  timestamp: number;
+  battery: number;
   lastMessage: UnitMessage | null;
 }
