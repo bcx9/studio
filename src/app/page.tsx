@@ -135,7 +135,7 @@ export default function Home() {
                <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
                 <GatewayConfig
                     status={gatewayStatus}
-                    logs={logs}
+                    logs={gatewayLogs}
                     onConnect={handleConnect}
                     onDisconnect={handleDisconnect}
                     isConnecting={isConnecting}
