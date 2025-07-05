@@ -24,7 +24,6 @@ import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
 import HistoryReplay from '@/components/history-replay';
 import { getUnitStateAtTime } from '@/lib/utils';
 import GroupManagement from '@/components/group-management';
-import AiAssistant from '@/components/ai-assistant';
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -82,7 +81,6 @@ export default function Home() {
       removeGroup,
       assignUnitToGroup,
       repositionAllUnits,
-      setUnitStatus,
    } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
     isRallying,
@@ -239,7 +237,6 @@ export default function Home() {
             <Tabs defaultValue="map" className="h-full flex flex-col">
               <TabsList className="mb-4 self-start">
                 <TabsTrigger value="map">Live-Karte</TabsTrigger>
-                <TabsTrigger value="ai-assistant">KI-Assistent</TabsTrigger>
                 <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
                 <TabsTrigger value="device-registry">Geräteverwaltung</TabsTrigger>
                 <TabsTrigger value="group-management">Gruppenverwaltung</TabsTrigger>
@@ -267,14 +264,6 @@ export default function Home() {
                     </div>
                   </div>
                 )}
-              </TabsContent>
-               <TabsContent value="ai-assistant" className="flex-1 overflow-y-auto">
-                <AiAssistant
-                    units={units}
-                    groups={groups}
-                    setUnitStatus={setUnitStatus}
-                    sendMessage={sendMessage}
-                />
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
                 <AiAnomalyDetector units={units} />
