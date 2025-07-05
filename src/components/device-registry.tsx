@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import StatusBadge from './status-badge';
+import { cn } from '@/lib/utils';
 
 interface DeviceRegistryProps {
   units: MeshUnit[];
@@ -339,3 +340,5 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
     </div>
   );
 }
+
+    
