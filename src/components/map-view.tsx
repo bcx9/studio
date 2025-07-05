@@ -20,6 +20,7 @@ interface MapViewProps {
   onMapClick: (position: { lat: number; lng: number }) => void;
   onUnitClick?: (unitId: number) => void;
   onShapesChange: (featureGroup: L.FeatureGroup) => void;
+  isPositioningMode: boolean;
 }
 
 type MapStyle = 'satellite' | 'street';
@@ -112,7 +113,7 @@ const createControlCenterIcon = () => {
 };
 
 
-export default function MapView({ units, highlightedUnitId, controlCenterPosition, drawnItems, onMapClick, onUnitClick, onShapesChange }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId, controlCenterPosition, drawnItems, onMapClick, onUnitClick, onShapesChange, isPositioningMode }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
@@ -212,6 +213,18 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Update cursor style for positioning mode
+  React.useEffect(() => {
+    const mapContainer = mapContainerRef.current;
+    if (mapContainer) {
+      if (isPositioningMode) {
+        mapContainer.style.cursor = 'crosshair';
+      } else {
+        mapContainer.style.cursor = ''; // Reset to default
+      }
+    }
+  }, [isPositioningMode]);
 
   // Update tile layer style
   React.useEffect(() => {

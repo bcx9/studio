@@ -13,7 +13,7 @@ import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code, Map as MapIcon } from 'lucide-react';
+import { Code, Map as MapIcon, ListTree } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
 import GatewayConfig from '@/components/gateway-config';
 import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
@@ -46,6 +46,7 @@ export default function Home() {
   
   const [controlCenterPosition, setControlCenterPosition] = React.useState<{ lat: number; lng: number } | null>({ lat: 53.19745, lng: 10.84507 });
   const [isRallying, setIsRallying] = React.useState(false);
+  const [isPositioningMode, setIsPositioningMode] = React.useState(false);
 
   const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('disconnected');
   const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
@@ -120,13 +121,27 @@ export default function Home() {
   }
   
   const handleMapClick = React.useCallback((position: { lat: number; lng: number }) => {
-    setControlCenterPosition(position);
-    toast({
-        title: 'Leitstelle positioniert',
-        description: `Die Position wurde auf der Karte festgelegt.`,
-    })
-  }, [toast]);
+    if (isPositioningMode) {
+      setControlCenterPosition(position);
+      toast({
+          title: 'Leitstelle positioniert',
+          description: `Die Position wurde auf der Karte festgelegt.`,
+      });
+      setIsPositioningMode(false); // Deactivate after setting
+    }
+  }, [isPositioningMode, toast]);
   
+  const handleTogglePositioningMode = () => {
+    const nextState = !isPositioningMode;
+    setIsPositioningMode(nextState);
+    if (nextState) {
+        toast({
+            title: 'Positionierungsmodus aktiv',
+            description: 'Klicken Sie auf die Karte, um die Position der Leitstelle festzulegen.',
+        });
+    }
+  };
+
   const handleMapUnitClick = (unitId: number) => {
     const unit = units.find(u => u.id === unitId);
     if (unit) {
@@ -231,6 +246,8 @@ export default function Home() {
           onSelectUnit={setSelectedUnit}
           controlCenterPosition={controlCenterPosition}
           onConfigureLeitstelle={() => setLeitstellePanelOpen(true)}
+          isPositioningMode={isPositioningMode}
+          onTogglePositioningMode={handleTogglePositioningMode}
         />
       </Sidebar>
       <SidebarInset>
@@ -258,6 +275,7 @@ export default function Home() {
                     controlCenterPosition={controlCenterPosition}
                     drawnItems={drawnItems}
                     onShapesChange={handleShapesChange}
+                    isPositioningMode={isPositioningMode}
                   />
                 ) : (
                    <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">

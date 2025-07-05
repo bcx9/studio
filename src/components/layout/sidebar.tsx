@@ -11,7 +11,7 @@ import {
 import UnitList from '@/components/unit-list';
 import type { MeshUnit, Group } from '@/types/mesh';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Building2, Settings, Plug } from 'lucide-react';
+import { PlusCircle, Building2, Settings, Plug, MapPin } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -27,6 +27,8 @@ interface AppSidebarProps {
   onSelectUnit: (unit: MeshUnit | null) => void;
   controlCenterPosition: { lat: number; lng: number } | null;
   onConfigureLeitstelle: () => void;
+  isPositioningMode: boolean;
+  onTogglePositioningMode: () => void;
 }
 
 export default function AppSidebar({
@@ -41,6 +43,8 @@ export default function AppSidebar({
   onSelectUnit,
   controlCenterPosition,
   onConfigureLeitstelle,
+  isPositioningMode,
+  onTogglePositioningMode,
 }: AppSidebarProps) {
   return (
     <>
@@ -59,17 +63,28 @@ export default function AppSidebar({
                   </div>
                 </div>
               </div>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onConfigureLeitstelle}>
-                            <Settings className="h-4 w-4" />
-                            <span className="sr-only">Leitstelle konfigurieren</span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">Konfigurieren</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className='flex items-center gap-0.5'>
+                <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant={isPositioningMode ? "secondary" : "ghost"} size="icon" className="h-8 w-8" onClick={onTogglePositioningMode}>
+                                <MapPin className="h-4 w-4" />
+                                <span className="sr-only">Leitstellenposition festlegen</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Position festlegen</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onConfigureLeitstelle}>
+                                <Settings className="h-4 w-4" />
+                                <span className="sr-only">Leitstelle konfigurieren</span>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Konfigurieren</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
           </div>
         </SidebarGroup>
