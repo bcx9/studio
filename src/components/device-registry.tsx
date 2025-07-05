@@ -111,170 +111,166 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
             <h3 className="text-lg font-semibold mb-3">Registrierte Einheiten</h3>
             <div className="border rounded-lg">
                 <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[80px]">ID</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="w-[180px]">Typ</TableHead>
-                        <TableHead className="w-[140px]">Status</TableHead>
-                        <TableHead className="w-[220px]">Gruppe</TableHead>
-                        <TableHead className="w-[130px] text-right">Aktionen</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[80px]">ID</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead className="w-[180px]">Typ</TableHead>
+                            <TableHead className="w-[140px]">Status</TableHead>
+                            <TableHead className="w-[220px]">Gruppe</TableHead>
+                            <TableHead className="w-[130px] text-right">Aktionen</TableHead>
+                        </TableRow>
+                    </TableHeader>
                     {units.map(unit => {
                         const isBeingEdited = !!editableUnits[unit.id];
                         const isCollapsibleOpen = openCollapsibleId === unit.id;
 
                         return (
-                            <Collapsible asChild key={unit.id} open={isCollapsibleOpen} onOpenChange={() => setOpenCollapsibleId(isCollapsibleOpen ? null : unit.id)}>
-                                <>
-                                    <TableRow className={cn("align-middle", isCollapsibleOpen && "border-b-0")}>
-                                        <TableCell className="font-medium">{unit.id}</TableCell>
-                                        <TableCell>
-                                            <Input
-                                                value={getUnitValue(unit, 'name')}
-                                                onChange={(e) => handleUnitChange(unit.id, 'name', e.target.value)}
-                                                className="h-9"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Select
-                                                value={getUnitValue(unit, 'type')}
-                                                onValueChange={(value) => handleUnitChange(unit.id, 'type', value as UnitType)}
-                                            >
-                                                <SelectTrigger className="h-9">
-                                                <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                <SelectItem value="Vehicle">
-                                                    <div className="flex items-center gap-2">
-                                                    <Car className="h-4 w-4 text-muted-foreground" />
-                                                    Fahrzeug
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="Personnel">
-                                                    <div className="flex items-center gap-2">
-                                                    <User className="h-4 w-4 text-muted-foreground" />
-                                                    Personal
-                                                    </div>
-                                                </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell><StatusBadge status={unit.status} /></TableCell>
-                                        <TableCell>
-                                            <Select
-                                                value={unit.groupId?.toString() || 'none'}
-                                                onValueChange={(value) => onAssignGroup(unit.id, value === 'none' ? null : Number(value))}
-                                            >
-                                                <SelectTrigger className="h-9">
-                                                    <SelectValue placeholder="Gruppe auswählen" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">Keine Gruppe</SelectItem>
-                                                    {groups.map(group => (
-                                                        <SelectItem key={group.id} value={group.id.toString()}>
-                                                            {group.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell className="text-right space-x-1">
-                                            <CollapsibleTrigger asChild>
-                                                <Button size="icon" variant="ghost" className='h-9 w-9'>
-                                                    <SlidersHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </CollapsibleTrigger>
-                                            <Button 
-                                                size="sm" 
-                                                onClick={() => handleSaveUnit(unit)}
-                                                disabled={!isBeingEdited}
-                                            >
-                                                <Save className="h-4 w-4 mr-2" />
-                                                Speichern
+                            <Collapsible as="tbody" key={unit.id} open={isCollapsibleOpen} onOpenChange={() => setOpenCollapsibleId(isCollapsibleOpen ? null : unit.id)} className="w-full">
+                                <TableRow className={cn("align-middle", isCollapsibleOpen && "border-b-0")}>
+                                    <TableCell className="font-medium">{unit.id}</TableCell>
+                                    <TableCell>
+                                        <Input
+                                            value={getUnitValue(unit, 'name')}
+                                            onChange={(e) => handleUnitChange(unit.id, 'name', e.target.value)}
+                                            className="h-9"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select
+                                            value={getUnitValue(unit, 'type')}
+                                            onValueChange={(value) => handleUnitChange(unit.id, 'type', value as UnitType)}
+                                        >
+                                            <SelectTrigger className="h-9">
+                                            <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                            <SelectItem value="Vehicle">
+                                                <div className="flex items-center gap-2">
+                                                <Car className="h-4 w-4 text-muted-foreground" />
+                                                Fahrzeug
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value="Personnel">
+                                                <div className="flex items-center gap-2">
+                                                <User className="h-4 w-4 text-muted-foreground" />
+                                                Personal
+                                                </div>
+                                            </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell><StatusBadge status={unit.status} /></TableCell>
+                                    <TableCell>
+                                        <Select
+                                            value={unit.groupId?.toString() || 'none'}
+                                            onValueChange={(value) => onAssignGroup(unit.id, value === 'none' ? null : Number(value))}
+                                        >
+                                            <SelectTrigger className="h-9">
+                                                <SelectValue placeholder="Gruppe auswählen" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Keine Gruppe</SelectItem>
+                                                {groups.map(group => (
+                                                    <SelectItem key={group.id} value={group.id.toString()}>
+                                                        {group.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell className="text-right space-x-1">
+                                        <CollapsibleTrigger asChild>
+                                            <Button size="icon" variant="ghost" className='h-9 w-9'>
+                                                <SlidersHorizontal className="h-4 w-4" />
                                             </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                    <CollapsibleContent asChild>
-                                        <TableRow>
-                                            <TableCell colSpan={6} className='p-0'>
-                                                <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                                                     <div className="space-y-2">
-                                                        <Label>Status</Label>
-                                                        <Select
-                                                            value={getUnitValue(unit, 'status')}
-                                                            onValueChange={(status) => handleUnitChange(unit.id, 'status', status as UnitStatus)}
-                                                            >
-                                                            <SelectTrigger>
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {Object.entries(statusTranslations).map(([statusValue, statusLabel]) => (
-                                                                    <SelectItem key={statusValue} value={statusValue}>{statusLabel}</SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
+                                        </CollapsibleTrigger>
+                                        <Button 
+                                            size="sm" 
+                                            onClick={() => handleSaveUnit(unit)}
+                                            disabled={!isBeingEdited}
+                                        >
+                                            <Save className="h-4 w-4 mr-2" />
+                                            Speichern
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                                <CollapsibleContent asChild>
+                                    <TableRow>
+                                        <TableCell colSpan={6} className='p-0'>
+                                            <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                                                     <div className="space-y-2">
-                                                        <Label>Position (Lat/Lon)</Label>
-                                                        <div className='flex gap-2'>
-                                                            <Input
-                                                            type="number"
-                                                            value={getUnitValue(unit, 'position').lat}
-                                                            onChange={e => handleUnitChange(unit.id, 'position', { lat: parseFloat(e.target.value) })}
-                                                            />
-                                                            <Input
-                                                            type="number"
-                                                            value={getUnitValue(unit, 'position').lng}
-                                                            onChange={e => handleUnitChange(unit.id, 'position', { lng: parseFloat(e.target.value) })}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-1">
-                                                        <Label>Sendeintervall: {getUnitValue(unit, 'sendInterval')}s</Label>
-                                                        <Slider
-                                                            min={1}
-                                                            max={60}
-                                                            step={1}
-                                                            value={[getUnitValue(unit, 'sendInterval')]}
-                                                            onValueChange={value => handleUnitChange(unit.id, 'sendInterval', value[0])}
+                                                    <Label>Status</Label>
+                                                    <Select
+                                                        value={getUnitValue(unit, 'status')}
+                                                        onValueChange={(status) => handleUnitChange(unit.id, 'status', status as UnitStatus)}
+                                                        >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {Object.entries(statusTranslations).map(([statusValue, statusLabel]) => (
+                                                                <SelectItem key={statusValue} value={statusValue}>{statusLabel}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Position (Lat/Lon)</Label>
+                                                    <div className='flex gap-2'>
+                                                        <Input
+                                                        type="number"
+                                                        value={getUnitValue(unit, 'position').lat}
+                                                        onChange={e => handleUnitChange(unit.id, 'position', { lat: parseFloat(e.target.value) })}
                                                         />
-                                                    </div>
-                                                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
-                                                        <div className="space-y-0.5">
-                                                            <Label>Einheit aktivieren</Label>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Aktivieren oder deaktivieren Sie die Datenübertragung.
-                                                            </p>
-                                                        </div>
-                                                        <Switch
-                                                            checked={getUnitValue(unit, 'isActive')}
-                                                            onCheckedChange={checked => handleUnitChange(unit.id, 'isActive', checked)}
-                                                        />
-                                                    </div>
-                                                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
-                                                        <div className="space-y-0.5">
-                                                            <Label>Externe Stromversorgung</Label>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Wenn aktiv, lädt die Einheit.
-                                                            </p>
-                                                        </div>
-                                                        <Switch
-                                                            checked={getUnitValue(unit, 'isExternallyPowered')}
-                                                            onCheckedChange={checked => handleUnitChange(unit.id, 'isExternallyPowered', checked)}
+                                                        <Input
+                                                        type="number"
+                                                        value={getUnitValue(unit, 'position').lng}
+                                                        onChange={e => handleUnitChange(unit.id, 'position', { lng: parseFloat(e.target.value) })}
                                                         />
                                                     </div>
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    </CollapsibleContent>
-                                </>
+                                                <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-1">
+                                                    <Label>Sendeintervall: {getUnitValue(unit, 'sendInterval')}s</Label>
+                                                    <Slider
+                                                        min={1}
+                                                        max={60}
+                                                        step={1}
+                                                        value={[getUnitValue(unit, 'sendInterval')]}
+                                                        onValueChange={value => handleUnitChange(unit.id, 'sendInterval', value[0])}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                                                    <div className="space-y-0.5">
+                                                        <Label>Einheit aktivieren</Label>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Aktivieren oder deaktivieren Sie die Datenübertragung.
+                                                        </p>
+                                                    </div>
+                                                    <Switch
+                                                        checked={getUnitValue(unit, 'isActive')}
+                                                        onCheckedChange={checked => handleUnitChange(unit.id, 'isActive', checked)}
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                                                    <div className="space-y-0.5">
+                                                        <Label>Externe Stromversorgung</Label>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Wenn aktiv, lädt die Einheit.
+                                                        </p>
+                                                    </div>
+                                                    <Switch
+                                                        checked={getUnitValue(unit, 'isExternallyPowered')}
+                                                        onCheckedChange={checked => handleUnitChange(unit.id, 'isExternallyPowered', checked)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                </CollapsibleContent>
                             </Collapsible>
                         )
                     })}
-                </TableBody>
                 </Table>
             </div>
           </div>
@@ -340,5 +336,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
     </div>
   );
 }
+
+    
 
     
