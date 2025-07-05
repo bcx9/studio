@@ -13,19 +13,21 @@ export default function JsonView({ unit }: JsonViewProps) {
 
   // Create the compact version of the unit data for demonstration
   const compactUnit = {
-    id: unit.id,
-    type: UNIT_TYPE_TO_CODE[unit.type],
-    status: UNIT_STATUS_TO_CODE[unit.status],
-    position: unit.position,
-    speed: unit.speed,
-    heading: unit.heading,
-    battery: unit.battery,
-    timestamp: unit.timestamp,
-    sendInterval: unit.sendInterval,
-    isActive: unit.isActive,
-    // New fields for the compact view
-    signalStrength: unit.signalStrength,
-    hopCount: unit.hopCount,
+    i: unit.id,
+    t: UNIT_TYPE_TO_CODE[unit.type],
+    s: UNIT_STATUS_TO_CODE[unit.status],
+    p: {
+        a: parseFloat(unit.position.lat.toFixed(5)),
+        o: parseFloat(unit.position.lng.toFixed(5)),
+    },
+    v: unit.speed,
+    h: unit.heading,
+    b: parseFloat(unit.battery.toFixed(1)),
+    ts: unit.timestamp,
+    si: unit.sendInterval,
+    a: unit.isActive ? 1 : 0,
+    ss: unit.signalStrength,
+    hc: unit.hopCount,
   };
   
   // The full data, as the control center sees it (including the name)

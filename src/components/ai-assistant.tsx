@@ -89,16 +89,19 @@ export default function AiAssistant({ units, groups, setUnitStatus, sendMessage 
         scrollToBottom();
         
         const compactUnits = units.map(unit => ({
-            id: unit.id,
-            type: UNIT_TYPE_TO_CODE[unit.type],
-            status: UNIT_STATUS_TO_CODE[unit.status],
-            position: unit.position,
-            speed: unit.speed,
-            heading: unit.heading,
-            battery: unit.battery,
-            timestamp: unit.timestamp,
-            sendInterval: unit.sendInterval,
-            isActive: unit.isActive,
+            i: unit.id,
+            t: UNIT_TYPE_TO_CODE[unit.type],
+            s: UNIT_STATUS_TO_CODE[unit.status],
+            p: {
+                a: parseFloat(unit.position.lat.toFixed(5)),
+                o: parseFloat(unit.position.lng.toFixed(5)),
+            },
+            v: unit.speed,
+            h: unit.heading,
+            b: parseFloat(unit.battery.toFixed(1)),
+            ts: unit.timestamp,
+            si: unit.sendInterval,
+            a: unit.isActive ? 1 : 0,
         }));
 
         const unitNames = units.reduce((acc, unit) => {

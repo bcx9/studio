@@ -13,18 +13,21 @@ import { z } from 'zod';
 import { CODE_TO_UNIT_STATUS, CODE_TO_UNIT_TYPE } from '@/types/mesh';
 
 const compactUnitSchema = z.object({
-  id: z.number(),
-  type: z.number(),
-  status: z.number(),
-  position: z.object({ lat: z.number(), lng: z.number() }),
-  speed: z.number(),
-  heading: z.number(),
-  battery: z.number(),
-  timestamp: z.number(),
-  sendInterval: z.number(),
-  isActive: z.boolean(),
-  signalStrength: z.number(),
-  hopCount: z.number(),
+  i: z.number().describe('Unit ID'),
+  t: z.number().describe('Unit Type Code'),
+  s: z.number().describe('Unit Status Code'),
+  p: z.object({
+    a: z.number().describe('Latitude'),
+    o: z.number().describe('Longitude'),
+  }).describe('Position'),
+  v: z.number().describe('Speed in km/h'),
+  h: z.number().describe('Heading in degrees'),
+  b: z.number().describe('Battery percentage'),
+  ts: z.number().describe('Timestamp (epoch)'),
+  si: z.number().describe('Send Interval in seconds'),
+  a: z.literal(1).or(z.literal(0)).describe('Is Active (1 for true, 0 for false)'),
+  ss: z.number().describe('Signal Strength (RSSI) in dBm'),
+  hc: z.number().describe('Hop Count'),
 });
 
 const NetworkAnalysisInputSchema = z.object({
@@ -49,23 +52,37 @@ const prompt = ai.definePrompt({
   output: { schema: NetworkAnalysisOutputSchema },
   prompt: `You are an expert network operations specialist for a tactical mesh network. Your task is to analyze the provided data from all units and identify any anomalies.
 
-You will receive a list of units with their current data. The 'type' and 'status' fields are numerical codes. Here are the mappings:
+You will receive a list of units with their current data in a highly compact format. Here is the mapping for the field keys:
+- i: Unit ID
+- t: Unit Type Code
+- s: Unit Status Code
+- p: Position object, containing 'a' (latitude) and 'o' (longitude)
+- v: Speed in km/h
+- h: Heading in degrees
+- b: Battery percentage
+- ts: Timestamp (epoch ms)
+- si: Send Interval in seconds
+- a: Is Active (1 for true, 0 for false)
+- ss: Signal Strength (RSSI) in dBm
+- hc: Hop Count
+
+The 't' (type) and 's' (status) fields are numerical codes. Here are the mappings:
 - Unit Types: ${JSON.stringify(CODE_TO_UNIT_TYPE)}
 - Unit Statuses: ${JSON.stringify(CODE_TO_UNIT_STATUS)}
 
 Analyze the provided list of units:
 {{{json units}}}
 
-Use the provided map to look up unit names by their ID:
+Use the provided map to look up unit names by their ID ('i' field):
 {{{json unitNames}}}
 
 Your analysis should focus on identifying potential issues. Pay close attention to:
-1.  **Low Battery:** Any unit with a battery level below 20% is critical.
-2.  **Poor Signal:** A signal strength (RSSI) below -95 dBm indicates a weak connection that might become unstable.
-3.  **High Hop Count:** A hop count greater than 2 suggests inefficient routing or that the unit is far from the gateway.
-4.  **Unexpected Offline Status:** An active unit that is reported as 'Offline' is a major issue.
-5.  **Stale Data:** If a unit's timestamp is much older than the current time (by more than 3-5 of its sendIntervals), it indicates a potential communication loss. The current time is approximately ${Date.now()}.
-6.  **Contradictory Status:** For example, a unit with status 'Moving' but a speed of 0, or 'Idle' with a high speed.
+1.  **Low Battery:** Any unit with a battery level ('b') below 20% is critical.
+2.  **Poor Signal:** A signal strength ('ss') below -95 dBm indicates a weak connection that might become unstable.
+3.  **High Hop Count:** A hop count ('hc') greater than 2 suggests inefficient routing or that the unit is far from the gateway.
+4.  **Unexpected Offline Status:** An active unit ('a' is 1) that is reported as 'Offline' (status code 5) is a major issue.
+5.  **Stale Data:** If a unit's timestamp ('ts') is much older than the current time (by more than 3-5 of its 'si'), it indicates a potential communication loss. The current time is approximately ${Date.now()}.
+6.  **Contradictory Status:** For example, a unit with status 'Moving' (code 2) but a speed ('v') of 0, or 'Idle' (code 3) with a high speed.
 7.  **Unusual Groupings or Separations:** Mention if units of a group are unexpectedly far apart or if units are clustered in a way that seems tactically unsound.
 
 Provide a concise, one-sentence summary of the network status. Then, provide a detailed, multi-line report of your findings in the 'details' field. If there are no issues, state that the network is operating within normal parameters.

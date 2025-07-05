@@ -11,21 +11,25 @@ import type { Group } from '@/types/mesh';
 
 // Define schemas for tools and flow I/O
 const compactUnitSchema = z.object({
-  id: z.number(),
-  type: z.number(),
-  status: z.number(),
-  position: z.object({ lat: z.number(), lng: z.number() }),
-  speed: z.number(),
-  heading: z.number(),
-  battery: z.number(),
-  timestamp: z.number(),
-  sendInterval: z.number(),
-  isActive: z.boolean(),
+  i: z.number().describe('Unit ID'),
+  t: z.number().describe('Unit Type Code'),
+  s: z.number().describe('Unit Status Code'),
+  p: z.object({
+    a: z.number().describe('Latitude'),
+    o: z.number().describe('Longitude'),
+  }).describe('Position'),
+  v: z.number().describe('Speed in km/h'),
+  h: z.number().describe('Heading in degrees'),
+  b: z.number().describe('Battery percentage'),
+  ts: z.number().describe('Timestamp (epoch)'),
+  si: z.number().describe('Send Interval in seconds'),
+  a: z.literal(1).or(z.literal(0)).describe('Is Active (1 for true, 0 for false)'),
 });
+
 
 const AiAssistantInputSchema = z.object({
   query: z.string().describe('The natural language query from the user.'),
-  units: z.array(compactUnitSchema).describe('The current state of all units.'),
+  units: z.array(compactUnitSchema).describe('The current state of all units in a compact format.'),
   groups: z.array(z.object({ id: z.number(), name: z.string() })).describe('The list of all groups.'),
   unitNames: z.record(z.string()).describe("A map of unit IDs to their names."),
 });
@@ -116,11 +120,23 @@ export const aiAssistantFlow = ai.defineFlow(
         - 'responseText' should be a concise, natural language confirmation of the actions taken or the information provided.
         - 'actions' should be an array containing all the action objects returned by the tools you used. If you only answered a question, this array should be empty.
 
+        You will receive a list of units with their current data in a highly compact format. Here is the mapping for the field keys:
+        - i: Unit ID
+        - t: Unit Type Code
+        - s: Unit Status Code
+        - p: Position object, containing 'a' (latitude) and 'o' (longitude)
+        - v: Speed in km/h
+        - h: Heading in degrees
+        - b: Battery (%)
+        - ts: Timestamp
+        - si: Send Interval (seconds)
+        - a: Is Active (1 for true, 0 for false)
+
         CURRENT CONTEXT:
         - User's Request: "${query}"
-        - All Units Data: ${JSON.stringify(units)}
+        - All Units Data (Compact Format): ${JSON.stringify(units)}
         - All Groups: ${JSON.stringify(groups)}
-        - Unit Names (ID to Name): ${JSON.stringify(unitNames)}
+        - Unit Names (ID to Name, map 'i' field to name): ${JSON.stringify(unitNames)}
       `,
       tools: [setUnitStatusTool, sendMessageTool],
       output: {

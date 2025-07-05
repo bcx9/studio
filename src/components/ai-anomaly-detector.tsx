@@ -29,18 +29,21 @@ export default function AiAnomalyDetector({ units, gatewayStatus }: AiAnomalyDet
       // Transform the hydrated frontend data into a compact format for the server action.
       // This simulates sending efficient messages over a real network.
       const compactUnits = units.map(unit => ({
-        id: unit.id,
-        type: UNIT_TYPE_TO_CODE[unit.type],
-        status: UNIT_STATUS_TO_CODE[unit.status],
-        position: unit.position,
-        speed: unit.speed,
-        heading: unit.heading,
-        battery: unit.battery,
-        timestamp: unit.timestamp,
-        sendInterval: unit.sendInterval,
-        isActive: unit.isActive,
-        signalStrength: unit.signalStrength,
-        hopCount: unit.hopCount,
+        i: unit.id,
+        t: UNIT_TYPE_TO_CODE[unit.type],
+        s: UNIT_STATUS_TO_CODE[unit.status],
+        p: {
+          a: parseFloat(unit.position.lat.toFixed(5)),
+          o: parseFloat(unit.position.lng.toFixed(5)),
+        },
+        v: unit.speed,
+        h: unit.heading,
+        b: parseFloat(unit.battery.toFixed(1)),
+        ts: unit.timestamp,
+        si: unit.sendInterval,
+        a: unit.isActive ? 1 : 0,
+        ss: unit.signalStrength,
+        hc: unit.hopCount,
       }));
 
       // Create a map of IDs to names to simulate the central registry lookup on the server.
