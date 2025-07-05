@@ -234,12 +234,14 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
              if (unit.type === 'Vehicle') {
                 newSpeed = Math.max(0, Math.min(15, unit.speed + (Math.random() - 0.5) * 4)); 
                  if (newSpeed > 1) {
-                    newHeading = (unit.heading + (Math.random() - 0.5) * 25) % 360; 
+                    const headingUpdate = unit.heading + (Math.random() - 0.5) * 25;
+                    newHeading = (headingUpdate % 360 + 360) % 360;
                 }
             } else { 
                 newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.5) * 2));
                 if (newSpeed > 0.5) {
-                    newHeading = (unit.heading + (Math.random() - 0.5) * 60) % 360;
+                    const headingUpdate = unit.heading + (Math.random() - 0.5) * 60;
+                    newHeading = (headingUpdate % 360 + 360) % 360;
                 }
             }
           }
@@ -247,12 +249,14 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             if (unit.type === 'Vehicle') {
               newSpeed = Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)); 
               if (newSpeed > 1) {
-                newHeading = (unit.heading + (Math.random() - 0.5) * 10) % 360; 
+                const headingUpdate = unit.heading + (Math.random() - 0.5) * 10;
+                newHeading = (headingUpdate % 360 + 360) % 360;
               }
             } else { 
               newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2)); 
               if (newSpeed > 0.5) {
-                newHeading = (unit.heading + (Math.random() - 0.5) * 45) % 360;
+                const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
+                newHeading = (headingUpdate % 360 + 360) % 360;
               }
             }
         }
