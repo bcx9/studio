@@ -8,7 +8,6 @@ import AppSidebar from '@/components/layout/sidebar';
 import AppHeader from '@/components/layout/header';
 import { useMeshData } from '@/hooks/use-mesh-data';
 import type { MeshUnit, Group, UnitStatus } from '@/types/mesh';
-import ConfigPanel from '@/components/config-panel';
 import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
@@ -40,7 +39,6 @@ const TACTICAL_DRAWINGS_KEY = 'tactical-drawings';
 
 export default function Home() {
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
-  const [isConfigPanelOpen, setConfigPanelOpen] = React.useState(false);
   const [isLeitstellePanelOpen, setLeitstellePanelOpen] = React.useState(false);
   const [highlightedUnitId, setHighlightedUnitId] = React.useState<number | null>(null);
   
@@ -104,25 +102,9 @@ export default function Home() {
     return units;
   }, [gatewayStatus, units]);
 
-
-  const handleConfigureUnit = (unit: MeshUnit) => {
-    setSelectedUnit(unit);
-    setConfigPanelOpen(true);
-  };
-
-  const handleSaveUnitConfig = (updatedUnit: MeshUnit) => {
-    updateUnit(updatedUnit);
-    setConfigPanelOpen(false);
-  };
-
-  const handleCreateNewUnit = () => {
-    addUnit();
-  };
-
   const handleDeleteUnit = (unitId: number) => {
     removeUnit(unitId);
     if(selectedUnit?.id === unitId) {
-      setConfigPanelOpen(false);
       setSelectedUnit(null);
     }
   }
@@ -244,8 +226,7 @@ export default function Home() {
         <AppSidebar
           units={units}
           groups={groups}
-          onConfigureUnit={handleConfigureUnit}
-          onCreateUnit={handleCreateNewUnit}
+          onCreateUnit={addUnit}
           onDeleteUnit={handleDeleteUnit}
           onChargeUnit={chargeUnit}
           onUnitHover={setHighlightedUnitId}
@@ -301,7 +282,7 @@ export default function Home() {
                 <DeviceRegistry 
                     units={units} 
                     updateUnit={updateUnit} 
-                    addUnit={handleCreateNewUnit} 
+                    addUnit={addUnit} 
                     groups={groups}
                     onAssignGroup={assignUnitToGroup}
                 />
@@ -341,15 +322,7 @@ export default function Home() {
           </main>
         </div>
       </SidebarInset>
-      {selectedUnit && (
-        <ConfigPanel
-          isOpen={isConfigPanelOpen}
-          setIsOpen={setConfigPanelOpen}
-          unit={selectedUnit}
-          onSave={handleSaveUnitConfig}
-        />
-      )}
-       <LeitstelleConfigPanel
+      <LeitstelleConfigPanel
         isOpen={isLeitstellePanelOpen}
         setIsOpen={setLeitstellePanelOpen}
         onSendMessage={handleSendMessage}

@@ -12,7 +12,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 interface UnitListProps {
   units: MeshUnit[];
   groups: Group[];
-  onConfigureUnit: (unit: MeshUnit) => void;
   onDeleteUnit: (id: number) => void;
   onChargeUnit: (id: number) => void;
   onUnitHover: (id: number | null) => void;
@@ -24,7 +23,6 @@ interface UnitListProps {
 export default function UnitList({ 
   units, 
   groups, 
-  onConfigureUnit, 
   onDeleteUnit, 
   onChargeUnit, 
   onUnitHover, 
@@ -102,13 +100,12 @@ export default function UnitList({
                                             onMouseLeave={() => onUnitHover(null)}
                                         >
                                             <UnitCard 
-                                            unit={unit} 
-                                            onConfigure={onConfigureUnit} 
-                                            onDelete={onDeleteUnit}
-                                            onCharge={onChargeUnit}
-                                            onSelect={onSelectUnit}
-                                            isSelected={unit.id === selectedUnitId}
-                                            controlCenterPosition={controlCenterPosition}
+                                                unit={unit} 
+                                                onDelete={onDeleteUnit}
+                                                onCharge={onChargeUnit}
+                                                onSelect={onSelectUnit}
+                                                isSelected={unit.id === selectedUnitId}
+                                                controlCenterPosition={controlCenterPosition}
                                             />
                                         </motion.div>
                                     ))}
@@ -134,13 +131,12 @@ export default function UnitList({
                     onMouseLeave={() => onUnitHover(null)}
                 >
                     <UnitCard 
-                    unit={unit} 
-                    onConfigure={onConfigureUnit} 
-                    onDelete={onDeleteUnit}
-                    onCharge={onChargeUnit}
-                    onSelect={onSelectUnit}
-                    isSelected={unit.id === selectedUnitId}
-                    controlCenterPosition={controlCenterPosition}
+                        unit={unit} 
+                        onDelete={onDeleteUnit}
+                        onCharge={onChargeUnit}
+                        onSelect={onSelectUnit}
+                        isSelected={unit.id === selectedUnitId}
+                        controlCenterPosition={controlCenterPosition}
                     />
                 </motion.div>
                 ))}

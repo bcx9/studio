@@ -2,15 +2,20 @@
 'use client';
 
 import * as React from 'react';
-import type { MeshUnit, UnitType, Group } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, UnitStatus } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Save, ListTree, Car, User, PlusCircle, Settings } from 'lucide-react';
+import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal, ChevronDown, Plug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CODE_TO_UNIT_STATUS, CODE_TO_UNIT_TYPE } from '@/types/mesh';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import StatusBadge from './status-badge';
 
 interface DeviceRegistryProps {
   units: MeshUnit[];
@@ -20,11 +25,34 @@ interface DeviceRegistryProps {
   onAssignGroup: (unitId: number, groupId: number | null) => void;
 }
 
-export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup }: DeviceRegistryProps) {
-  const [editableUnits, setEditableUnits] = React.useState<Record<number, Partial<Pick<MeshUnit, 'name' | 'type'>>>>({});
-  const { toast } = useToast();
+const statusTranslations: Record<UnitStatus, string> = {
+  Online: 'Online',
+  Moving: 'In Bewegung',
+  Idle: 'Inaktiv',
+  Alarm: 'Alarm',
+  Offline: 'Offline',
+  Maintenance: 'Wartung',
+};
 
-  const handleUnitChange = (id: number, field: 'name' | 'type', value: string) => {
+export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup }: DeviceRegistryProps) {
+  const [editableUnits, setEditableUnits] = React.useState<Record<number, Partial<MeshUnit>>>({});
+  const { toast } = useToast();
+  const [openCollapsibleId, setOpenCollapsibleId] = React.useState<number | null>(null);
+
+
+  const handleUnitChange = (id: number, field: keyof MeshUnit, value: any) => {
+    // Special handling for position
+    if (field === 'position') {
+        setEditableUnits(prev => ({
+            ...prev,
+            [id]: {
+                ...prev[id],
+                position: { ...(getUnitValue(units.find(u => u.id === id)!, 'position')), ...value }
+            }
+        }));
+        return;
+    }
+
     setEditableUnits(prev => ({
       ...prev,
       [id]: {
@@ -33,37 +61,41 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
       },
     }));
   };
-
-  const handleSaveUnit = (unit: MeshUnit) => {
-    const changes = editableUnits[unit.id];
+  
+  const handleSaveUnit = (originalUnit: MeshUnit) => {
+    const changes = editableUnits[originalUnit.id];
     if (changes) {
-      const updatedUnit = { ...unit, ...changes };
+      const updatedUnit = { ...originalUnit, ...changes };
       updateUnit(updatedUnit);
       
       toast({
         title: 'Einheit aktualisiert',
-        description: `Die Daten für Einheit #${unit.id} wurden gespeichert.`,
+        description: `Die Daten für Einheit ${updatedUnit.name} wurden gespeichert.`,
       });
       
       setEditableUnits(prev => {
         const newState = { ...prev };
-        delete newState[unit.id];
+        delete newState[originalUnit.id];
         return newState;
       });
     }
   };
 
+  const getUnitValue = <K extends keyof MeshUnit>(unit: MeshUnit, field: K): MeshUnit[K] => {
+    return editableUnits[unit.id]?.[field] ?? unit[field];
+  };
+
   return (
-    <div className="container mx-auto max-w-5xl py-8">
+    <div className="container mx-auto max-w-6xl py-8">
       <Card className="bg-card/50">
         <CardHeader>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-3'>
                 <ListTree className="h-8 w-8 text-primary" />
                 <div>
-                <CardTitle className="text-2xl">Geräte & System</CardTitle>
+                <CardTitle className="text-2xl">Geräte & Konfiguration</CardTitle>
                 <CardDescription>
-                    Verwalten Sie Einheiten und sehen Sie die systemweiten ID-Konfigurationen ein.
+                    Verwalten Sie Einheiten, ihre Konfigurationen und sehen Sie die systemweiten ID-Mappings ein.
                 </CardDescription>
                 </div>
             </div>
@@ -76,91 +108,171 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
         <CardContent className="space-y-12">
           <div>
             <h3 className="text-lg font-semibold mb-3">Registrierte Einheiten</h3>
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg">
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead className="w-[80px]">ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="w-[180px]">Typ</TableHead>
-                    <TableHead className="w-[220px]">Gruppe</TableHead>
-                    <TableHead className="w-[130px] text-right">Aktion</TableHead>
+                        <TableHead className="w-[80px]">ID</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead className="w-[180px]">Typ</TableHead>
+                        <TableHead className="w-[140px]">Status</TableHead>
+                        <TableHead className="w-[220px]">Gruppe</TableHead>
+                        <TableHead className="w-[130px] text-right">Aktionen</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {units.map(unit => {
-                    const unitChanges = editableUnits[unit.id] || {};
-                    const newName = unitChanges.name;
-                    const newType = unitChanges.type;
-                    
-                    const isNameChanged = newName !== undefined && newName.trim() && newName.trim() !== unit.name;
-                    const isTypeChanged = newType !== undefined && newType !== unit.type;
-                    const isSavable = isNameChanged || isTypeChanged;
-                    
-                    return (
-                    <TableRow key={unit.id}>
-                        <TableCell className="font-medium">{unit.id}</TableCell>
-                        <TableCell>
-                        <Input
-                            value={newName ?? unit.name}
-                            onChange={(e) => handleUnitChange(unit.id, 'name', e.target.value)}
-                            className="h-9"
-                        />
-                        </TableCell>
-                        <TableCell>
-                        <Select
-                            value={newType ?? unit.type}
-                            onValueChange={(value) => handleUnitChange(unit.id, 'type', value as UnitType)}
-                        >
-                            <SelectTrigger className="h-9">
-                            <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                            <SelectItem value="Vehicle">
-                                <div className="flex items-center gap-2">
-                                <Car className="h-4 w-4 text-muted-foreground" />
-                                Fahrzeug
-                                </div>
-                            </SelectItem>
-                            <SelectItem value="Personnel">
-                                <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground" />
-                                Personal
-                                </div>
-                            </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        </TableCell>
-                        <TableCell>
-                            <Select
-                                value={unit.groupId?.toString() || 'none'}
-                                onValueChange={(value) => onAssignGroup(unit.id, value === 'none' ? null : Number(value))}
-                            >
-                                <SelectTrigger className="h-9">
-                                    <SelectValue placeholder="Gruppe auswählen" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Keine Gruppe</SelectItem>
-                                    {groups.map(group => (
-                                        <SelectItem key={group.id} value={group.id.toString()}>
-                                            {group.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </TableCell>
-                        <TableCell className="text-right">
-                        <Button 
-                            size="sm" 
-                            onClick={() => handleSaveUnit(unit)}
-                            disabled={!isSavable}
-                        >
-                            <Save className="h-4 w-4 mr-2" />
-                            Speichern
-                        </Button>
-                        </TableCell>
-                    </TableRow>
-                    )})}
+                        const isBeingEdited = !!editableUnits[unit.id];
+                        const isCollapsibleOpen = openCollapsibleId === unit.id;
+
+                        return (
+                            <Collapsible asChild key={unit.id} open={isCollapsibleOpen} onOpenChange={() => setOpenCollapsibleId(isCollapsibleOpen ? null : unit.id)}>
+                                <>
+                                    <TableRow className={cn("align-middle", isCollapsibleOpen && "border-b-0")}>
+                                        <TableCell className="font-medium">{unit.id}</TableCell>
+                                        <TableCell>
+                                            <Input
+                                                value={getUnitValue(unit, 'name')}
+                                                onChange={(e) => handleUnitChange(unit.id, 'name', e.target.value)}
+                                                className="h-9"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Select
+                                                value={getUnitValue(unit, 'type')}
+                                                onValueChange={(value) => handleUnitChange(unit.id, 'type', value as UnitType)}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                <SelectItem value="Vehicle">
+                                                    <div className="flex items-center gap-2">
+                                                    <Car className="h-4 w-4 text-muted-foreground" />
+                                                    Fahrzeug
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem value="Personnel">
+                                                    <div className="flex items-center gap-2">
+                                                    <User className="h-4 w-4 text-muted-foreground" />
+                                                    Personal
+                                                    </div>
+                                                </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell><StatusBadge status={unit.status} /></TableCell>
+                                        <TableCell>
+                                            <Select
+                                                value={unit.groupId?.toString() || 'none'}
+                                                onValueChange={(value) => onAssignGroup(unit.id, value === 'none' ? null : Number(value))}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue placeholder="Gruppe auswählen" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">Keine Gruppe</SelectItem>
+                                                    {groups.map(group => (
+                                                        <SelectItem key={group.id} value={group.id.toString()}>
+                                                            {group.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                            <CollapsibleTrigger asChild>
+                                                <Button size="icon" variant="ghost" className='h-9 w-9'>
+                                                    <SlidersHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </CollapsibleTrigger>
+                                            <Button 
+                                                size="sm" 
+                                                onClick={() => handleSaveUnit(unit)}
+                                                disabled={!isBeingEdited}
+                                            >
+                                                <Save className="h-4 w-4 mr-2" />
+                                                Speichern
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                    <CollapsibleContent asChild>
+                                        <TableRow>
+                                            <TableCell colSpan={6} className='p-0'>
+                                                <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                                                     <div className="space-y-2">
+                                                        <Label>Status</Label>
+                                                        <Select
+                                                            value={getUnitValue(unit, 'status')}
+                                                            onValueChange={(status) => handleUnitChange(unit.id, 'status', status as UnitStatus)}
+                                                            >
+                                                            <SelectTrigger>
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {Object.entries(statusTranslations).map(([statusValue, statusLabel]) => (
+                                                                    <SelectItem key={statusValue} value={statusValue}>{statusLabel}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Position (Lat/Lon)</Label>
+                                                        <div className='flex gap-2'>
+                                                            <Input
+                                                            type="number"
+                                                            value={getUnitValue(unit, 'position').lat}
+                                                            onChange={e => handleUnitChange(unit.id, 'position', { lat: parseFloat(e.target.value) })}
+                                                            />
+                                                            <Input
+                                                            type="number"
+                                                            value={getUnitValue(unit, 'position').lng}
+                                                            onChange={e => handleUnitChange(unit.id, 'position', { lng: parseFloat(e.target.value) })}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-1">
+                                                        <Label>Sendeintervall: {getUnitValue(unit, 'sendInterval')}s</Label>
+                                                        <Slider
+                                                            min={1}
+                                                            max={60}
+                                                            step={1}
+                                                            value={[getUnitValue(unit, 'sendInterval')]}
+                                                            onValueChange={value => handleUnitChange(unit.id, 'sendInterval', value[0])}
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                                                        <div className="space-y-0.5">
+                                                            <Label>Einheit aktivieren</Label>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Aktivieren oder deaktivieren Sie die Datenübertragung.
+                                                            </p>
+                                                        </div>
+                                                        <Switch
+                                                            checked={getUnitValue(unit, 'isActive')}
+                                                            onCheckedChange={checked => handleUnitChange(unit.id, 'isActive', checked)}
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                                                        <div className="space-y-0.5">
+                                                            <Label>Externe Stromversorgung</Label>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Wenn aktiv, lädt die Einheit.
+                                                            </p>
+                                                        </div>
+                                                        <Switch
+                                                            checked={getUnitValue(unit, 'isExternallyPowered')}
+                                                            onCheckedChange={checked => handleUnitChange(unit.id, 'isExternallyPowered', checked)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    </CollapsibleContent>
+                                </>
+                            </Collapsible>
+                        )
+                    })}
                 </TableBody>
                 </Table>
             </div>

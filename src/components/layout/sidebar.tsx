@@ -18,7 +18,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface AppSidebarProps {
   units: MeshUnit[];
   groups: Group[];
-  onConfigureUnit: (unit: MeshUnit) => void;
   onCreateUnit: () => void;
   onDeleteUnit: (id: number) => void;
   onChargeUnit: (id: number) => void;
@@ -34,7 +33,6 @@ interface AppSidebarProps {
 export default function AppSidebar({
   units,
   groups,
-  onConfigureUnit,
   onCreateUnit,
   onDeleteUnit,
   onChargeUnit,
@@ -94,7 +92,6 @@ export default function AppSidebar({
         <UnitList 
           units={units} 
           groups={groups}
-          onConfigureUnit={onConfigureUnit} 
           onDeleteUnit={onDeleteUnit}
           onChargeUnit={onChargeUnit}
           onUnitHover={onUnitHover}

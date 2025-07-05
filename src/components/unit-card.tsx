@@ -9,7 +9,6 @@ import {
   Battery,
   GaugeCircle,
   Compass,
-  Settings,
   Trash2,
   AlertTriangle,
   BatteryCharging,
@@ -33,7 +32,6 @@ import { de } from 'date-fns/locale';
 
 interface UnitCardProps {
   unit: MeshUnit;
-  onConfigure: (unit: MeshUnit) => void;
   onDelete: (id: number) => void;
   onCharge: (id: number) => void;
   onSelect: (unit: MeshUnit) => void;
@@ -41,7 +39,7 @@ interface UnitCardProps {
   controlCenterPosition: { lat: number; lng: number } | null;
 }
 
-export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSelect, isSelected, controlCenterPosition }: UnitCardProps) {
+export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelected, controlCenterPosition }: UnitCardProps) {
   const BatteryIcon = () => {
     if (!unit.isActive || unit.battery <= 0) return <Battery className="text-muted-foreground" />;
     if (unit.battery < 20) return <AlertTriangle className="h-4 w-4 text-destructive" />;
@@ -95,14 +93,6 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>Akku laden</TooltipContent>
-                </Tooltip>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); onConfigure(unit)}}>
-                            <Settings className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Konfigurieren</TooltipContent>
                 </Tooltip>
                  <Tooltip>
                     <TooltipTrigger asChild>
