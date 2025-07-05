@@ -17,7 +17,7 @@ import {
   ArrowDown,
   ArrowUp,
   Plug,
-  Rssi,
+  Rss,
   Waypoints,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
@@ -162,7 +162,7 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
 
             <Tooltip>
                 <TooltipTrigger className='flex items-center gap-1'>
-                    <Rssi className="h-4 w-4" /> {unit.signalStrength} dBm
+                    <Rss className="h-4 w-4" /> {unit.signalStrength} dBm
                 </TooltipTrigger>
                 <TooltipContent>Signalstärke (RSSI)</TooltipContent>
             </Tooltip>
