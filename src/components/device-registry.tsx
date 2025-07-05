@@ -79,6 +79,8 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
         delete newState[originalUnit.id];
         return newState;
       });
+
+      setOpenCollapsibleId(null); // Close after saving
     }
   };
 
@@ -126,7 +128,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                         const isCollapsibleOpen = openCollapsibleId === unit.id;
 
                         return (
-                            <Collapsible as="tbody" key={unit.id} open={isCollapsibleOpen} onOpenChange={() => setOpenCollapsibleId(isCollapsibleOpen ? null : unit.id)} className="w-full">
+                            <Collapsible as="tbody" key={unit.id} open={isCollapsibleOpen} onOpenChange={(isOpen) => setOpenCollapsibleId(isOpen ? unit.id : null)} className="w-full">
                                 <TableRow className={cn("align-middle", isCollapsibleOpen && "border-b-0")}>
                                     <TableCell className="font-medium">{unit.id}</TableCell>
                                     <TableCell>
@@ -198,8 +200,8 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                 <CollapsibleContent asChild>
                                     <TableRow>
                                         <TableCell colSpan={6} className='p-0'>
-                                            <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                                                    <div className="space-y-2">
+                                            <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
+                                                <div className="space-y-2">
                                                     <Label>Status</Label>
                                                     <Select
                                                         value={getUnitValue(unit, 'status')}
@@ -230,7 +232,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-1">
+                                                <div className="space-y-2 col-span-1 md:col-span-2">
                                                     <Label>Sendeintervall: {getUnitValue(unit, 'sendInterval')}s</Label>
                                                     <Slider
                                                         min={1}
@@ -336,7 +338,3 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
     </div>
   );
 }
-
-    
-
-    

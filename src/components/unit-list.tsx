@@ -37,12 +37,12 @@ export default function UnitList({
     .filter(unit => unit.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .filter(unit => statusFilter === 'all' || unit.status.toLowerCase() === statusFilter);
 
-  const unitsByGroup = React.useMemo(() => {
+  const { grouped: unitsByGroup, ungrouped } = React.useMemo(() => {
     const grouped: Record<string, MeshUnit[]> = {};
     const ungrouped: MeshUnit[] = [];
 
     for (const unit of filteredUnits) {
-      if (unit.groupId) {
+      if (unit.groupId && groups.some(g => g.id === unit.groupId)) {
         if (!grouped[unit.groupId]) {
           grouped[unit.groupId] = [];
         }
@@ -52,9 +52,9 @@ export default function UnitList({
       }
     }
     return { grouped, ungrouped };
-  }, [filteredUnits]);
+  }, [filteredUnits, groups]);
 
-  const defaultAccordionItems = groups.map(g => g.id.toString());
+  const defaultAccordionItems = React.useMemo(() => groups.map(g => g.id.toString()), [groups]);
   
   return (
     <div className="flex flex-col h-full px-2">
@@ -81,14 +81,16 @@ export default function UnitList({
       </div>
       <ScrollArea className="flex-1">
         <Accordion type="multiple" defaultValue={defaultAccordionItems} className="w-full">
-            {groups.map(group => (
-                 unitsByGroup.grouped[group.id] && unitsByGroup.grouped[group.id].length > 0 && (
+            {groups.map(group => {
+                const unitsInGroup = unitsByGroup[group.id] || [];
+                return (
                     <AccordionItem value={group.id.toString()} key={group.id}>
-                        <AccordionTrigger className="px-2 py-2 text-sm hover:no-underline">{group.name} ({unitsByGroup.grouped[group.id]?.length || 0})</AccordionTrigger>
+                        <AccordionTrigger className="px-2 py-2 text-sm hover:no-underline">{group.name} ({unitsInGroup.length})</AccordionTrigger>
                         <AccordionContent>
-                             <div className="space-y-2 p-2 pt-0">
+                            <div className="space-y-2 p-2 pt-0">
                                 <AnimatePresence>
-                                    {unitsByGroup.grouped[group.id]?.map(unit => (
+                                    {unitsInGroup.length > 0 ? (
+                                        unitsInGroup.map(unit => (
                                          <motion.div
                                             key={unit.id}
                                             layout
@@ -108,18 +110,23 @@ export default function UnitList({
                                                 controlCenterPosition={controlCenterPosition}
                                             />
                                         </motion.div>
-                                    ))}
+                                    ))
+                                    ) : (
+                                        <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                                            Keine Einheiten in dieser Gruppe.
+                                        </p>
+                                    )}
                                 </AnimatePresence>
                              </div>
                         </AccordionContent>
                     </AccordionItem>
                  )
-            ))}
+            })}
         </Accordion>
          <div className="space-y-2 p-2">
-            {unitsByGroup.ungrouped.length > 0 && <h4 className="text-sm font-medium text-muted-foreground px-2 pt-2">Ungruppiert</h4>}
+            {ungrouped.length > 0 && <h4 className="text-sm font-medium text-muted-foreground px-2 pt-2">Ungruppiert</h4>}
             <AnimatePresence>
-                {unitsByGroup.ungrouped.map(unit => (
+                {ungrouped.map(unit => (
                 <motion.div
                     key={unit.id}
                     layout
