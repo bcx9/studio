@@ -12,7 +12,7 @@ import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code, Map as MapIcon, ListTree, Bot } from 'lucide-react';
+import { Code, Map as MapIcon, ListTree } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
 import GatewayConfig from '@/components/gateway-config';
 import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
