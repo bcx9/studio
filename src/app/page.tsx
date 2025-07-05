@@ -22,7 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
 import GroupManagement from '@/components/group-management';
-import AdminSettings from '@/components/admin-settings';
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -242,10 +241,9 @@ export default function Home() {
               <TabsList className="mb-4 self-start">
                 <TabsTrigger value="map">Live-Karte</TabsTrigger>
                 <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
-                <TabsTrigger value="device-registry">Geräteverwaltung</TabsTrigger>
+                <TabsTrigger value="device-registry">Geräte & System</TabsTrigger>
                 <TabsTrigger value="group-management">Gruppenverwaltung</TabsTrigger>
                 <TabsTrigger value="gateway-config">Gateway</TabsTrigger>
-                <TabsTrigger value="admin-settings">Administration</TabsTrigger>
                 <TabsTrigger value="json-view" disabled={!selectedUnit}>
                   Datenansicht
                 </TabsTrigger>
@@ -301,9 +299,6 @@ export default function Home() {
                     onDisconnect={handleDisconnect}
                     isConnecting={isConnecting}
                 />
-              </TabsContent>
-              <TabsContent value="admin-settings" className="flex-1 overflow-y-auto">
-                  <AdminSettings />
               </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (
