@@ -38,6 +38,7 @@ const MapView = dynamic(() => import('@/components/map-view'), {
   ),
 });
 
+const TACTICAL_DRAWINGS_KEY = 'tactical-drawings';
 
 export default function Home() {
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
@@ -55,6 +56,20 @@ export default function Home() {
 
   const [isReplayMode, setIsReplayMode] = React.useState(false);
   const [replayTimestamp, setReplayTimestamp] = React.useState<number | null>(null);
+  
+  const [drawnItems, setDrawnItems] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    try {
+        const savedDrawings = localStorage.getItem(TACTICAL_DRAWINGS_KEY);
+        if (savedDrawings) {
+            setDrawnItems(JSON.parse(savedDrawings));
+        }
+    } catch(e) {
+        console.error("Failed to load drawings from localStorage", e);
+        localStorage.removeItem(TACTICAL_DRAWINGS_KEY);
+    }
+  }, []);
 
   const handleUnitMessage = React.useCallback((unitName: string, message: string) => {
     setGatewayLogs(prev => [...prev, `[EINGANG] ${unitName}: ${message}`]);
@@ -213,6 +228,18 @@ export default function Home() {
       }
   };
 
+  const handleShapesChange = (featureGroup: any) => {
+    const geoJsonData = featureGroup.toGeoJSON();
+    const features = geoJsonData.features || [];
+    setDrawnItems(features);
+    try {
+        localStorage.setItem(TACTICAL_DRAWINGS_KEY, JSON.stringify(features));
+    } catch (e) {
+        console.error("Failed to save drawings to localStorage", e);
+    }
+  };
+
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -254,6 +281,8 @@ export default function Home() {
                     onMapClick={handleMapClick}
                     onUnitClick={handleMapUnitClick}
                     controlCenterPosition={controlCenterPosition}
+                    drawnItems={drawnItems}
+                    onShapesChange={handleShapesChange}
                   />
                 ) : (
                    <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">

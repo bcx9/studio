@@ -2,9 +2,11 @@
 'use client';
 // CSS must be imported first
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw/dist/leaflet.draw.css';
 
 import * as React from 'react';
 import L, { type Map } from 'leaflet';
+import 'leaflet-draw';
 
 import type { MeshUnit, UnitStatus, UnitType } from '@/types/mesh';
 import { Globe, Map as MapIcon, Target } from 'lucide-react';
@@ -14,8 +16,10 @@ interface MapViewProps {
   units: MeshUnit[];
   highlightedUnitId: number | null;
   controlCenterPosition: { lat: number; lng: number } | null;
+  drawnItems: any[];
   onMapClick: (position: { lat: number; lng: number }) => void;
   onUnitClick?: (unitId: number) => void;
+  onShapesChange: (featureGroup: L.FeatureGroup) => void;
 }
 
 type MapStyle = 'satellite' | 'street';
@@ -47,7 +51,6 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
   const highlightDropShadow = isHighlighted ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]' : '';
 
-  // SVG paths for lucide icons (Car and User)
   const iconPaths = {
     Vehicle: `
       <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"></path>
@@ -64,13 +67,14 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   };
 
   const iconPath = iconPaths[unitType] || '';
+  const iconColor = status === 'Offline' ? '#9ca3af' : color;
 
   const iconHtml = `
     <div class="relative flex items-center justify-center ${alarmAnimationClass}">
       <svg class="h-10 w-10 ${highlightDropShadow}" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 42 16 42C16 42 32 24.837 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
         <circle cx="16" cy="16" r="8" fill="white"/>
-        <svg x="8" y="8" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="8" y="8" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="${iconColor}" fill="none" stroke-linecap="round" stroke-linejoin="round">
           ${iconPath}
         </svg>
       </svg>
@@ -79,7 +83,7 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
 
   return L.divIcon({
     html: iconHtml,
-    className: '', // Important to override default Leaflet styles
+    className: '',
     iconSize: [40, 42],
     iconAnchor: [20, 42],
     popupAnchor: [0, -42],
@@ -87,7 +91,6 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
 };
 
 const createControlCenterIcon = () => {
-  // Use a fixed color for stability, similar to the dark theme's primary color
   const color = 'hsl(221, 83%, 58%)'; 
   
   const iconHtml = `
@@ -109,7 +112,7 @@ const createControlCenterIcon = () => {
 };
 
 
-export default function MapView({ units, highlightedUnitId, controlCenterPosition, onMapClick, onUnitClick }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId, controlCenterPosition, drawnItems, onMapClick, onUnitClick, onShapesChange }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
@@ -156,6 +159,43 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
       
+      const editableLayers = new L.FeatureGroup();
+      map.addLayer(editableLayers);
+      
+      drawnItems.forEach(itemGeoJson => {
+        const layer = L.geoJSON(itemGeoJson);
+        layer.eachLayer(l => editableLayers.addLayer(l));
+      });
+
+      const drawControl = new L.Control.Draw({
+          edit: {
+              featureGroup: editableLayers,
+          },
+          draw: {
+              polygon: {
+                  allowIntersection: false,
+                  showArea: true,
+              },
+              polyline: true,
+              rectangle: true,
+              circle: true,
+              marker: false,
+              circlemarker: false,
+          },
+      });
+      map.addControl(drawControl);
+
+      const handleShapeEvent = () => {
+        onShapesChange(editableLayers);
+      };
+
+      map.on(L.Draw.Event.CREATED, (event: L.DrawEvents.Created) => {
+          editableLayers.addLayer(event.layer);
+          handleShapeEvent();
+      });
+      map.on(L.Draw.Event.EDITED, handleShapeEvent);
+      map.on(L.Draw.Event.DELETED, handleShapeEvent);
+
       setTimeout(() => map.invalidateSize(), 100);
       
       map.on('click', (e: L.LeafletMouseEvent) => {
@@ -170,7 +210,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             mapInstanceRef.current = null;
         }
     };
-  }, [onMapClick]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update tile layer style
   React.useEffect(() => {
@@ -185,7 +226,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // --- Clear all existing markers from the map ---
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
     if (controlCenterMarkerRef.current) {
@@ -193,7 +233,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         controlCenterMarkerRef.current = null;
     }
 
-    // --- Redraw unit markers ---
     units.forEach(unit => {
         const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
         const tooltipContent = `
@@ -220,7 +259,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         markersRef.current[unit.id] = marker;
     });
 
-    // --- Redraw control center marker ---
     if (controlCenterPosition) {
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
         const tooltipContent = `<strong>Leitstelle</strong>`;
