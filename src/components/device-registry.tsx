@@ -7,11 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal, ChevronDown, Plug } from 'lucide-react';
+import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CODE_TO_UNIT_STATUS, CODE_TO_UNIT_TYPE } from '@/types/mesh';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
@@ -123,12 +122,13 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                             <TableHead className="w-[130px] text-right">Aktionen</TableHead>
                         </TableRow>
                     </TableHeader>
+                    <TableBody>
                     {units.map(unit => {
                         const isBeingEdited = !!editableUnits[unit.id];
                         const isCollapsibleOpen = openCollapsibleId === unit.id;
 
                         return (
-                            <Collapsible as="tbody" key={unit.id} open={isCollapsibleOpen} onOpenChange={(isOpen) => setOpenCollapsibleId(isOpen ? unit.id : null)} className="w-full">
+                            <React.Fragment key={unit.id}>
                                 <TableRow className={cn("align-middle", isCollapsibleOpen && "border-b-0")}>
                                     <TableCell className="font-medium">{unit.id}</TableCell>
                                     <TableCell>
@@ -182,11 +182,9 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                         </Select>
                                     </TableCell>
                                     <TableCell className="text-right space-x-1">
-                                        <CollapsibleTrigger asChild>
-                                            <Button size="icon" variant="ghost" className='h-9 w-9'>
-                                                <SlidersHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </CollapsibleTrigger>
+                                        <Button size="icon" variant="ghost" className='h-9 w-9' onClick={() => setOpenCollapsibleId(isCollapsibleOpen ? null : unit.id)}>
+                                            <SlidersHorizontal className="h-4 w-4" />
+                                        </Button>
                                         <Button 
                                             size="sm" 
                                             onClick={() => handleSaveUnit(unit)}
@@ -197,8 +195,8 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                         </Button>
                                     </TableCell>
                                 </TableRow>
-                                <CollapsibleContent asChild>
-                                    <TableRow>
+                                {isCollapsibleOpen && (
+                                     <TableRow>
                                         <TableCell colSpan={6} className='p-0'>
                                             <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
                                                 <div className="space-y-2">
@@ -269,10 +267,11 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                             </div>
                                         </TableCell>
                                     </TableRow>
-                                </CollapsibleContent>
-                            </Collapsible>
+                                )}
+                            </React.Fragment>
                         )
                     })}
+                    </TableBody>
                 </Table>
             </div>
           </div>
@@ -338,3 +337,5 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
     </div>
   );
 }
+
+    
