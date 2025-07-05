@@ -30,14 +30,6 @@ export interface Group {
     name: string;
 }
 
-export interface UnitHistoryPoint {
-    position: { lat: number; lng: number };
-    status: UnitStatus;
-    timestamp: number;
-    battery: number;
-    lastMessage: UnitMessage | null;
-}
-
 // Compact data representation for network efficiency
 export const CODE_TO_UNIT_TYPE: Record<number, UnitType> = {
   1: 'Vehicle',

@@ -1,7 +1,6 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { MeshUnit, UnitHistoryPoint } from "@/types/mesh";
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -42,43 +41,4 @@ export function calculateBearing(lat1: number, lon1: number, lat2: number, lon2:
   let brng = Math.atan2(y, x);
   brng = toDegrees(brng);
   return (brng + 360) % 360; // Normalize to 0-360
-}
-
-
-export function getUnitStateAtTime(
-    liveUnits: MeshUnit[],
-    history: Record<number, UnitHistoryPoint[]>,
-    timestamp: number
-): MeshUnit[] {
-    return liveUnits.map(unit => {
-        const unitHistory = history[unit.id];
-        if (!unitHistory || unitHistory.length === 0) {
-            return { ...unit, status: 'Offline' };
-        }
-
-        // Find the history point closest to the target timestamp
-        let closestPoint = unitHistory[0];
-        let smallestDiff = Math.abs(timestamp - closestPoint.timestamp);
-
-        for (const point of unitHistory) {
-            const diff = Math.abs(timestamp - point.timestamp);
-            if (diff < smallestDiff) {
-                smallestDiff = diff;
-                closestPoint = point;
-            }
-        }
-        
-        // If the closest record is too old, consider it offline for the replay
-        const isOffline = (timestamp - closestPoint.timestamp) > (unit.sendInterval * 1000 * 5);
-
-        return {
-            ...unit,
-            position: closestPoint.position,
-            status: isOffline ? 'Offline' : closestPoint.status,
-            battery: closestPoint.battery,
-            timestamp: closestPoint.timestamp,
-            isActive: !isOffline,
-            lastMessage: closestPoint.lastMessage,
-        };
-    });
 }

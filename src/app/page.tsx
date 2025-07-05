@@ -21,9 +21,8 @@ import { connectToGateway } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
-import HistoryReplay from '@/components/history-replay';
-import { getUnitStateAtTime } from '@/lib/utils';
 import GroupManagement from '@/components/group-management';
+import AdminSettings from '@/components/admin-settings';
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -54,9 +53,6 @@ export default function Home() {
   const [isConnecting, setIsConnecting] = React.useState(false);
   const { toast } = useToast();
 
-  const [isReplayMode, setIsReplayMode] = React.useState(false);
-  const [replayTimestamp, setReplayTimestamp] = React.useState<number | null>(null);
-  
   const [drawnItems, setDrawnItems] = React.useState<any[]>([]);
 
   React.useEffect(() => {
@@ -89,7 +85,6 @@ export default function Home() {
       sendMessage, 
       startSimulation, 
       stopSimulation,
-      unitHistory,
       groups,
       addGroup,
       updateGroup,
@@ -210,24 +205,6 @@ export default function Home() {
     });
   };
 
-  const displayedUnits = React.useMemo(() => {
-    if (isReplayMode && replayTimestamp) {
-        return getUnitStateAtTime(units, unitHistory, replayTimestamp);
-    }
-    return units;
-  }, [isReplayMode, replayTimestamp, units, unitHistory]);
-
-  const onReplayTimeChange = (time: number) => {
-      setReplayTimestamp(time);
-  };
-  
-  const onToggleReplayMode = (active: boolean) => {
-      setIsReplayMode(active);
-      if (!active) {
-          setReplayTimestamp(null);
-      }
-  };
-
   const handleShapesChange = (featureGroup: any) => {
     const geoJsonData = featureGroup.toGeoJSON();
     const features = geoJsonData.features || [];
@@ -244,7 +221,7 @@ export default function Home() {
     <SidebarProvider>
       <Sidebar>
         <AppSidebar
-          units={displayedUnits}
+          units={units}
           groups={groups}
           onConfigureUnit={handleConfigureUnit}
           onCreateUnit={handleCreateNewUnit}
@@ -268,7 +245,7 @@ export default function Home() {
                 <TabsTrigger value="device-registry">Geräteverwaltung</TabsTrigger>
                 <TabsTrigger value="group-management">Gruppenverwaltung</TabsTrigger>
                 <TabsTrigger value="gateway-config">Gateway</TabsTrigger>
-                <TabsTrigger value="history-replay">Verlauf & Replay</TabsTrigger>
+                <TabsTrigger value="admin-settings">Administration</TabsTrigger>
                 <TabsTrigger value="json-view" disabled={!selectedUnit}>
                   Datenansicht
                 </TabsTrigger>
@@ -276,7 +253,7 @@ export default function Home() {
               <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
                 {isInitialized ? (
                   <MapView 
-                    units={displayedUnits} 
+                    units={units} 
                     highlightedUnitId={highlightedUnitId} 
                     onMapClick={handleMapClick}
                     onUnitClick={handleMapUnitClick}
@@ -325,13 +302,8 @@ export default function Home() {
                     isConnecting={isConnecting}
                 />
               </TabsContent>
-                <TabsContent value="history-replay" className="flex-1 overflow-y-auto">
-                  <HistoryReplay 
-                    unitHistory={unitHistory}
-                    isReplaying={isReplayMode}
-                    onToggleReplay={onToggleReplayMode}
-                    onTimeChange={onReplayTimeChange}
-                  />
+              <TabsContent value="admin-settings" className="flex-1 overflow-y-auto">
+                  <AdminSettings />
               </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (

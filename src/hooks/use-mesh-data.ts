@@ -2,12 +2,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MeshUnit, UnitType, Group, UnitHistoryPoint, UnitMessage, UnitStatus } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, UnitMessage, UnitStatus } from '@/types/mesh';
 import { calculateBearing, calculateDistance } from '@/lib/utils';
 
 const MESH_DATA_STORAGE_KEY = 'mesh-data-state';
 const baseCoords = { lat: 53.19745, lng: 10.84507 };
-const HISTORY_LIMIT = 300; // Store last 300 seconds (5 minutes) of data
 
 const initialUnits: MeshUnit[] = [
   {
@@ -97,19 +96,15 @@ interface UseMeshDataProps {
 export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }: UseMeshDataProps) {
   const [units, setUnits] = useState<MeshUnit[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [unitHistory, setUnitHistory] = useState<Record<number, UnitHistoryPoint[]>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   
   const unitsRef = useRef(units);
   unitsRef.current = units;
   const groupsRef = useRef(groups);
   groupsRef.current = groups;
-  const unitHistoryRef = useRef(unitHistory);
-  unitHistoryRef.current = unitHistory;
 
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Refs to hold the latest values of props to avoid stale closures in setInterval
   const isRallyingRef = useRef(isRallying);
   const controlCenterPositionRef = useRef(controlCenterPosition);
 
@@ -134,17 +129,14 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     
     setUnits(loadedState?.units && loadedState.units.length > 0 ? loadedState.units : initialUnits);
     setGroups(loadedState?.groups && loadedState.groups.length > 0 ? loadedState.groups : initialGroups);
-    setUnitHistory(loadedState?.unitHistory || {});
     setIsInitialized(true);
 
     const handleBeforeUnload = () => {
-      // Use refs to get the latest state, avoiding stale closures.
       if (unitsRef.current.length > 0) {
         try {
           const stateToSave = {
             units: unitsRef.current,
             groups: groupsRef.current,
-            unitHistory: unitHistoryRef.current,
           };
           localStorage.setItem(MESH_DATA_STORAGE_KEY, JSON.stringify(stateToSave));
         } catch (error) {
@@ -160,8 +152,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
         clearInterval(simulationIntervalRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+  }, []);
 
   const stopSimulation = useCallback(() => {
     if (simulationIntervalRef.current) {
@@ -285,24 +276,6 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
 
       setUnits(nextUnits);
       
-      setUnitHistory(prevHistory => {
-        const newHistory = { ...prevHistory };
-        nextUnits.forEach(unit => {
-          if (!prevHistory[unit.id] || prevHistory[unit.id][0]?.timestamp !== unit.timestamp) {
-            const currentUnitHistory = newHistory[unit.id] || [];
-            const newHistoryPoint: UnitHistoryPoint = {
-              position: unit.position,
-              status: unit.status,
-              timestamp: unit.timestamp,
-              battery: unit.battery,
-              lastMessage: unit.lastMessage,
-            };
-            newHistory[unit.id] = [newHistoryPoint, ...currentUnitHistory].slice(0, HISTORY_LIMIT);
-          }
-        });
-        return newHistory;
-      });
-      
       messagesForToast.forEach(msg => {
         onUnitMessage(msg.unitName, msg.message);
       });
@@ -393,9 +366,8 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     const toDegrees = (rad: number) => rad * 180 / Math.PI;
 
     setUnits(currentUnits => currentUnits.map(unit => {
-      // Generate a random point within the circle using a method that ensures uniform distribution
       const randomDist = radiusKm * Math.sqrt(Math.random());
-      const randomAngle = Math.random() * 2 * Math.PI; // in radians
+      const randomAngle = Math.random() * 2 * Math.PI;
 
       const lat1Rad = toRadians(centerLat);
       const lon1Rad = toRadians(centerLng);
@@ -435,7 +407,6 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
   
   const removeGroup = (groupId: number) => {
     setGroups(g => g.filter(group => group.id !== groupId));
-    // Also unassign units from this group
     setUnits(u => u.map(unit => unit.groupId === groupId ? { ...unit, groupId: null } : unit));
   };
 
@@ -454,7 +425,6 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       sendMessage, 
       startSimulation, 
       stopSimulation,
-      unitHistory,
       groups,
       addGroup,
       updateGroup,
