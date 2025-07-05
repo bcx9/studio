@@ -133,9 +133,24 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       }
     } catch (error) {
       console.error("Failed to parse from localStorage", error);
+      localStorage.removeItem(MESH_DATA_STORAGE_KEY);
     }
     
-    setUnits(loadedState?.units && loadedState.units.length > 0 ? loadedState.units : initialUnits);
+    let finalUnits = initialUnits;
+    if (loadedState?.units && loadedState.units.length > 0) {
+      // Data migration: ensure all units have the new fields if they are missing from localStorage
+      finalUnits = loadedState.units.map((unit: Partial<MeshUnit>) => ({
+        ...initialUnits[0], // Use a base object to ensure all fields are present
+        ...unit,
+        signalStrength: unit.signalStrength ?? -75,
+        hopCount: unit.hopCount ?? 1,
+        isExternallyPowered: unit.isExternallyPowered ?? false,
+        lastMessage: unit.lastMessage ?? null,
+        groupId: unit.groupId ?? null,
+      }));
+    }
+    
+    setUnits(finalUnits);
     setGroups(loadedState?.groups && loadedState.groups.length > 0 ? loadedState.groups : initialGroups);
     setIsInitialized(true);
 
