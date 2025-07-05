@@ -86,3 +86,9 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.tactical-symbol-icon {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}

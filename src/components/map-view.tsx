@@ -9,7 +9,7 @@ import L, { type Map } from 'leaflet';
 import 'leaflet-draw';
 
 import type { MeshUnit, UnitStatus, UnitType } from '@/types/mesh';
-import { Globe, Map as MapIcon, Target } from 'lucide-react';
+import { Globe, Map as MapIcon, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MapViewProps {
@@ -38,6 +38,37 @@ const TILE_LAYERS = {
 
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
 const MAX_ZOOM = 20;
+
+const TACTICAL_SYMBOLS: Record<string, { icon: React.FC<React.SVGProps<SVGSVGElement>>, tooltip: string, color: string }> = {
+  'fire-source': { icon: Flame, tooltip: 'Brandherd', color: 'text-orange-500' },
+  'water-source': { icon: Droplets, tooltip: 'Wasserentnahmestelle', color: 'text-blue-500' },
+  'command-post': { icon: Star, tooltip: 'Einsatzleitung', color: 'text-yellow-400' },
+  'staging-area': { icon: ParkingCircle, tooltip: 'Bereitstellungsraum', color: 'text-gray-400' },
+  'danger-zone': { icon: TriangleAlert, tooltip: 'Gefahrenbereich', color: 'text-red-500' },
+  'wind-direction': { icon: Wind, tooltip: 'Windrichtung', color: 'text-sky-400' },
+};
+
+
+const createSymbolIcon = (symbolKey: string) => {
+    const symbol = TACTICAL_SYMBOLS[symbolKey];
+    if (!symbol) return new L.Icon.Default();
+    
+    // We render the Lucide icon to an HTML string. This is a bit of a hack.
+    const iconHtml = `
+        <div class="bg-background/80 border border-foreground/50 rounded-md p-1 w-8 h-8 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${symbol.color}">
+                <use href="#${symbol.icon.displayName || symbol.icon.name}" />
+            </svg>
+        </div>`;
+
+    return L.divIcon({
+        html: iconHtml,
+        className: 'tactical-symbol-icon',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
+};
+
 
 const STATUS_COLORS: Record<UnitStatus, string> = {
   Online: '#60a5fa',    // tailwind blue-400
@@ -114,15 +145,35 @@ const createControlCenterIcon = () => {
 };
 
 
+const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string | null) => void, selectedSymbol: string | null }) => (
+  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-background/80 rounded-lg border shadow-lg">
+    {Object.entries(TACTICAL_SYMBOLS).map(([key, { icon: Icon, tooltip }]) => (
+      <Button
+        key={key}
+        variant={selectedSymbol === key ? 'secondary' : 'ghost'}
+        size="icon"
+        onClick={() => onSelect(selectedSymbol === key ? null : key)}
+        title={tooltip}
+        className='h-9 w-9'
+      >
+        <Icon className="w-5 h-5" />
+      </Button>
+    ))}
+  </div>
+);
+
+
 export default function MapView({ units, highlightedUnitId, controlCenterPosition, drawnItems, onMapClick, onUnitClick, onShapesChange, isPositioningMode }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
+  const editableLayersRef = React.useRef<L.FeatureGroup | null>(null);
   const markersRef = React.useRef<Record<number, L.Marker>>({});
   const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
+  const [selectedSymbol, setSelectedSymbol] = React.useState<string | null>(null);
 
   const handleRecenter = React.useCallback(() => {
     const map = mapInstanceRef.current;
@@ -161,13 +212,14 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
 
+      editableLayersRef.current = new L.FeatureGroup().addTo(map);
+
       setTimeout(() => map.invalidateSize(), 100);
     }
 
     const map = mapInstanceRef.current;
     
     return () => {
-        // This check ensures we only remove the map when the component is truly unmounting
         if (map && !mapContainerRef.current) { 
             map.remove();
             mapInstanceRef.current = null;
@@ -178,21 +230,28 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   // Effect to handle all event listeners that depend on changing props
   React.useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
-
-    // Map click listener
-    const handleClick = (e: L.LeafletMouseEvent) => {
-        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-    };
-    map.on('click', handleClick);
-
-    // Draw control and listeners
-    const editableLayers = new L.FeatureGroup();
-    map.addLayer(editableLayers);
+    const editableLayers = editableLayersRef.current;
+    if (!map || !editableLayers) return;
     
+    // Clear old layers before adding new ones
+    editableLayers.clearLayers();
+    
+    // Load saved drawings and symbols
     drawnItems.forEach(itemGeoJson => {
-      const layer = L.geoJSON(itemGeoJson);
-      layer.eachLayer(l => editableLayers.addLayer(l));
+      // Check if it's a custom symbol marker
+      if (itemGeoJson.geometry.type === 'Point' && itemGeoJson.properties?.symbol) {
+        const symbolKey = itemGeoJson.properties.symbol;
+        const coords = itemGeoJson.geometry.coordinates;
+        const marker = L.marker([coords[1], coords[0]], {
+          icon: createSymbolIcon(symbolKey),
+        });
+        marker.feature = itemGeoJson as any;
+        editableLayers.addLayer(marker);
+      } else {
+        // It's a regular shape from leaflet-draw
+        const layer = L.geoJSON(itemGeoJson);
+        layer.eachLayer(l => editableLayers.addLayer(l));
+      }
     });
 
     const drawControl = new L.Control.Draw({
@@ -202,7 +261,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             polyline: true,
             rectangle: true,
             circle: true,
-            marker: false,
+            marker: false, // Replaced by our custom symbols
             circlemarker: false,
         },
     });
@@ -217,6 +276,21 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     map.on(L.Draw.Event.EDITED, handleShapeEvent);
     map.on(L.Draw.Event.DELETED, handleShapeEvent);
 
+    const handleClick = (e: L.LeafletMouseEvent) => {
+        if (selectedSymbol) {
+            const newMarker = L.marker(e.latlng, { icon: createSymbolIcon(selectedSymbol) });
+            const feature = (newMarker as any).toGeoJSON();
+            feature.properties.symbol = selectedSymbol;
+            (newMarker as any).feature = feature;
+            editableLayers.addLayer(newMarker);
+            handleShapeEvent();
+            setSelectedSymbol(null); // Exit symbol placement mode
+        } else {
+             onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+        }
+    };
+    map.on('click', handleClick);
+
     // Cleanup function for this effect
     return () => {
         map.off('click', handleClick);
@@ -224,29 +298,23 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         map.off(L.Draw.Event.EDITED);
         map.off(L.Draw.Event.DELETED);
         
-        // Try removing control and layers safely in case the map instance is already destroyed
         try {
-            if (map.hasLayer(editableLayers)) {
-                map.removeLayer(editableLayers);
-            }
             map.removeControl(drawControl);
-        } catch(e) {
-            // Ignore errors on cleanup
-        }
+        } catch(e) { /* ignore */ }
     };
-  }, [onMapClick, onShapesChange, drawnItems]);
+  }, [onMapClick, onShapesChange, drawnItems, selectedSymbol]);
 
-  // Update cursor style for positioning mode
+  // Update cursor style for various modes
   React.useEffect(() => {
     const mapContainer = mapContainerRef.current;
     if (mapContainer) {
-      if (isPositioningMode) {
+      if (isPositioningMode || selectedSymbol) {
         mapContainer.style.cursor = 'crosshair';
       } else {
         mapContainer.style.cursor = ''; // Reset to default
       }
     }
-  }, [isPositioningMode]);
+  }, [isPositioningMode, selectedSymbol]);
 
   // Update tile layer style
   React.useEffect(() => {
@@ -261,7 +329,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Clear existing markers
+    // Clear existing unit/control markers
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
     if (controlCenterMarkerRef.current) {
@@ -323,7 +391,21 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
+      {/* This SVG definition block is for the tactical symbols to use */}
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          {Object.entries(TACTICAL_SYMBOLS).map(([key, { icon: Icon }]) => (
+            <g id={Icon.displayName || Icon.name} key={key}>
+              <Icon />
+            </g>
+          ))}
+        </defs>
+      </svg>
+      
       <div ref={mapContainerRef} className="h-full w-full z-0" />
+      
+      <TacticalToolbar onSelect={setSelectedSymbol} selectedSymbol={selectedSymbol} />
+
       <div className="absolute top-2 right-2 z-10 flex gap-2">
         <Button
             variant="secondary"
