@@ -37,6 +37,7 @@ const TILE_LAYERS = {
 };
 
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
+const MAX_ZOOM = 20;
 
 const STATUS_COLORS: Record<UnitStatus, string> = {
   Online: '#60a5fa',    // tailwind blue-400
@@ -68,14 +69,14 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   };
 
   const iconPath = iconPaths[unitType] || '';
-  const iconColor = status === 'Offline' ? '#9ca3af' : color;
+  const iconColor = '#fff';
 
   const iconHtml = `
     <div class="relative flex items-center justify-center ${alarmAnimationClass}">
       <svg class="h-10 w-10 ${highlightDropShadow}" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 42 16 42C16 42 32 24.837 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
         <circle cx="16" cy="16" r="8" fill="white"/>
-        <svg x="8" y="8" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="${iconColor}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <svg x="8" y="8" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
           ${iconPath}
         </svg>
       </svg>
@@ -135,7 +136,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         bounds.extend([controlCenterPosition.lat, controlCenterPosition.lng]);
       }
       if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: MAX_ZOOM });
       }
     } else if (controlCenterPosition) {
         map.setView([controlCenterPosition.lat, controlCenterPosition.lng], 16);
@@ -145,13 +146,13 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     }
   }, [units, controlCenterPosition]);
 
-  // Initialize map
+  // Initialize map and handle cleanup
   React.useEffect(() => {
     if (mapContainerRef.current && !mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
           center: INITIAL_CENTER,
           zoom: 16,
-          maxZoom: 20,
+          maxZoom: MAX_ZOOM,
           scrollWheelZoom: true,
       });
       mapInstanceRef.current = map;
@@ -159,60 +160,81 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       tileLayerRef.current = L.tileLayer(TILE_LAYERS.street.url, {
           attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
-      
-      const editableLayers = new L.FeatureGroup();
-      map.addLayer(editableLayers);
-      
-      drawnItems.forEach(itemGeoJson => {
-        const layer = L.geoJSON(itemGeoJson);
-        layer.eachLayer(l => editableLayers.addLayer(l));
-      });
-
-      const drawControl = new L.Control.Draw({
-          edit: {
-              featureGroup: editableLayers,
-          },
-          draw: {
-              polygon: {
-                  allowIntersection: false,
-                  showArea: true,
-              },
-              polyline: true,
-              rectangle: true,
-              circle: true,
-              marker: false,
-              circlemarker: false,
-          },
-      });
-      map.addControl(drawControl);
-
-      const handleShapeEvent = () => {
-        onShapesChange(editableLayers);
-      };
-
-      map.on(L.Draw.Event.CREATED, (event: L.DrawEvents.Created) => {
-          editableLayers.addLayer(event.layer);
-          handleShapeEvent();
-      });
-      map.on(L.Draw.Event.EDITED, handleShapeEvent);
-      map.on(L.Draw.Event.DELETED, handleShapeEvent);
 
       setTimeout(() => map.invalidateSize(), 100);
-      
-      map.on('click', (e: L.LeafletMouseEvent) => {
-        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-      });
     }
 
+    const map = mapInstanceRef.current;
+    
     return () => {
-        if (mapInstanceRef.current) {
-            mapInstanceRef.current.off();
-            mapInstanceRef.current.remove();
+        // This check ensures we only remove the map when the component is truly unmounting
+        if (map && !mapContainerRef.current) { 
+            map.remove();
             mapInstanceRef.current = null;
         }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Effect to handle all event listeners that depend on changing props
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    // Map click listener
+    const handleClick = (e: L.LeafletMouseEvent) => {
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+    };
+    map.on('click', handleClick);
+
+    // Draw control and listeners
+    const editableLayers = new L.FeatureGroup();
+    map.addLayer(editableLayers);
+    
+    drawnItems.forEach(itemGeoJson => {
+      const layer = L.geoJSON(itemGeoJson);
+      layer.eachLayer(l => editableLayers.addLayer(l));
+    });
+
+    const drawControl = new L.Control.Draw({
+        edit: { featureGroup: editableLayers },
+        draw: {
+            polygon: { allowIntersection: false, showArea: true },
+            polyline: true,
+            rectangle: true,
+            circle: true,
+            marker: false,
+            circlemarker: false,
+        },
+    });
+    map.addControl(drawControl);
+
+    const handleShapeEvent = () => onShapesChange(editableLayers);
+
+    map.on(L.Draw.Event.CREATED, (event: L.DrawEvents.Created) => {
+        editableLayers.addLayer(event.layer);
+        handleShapeEvent();
+    });
+    map.on(L.Draw.Event.EDITED, handleShapeEvent);
+    map.on(L.Draw.Event.DELETED, handleShapeEvent);
+
+    // Cleanup function for this effect
+    return () => {
+        map.off('click', handleClick);
+        map.off(L.Draw.Event.CREATED);
+        map.off(L.Draw.Event.EDITED);
+        map.off(L.Draw.Event.DELETED);
+        
+        // Try removing control and layers safely in case the map instance is already destroyed
+        try {
+            if (map.hasLayer(editableLayers)) {
+                map.removeLayer(editableLayers);
+            }
+            map.removeControl(drawControl);
+        } catch(e) {
+            // Ignore errors on cleanup
+        }
+    };
+  }, [onMapClick, onShapesChange, drawnItems]);
 
   // Update cursor style for positioning mode
   React.useEffect(() => {
@@ -234,11 +256,12 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       }
   }, [mapStyle]);
 
-  // Manage all markers (Units and Control Center) with a robust "clear and redraw" strategy
+  // Manage all markers (Units and Control Center)
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
+    // Clear existing markers
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
     if (controlCenterMarkerRef.current) {
@@ -246,6 +269,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         controlCenterMarkerRef.current = null;
     }
 
+    // Add/Update unit markers
     units.forEach(unit => {
         const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
         const tooltipContent = `
@@ -264,14 +288,17 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         
         marker.setZIndexOffset(isHighlighted ? 1000 : unit.id);
 
-        marker.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            onUnitClick?.(unit.id);
-        });
+        if (onUnitClick) {
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                onUnitClick(unit.id);
+            });
+        }
 
         markersRef.current[unit.id] = marker;
     });
 
+    // Add/Update control center marker
     if (controlCenterPosition) {
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
         const tooltipContent = `<strong>Leitstelle</strong>`;
