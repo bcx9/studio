@@ -23,6 +23,8 @@ const compactUnitSchema = z.object({
   timestamp: z.number(),
   sendInterval: z.number(),
   isActive: z.boolean(),
+  signalStrength: z.number(),
+  hopCount: z.number(),
 });
 
 const NetworkAnalysisInputSchema = z.object({
@@ -59,10 +61,12 @@ Use the provided map to look up unit names by their ID:
 
 Your analysis should focus on identifying potential issues. Pay close attention to:
 1.  **Low Battery:** Any unit with a battery level below 20% is critical.
-2.  **Unexpected Offline Status:** An active unit that is reported as 'Offline' is a major issue.
-3.  **Stale Data:** If a unit's timestamp is much older than the current time (by more than 3-5 of its sendIntervals), it indicates a potential communication loss. The current time is approximately ${Date.now()}.
-4.  **Contradictory Status:** For example, a unit with status 'Moving' but a speed of 0, or 'Idle' with a high speed.
-5.  **Unusual Groupings or Separations:** Mention if units of a group are unexpectedly far apart or if units are clustered in a way that seems tactically unsound.
+2.  **Poor Signal:** A signal strength (RSSI) below -95 dBm indicates a weak connection that might become unstable.
+3.  **High Hop Count:** A hop count greater than 2 suggests inefficient routing or that the unit is far from the gateway.
+4.  **Unexpected Offline Status:** An active unit that is reported as 'Offline' is a major issue.
+5.  **Stale Data:** If a unit's timestamp is much older than the current time (by more than 3-5 of its sendIntervals), it indicates a potential communication loss. The current time is approximately ${Date.now()}.
+6.  **Contradictory Status:** For example, a unit with status 'Moving' but a speed of 0, or 'Idle' with a high speed.
+7.  **Unusual Groupings or Separations:** Mention if units of a group are unexpectedly far apart or if units are clustered in a way that seems tactically unsound.
 
 Provide a concise, one-sentence summary of the network status. Then, provide a detailed, multi-line report of your findings in the 'details' field. If there are no issues, state that the network is operating within normal parameters.
 `,

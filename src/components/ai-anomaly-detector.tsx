@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -35,6 +36,8 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
         timestamp: unit.timestamp,
         sendInterval: unit.sendInterval,
         isActive: unit.isActive,
+        signalStrength: unit.signalStrength,
+        hopCount: unit.hopCount,
       }));
 
       // Create a map of IDs to names to simulate the central registry lookup on the server.

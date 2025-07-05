@@ -24,6 +24,8 @@ const initialUnits: MeshUnit[] = [
     isExternallyPowered: false,
     lastMessage: null,
     groupId: 1,
+    signalStrength: -65,
+    hopCount: 1,
   },
   {
     id: 2,
@@ -40,6 +42,8 @@ const initialUnits: MeshUnit[] = [
     isExternallyPowered: false,
     lastMessage: null,
     groupId: 2,
+    signalStrength: -82,
+    hopCount: 2,
   },
   {
     id: 3,
@@ -56,6 +60,8 @@ const initialUnits: MeshUnit[] = [
     isExternallyPowered: false,
     lastMessage: null,
     groupId: 1,
+    signalStrength: -71,
+    hopCount: 1,
   },
     {
     id: 4,
@@ -72,6 +78,8 @@ const initialUnits: MeshUnit[] = [
     isExternallyPowered: false,
     lastMessage: null,
     groupId: 2,
+    signalStrength: -120,
+    hopCount: 0,
   },
 ];
 
@@ -173,7 +181,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       const nextUnits = unitsRef.current.map(unit => {
         if (!unit.isActive) {
           if (unit.status !== 'Offline') {
-            return { ...unit, status: 'Offline' };
+            return { ...unit, status: 'Offline', signalStrength: -120, hopCount: 0 };
           }
           return unit;
         }
@@ -271,6 +279,8 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             isActive: newBattery > 0 || unit.isExternallyPowered,
             timestamp: now,
             lastMessage: newLastMessage,
+            signalStrength: Math.floor(Math.max(-120, Math.min(-50, unit.signalStrength + (Math.random() - 0.5) * 5))),
+            hopCount: Math.max(1, Math.min(4, unit.hopCount + (Math.random() > 0.8 ? (Math.random() > 0.5 ? 1 : -1) : 0))),
         };
       });
 
@@ -309,6 +319,8 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             isExternallyPowered: false,
             lastMessage: null,
             groupId: null,
+            signalStrength: -75,
+            hopCount: 1,
         };
         return [...currentUnits, newUnit];
     });

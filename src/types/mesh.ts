@@ -23,6 +23,8 @@ export interface MeshUnit {
   isExternallyPowered: boolean;
   lastMessage: UnitMessage | null;
   groupId: number | null;
+  signalStrength: number; // RSSI in dBm
+  hopCount: number;
 }
 
 export interface Group {

@@ -17,6 +17,8 @@ import {
   ArrowDown,
   ArrowUp,
   Plug,
+  Rssi,
+  Waypoints,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
 import { cn, calculateDistance } from '@/lib/utils';
@@ -115,46 +117,66 @@ export default function UnitCard({ unit, onConfigure, onDelete, onCharge, onSele
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-2">
-      <TooltipProvider delayDuration={200}>
-        <div className="flex justify-between items-center text-xs text-muted-foreground">
-          {unit.isExternallyPowered ? (
-             <Tooltip>
-                <TooltipTrigger className='flex items-center gap-1 text-green-500'>
-                    <Plug className="h-4 w-4" /> {unit.battery}%
-                </TooltipTrigger>
-                <TooltipContent>Extern versorgt</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Tooltip>
-                <TooltipTrigger className='flex items-center gap-1'>
-                    <BatteryIcon /> {unit.battery}%
-                </TooltipTrigger>
-                <TooltipContent>Akkustand</TooltipContent>
-            </Tooltip>
-          )}
-
-          <Tooltip>
-            <TooltipTrigger className='flex items-center gap-1'>
-                <GaugeCircle className="h-4 w-4" /> {unit.speed} km/h
-            </TooltipTrigger>
-            <TooltipContent>Geschwindigkeit</TooltipContent>
-          </Tooltip>
-           <Tooltip>
-            <TooltipTrigger className='flex items-center gap-1'>
-                <Compass className="h-4 w-4" /> {unit.heading}°
-            </TooltipTrigger>
-            <TooltipContent>Richtung</TooltipContent>
-          </Tooltip>
-          {formattedDistance && (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground mb-3">
+          <TooltipProvider delayDuration={200}>
+            <div className='flex items-center gap-1'>
+            {unit.isExternallyPowered ? (
+              <Tooltip>
+                  <TooltipTrigger className='flex items-center gap-1 text-green-500'>
+                      <Plug className="h-4 w-4" /> {unit.battery}%
+                  </TooltipTrigger>
+                  <TooltipContent>Extern versorgt</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                  <TooltipTrigger className='flex items-center gap-1'>
+                      <BatteryIcon /> {unit.battery}%
+                  </TooltipTrigger>
+                  <TooltipContent>Akkustand</TooltipContent>
+              </Tooltip>
+            )}
+            </div>
+            
             <Tooltip>
               <TooltipTrigger className='flex items-center gap-1'>
-                  <Milestone className="h-4 w-4" /> {formattedDistance}
+                  <GaugeCircle className="h-4 w-4" /> {unit.speed} km/h
               </TooltipTrigger>
-              <TooltipContent>Entfernung zur Leitstelle</TooltipContent>
+              <TooltipContent>Geschwindigkeit</TooltipContent>
             </Tooltip>
-          )}
+
+            <Tooltip>
+              <TooltipTrigger className='flex items-center gap-1'>
+                  <Compass className="h-4 w-4" /> {unit.heading}°
+              </TooltipTrigger>
+              <TooltipContent>Richtung</TooltipContent>
+            </Tooltip>
+            
+            {formattedDistance && (
+              <Tooltip>
+                <TooltipTrigger className='flex items-center gap-1'>
+                    <Milestone className="h-4 w-4" /> {formattedDistance}
+                </TooltipTrigger>
+                <TooltipContent>Entfernung zur Leitstelle</TooltipContent>
+              </Tooltip>
+            )}
+
+            <Tooltip>
+                <TooltipTrigger className='flex items-center gap-1'>
+                    <Rssi className="h-4 w-4" /> {unit.signalStrength} dBm
+                </TooltipTrigger>
+                <TooltipContent>Signalstärke (RSSI)</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+                <TooltipTrigger className='flex items-center gap-1'>
+                    <Waypoints className="h-4 w-4" /> {unit.hopCount} {unit.hopCount === 1 ? 'Hop' : 'Hops'}
+                </TooltipTrigger>
+                <TooltipContent>Anzahl Hops</TooltipContent>
+            </Tooltip>
+
+          </TooltipProvider>
         </div>
-        </TooltipProvider>
+        
         {unit.lastMessage && (
             <div className="mt-3 pt-3 border-t border-muted-foreground/20">
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">

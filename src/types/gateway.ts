@@ -1,3 +1,4 @@
+
 export type GatewayStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 export type ConnectionType = 'serial' | 'network';
 

@@ -5,6 +5,8 @@ import { z } from 'zod';
 import type { ConnectionSettings } from '@/types/gateway';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
 import type { Group } from '@/types/mesh';
+import { aiAssistantFlow } from '@/ai/flows/ai-assistant-flow';
+import type { AiAssistantAction, AiAssistantOutput } from '@/ai/flows/ai-assistant-flow';
 
 const compactUnitSchema = z.object({
   id: z.number(),
@@ -17,6 +19,8 @@ const compactUnitSchema = z.object({
   timestamp: z.number(),
   sendInterval: z.number(),
   isActive: z.boolean(),
+  signalStrength: z.number(),
+  hopCount: z.number(),
 });
 
 const analyzeNetworkSchema = z.array(compactUnitSchema);
@@ -43,8 +47,10 @@ export async function connectToGateway(
 ): Promise<{ success: boolean; message: string }> {
     console.log('Verbindungsversuch mit Einstellungen:', settings);
 
+    // Simulate connection delay
     await new Promise(resolve => setTimeout(resolve, 2000)); 
 
+    // Simulate connection errors for specific inputs
     if (settings.type === 'serial' && settings.serialPort?.toLowerCase().includes('error')) {
          return {
             success: false,
@@ -59,6 +65,7 @@ export async function connectToGateway(
         };
     }
 
+    // Simulate successful connection
     return {
         success: true,
         message: 'Verbindung zum Gateway erfolgreich hergestellt. Warte auf Daten... (Simuliert)',

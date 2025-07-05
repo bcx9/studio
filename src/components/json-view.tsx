@@ -1,3 +1,4 @@
+
 'use client';
 import type { MeshUnit } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +23,9 @@ export default function JsonView({ unit }: JsonViewProps) {
     timestamp: unit.timestamp,
     sendInterval: unit.sendInterval,
     isActive: unit.isActive,
+    // New fields for the compact view
+    signalStrength: unit.signalStrength,
+    hopCount: unit.hopCount,
   };
   
   // The full data, as the control center sees it (including the name)
