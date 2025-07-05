@@ -24,6 +24,8 @@ const compactUnitSchema = z.object({
   ts: z.number().describe('Timestamp (epoch)'),
   si: z.number().describe('Send Interval in seconds'),
   a: z.literal(1).or(z.literal(0)).describe('Is Active (1 for true, 0 for false)'),
+  ss: z.number().describe('Signal Strength (RSSI) in dBm'),
+  hc: z.number().describe('Hop Count'),
 });
 
 
@@ -131,6 +133,8 @@ export const aiAssistantFlow = ai.defineFlow(
         - ts: Timestamp
         - si: Send Interval (seconds)
         - a: Is Active (1 for true, 0 for false)
+        - ss: Signal Strength (RSSI) in dBm
+        - hc: Hop Count
 
         CURRENT CONTEXT:
         - User's Request: "${query}"

@@ -102,6 +102,8 @@ export default function AiAssistant({ units, groups, setUnitStatus, sendMessage 
             ts: unit.timestamp,
             si: unit.sendInterval,
             a: unit.isActive ? 1 : 0,
+            ss: unit.signalStrength,
+            hc: unit.hopCount,
         }));
 
         const unitNames = units.reduce((acc, unit) => {

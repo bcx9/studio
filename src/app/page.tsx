@@ -12,7 +12,7 @@ import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code, Map as MapIcon, ListTree } from 'lucide-react';
+import { Code, Map as MapIcon, ListTree, Bot } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
 import GatewayConfig from '@/components/gateway-config';
 import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
 import GroupManagement from '@/components/group-management';
+import AiAssistant from '@/components/ai-assistant';
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -218,6 +219,13 @@ export default function Home() {
         console.error("Failed to save drawings to localStorage", e);
     }
   };
+  
+  const handleSetUnitStatus = React.useCallback((unitId: number, status: UnitStatus) => {
+    const unit = units.find(u => u.id === unitId);
+    if (unit) {
+      updateUnit({ ...unit, status });
+    }
+  }, [units, updateUnit]);
 
 
   return (
@@ -246,6 +254,7 @@ export default function Home() {
               <TabsList className="mb-4 self-start">
                 <TabsTrigger value="map">Live-Karte</TabsTrigger>
                 <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
+                <TabsTrigger value="ai-assistant">KI-Assistent</TabsTrigger>
                 <TabsTrigger value="device-registry">Geräte & System</TabsTrigger>
                 <TabsTrigger value="group-management">Gruppenverwaltung</TabsTrigger>
                 <TabsTrigger value="gateway-config">Gateway</TabsTrigger>
@@ -277,6 +286,14 @@ export default function Home() {
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
                 <AiAnomalyDetector units={units} gatewayStatus={gatewayStatus} />
+              </TabsContent>
+               <TabsContent value="ai-assistant" className="flex-1 overflow-y-auto h-full">
+                <AiAssistant 
+                    units={units}
+                    groups={groups}
+                    setUnitStatus={handleSetUnitStatus}
+                    sendMessage={handleSendMessage}
+                />
               </TabsContent>
                <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
                 <DeviceRegistry 

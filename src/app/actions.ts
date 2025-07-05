@@ -52,6 +52,8 @@ const assistantCompactUnitSchema = z.object({
   ts: z.number(),
   si: z.number(),
   a: z.union([z.literal(1), z.literal(0)]),
+  ss: z.number(),
+  hc: z.number(),
 });
 
 export async function invokeAiAssistant(
