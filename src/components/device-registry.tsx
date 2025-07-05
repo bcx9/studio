@@ -115,7 +115,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[80px]">ID</TableHead>
-                            <TableHead>Name</TableHead>
+                            <TableHead className="min-w-[200px]">Name</TableHead>
                             <TableHead className="w-[180px]">Typ</TableHead>
                             <TableHead className="w-[140px]">Status</TableHead>
                             <TableHead className="w-[220px]">Gruppe</TableHead>
