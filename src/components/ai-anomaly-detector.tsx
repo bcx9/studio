@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import type { MeshUnit } from '@/types/mesh';
+import type { GatewayStatus } from '@/types/gateway';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Lightbulb, Zap, AlertTriangle } from 'lucide-react';
@@ -12,11 +13,13 @@ import { UNIT_STATUS_TO_CODE, UNIT_TYPE_TO_CODE } from '@/types/mesh';
 
 interface AiAnomalyDetectorProps {
   units: MeshUnit[];
+  gatewayStatus: GatewayStatus;
 }
 
-export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
+export default function AiAnomalyDetector({ units, gatewayStatus }: AiAnomalyDetectorProps) {
   const [analysis, setAnalysis] = React.useState<{ summary: string; details: string } | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const isDisconnected = gatewayStatus !== 'connected';
 
   const handleAnalyze = async () => {
     setIsLoading(true);
@@ -79,14 +82,15 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
               <CardTitle className="text-2xl">KI-Netzwerküberwachung</CardTitle>
               <CardDescription>
                 Nutzen Sie generative KI, um ungewöhnliche Datenübertragungen oder Verhaltensweisen zu identifizieren und fehlerhafte MESH-Knoten zu lokalisieren.
+                {isDisconnected && <p className="text-yellow-500 mt-2">Bitte verbinden Sie sich zuerst mit dem Gateway, um die Analyse zu starten.</p>}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-start gap-6">
-            <Button onClick={handleAnalyze} disabled={isLoading}>
-              {isLoading ? 'Netzwerk wird analysiert...' : 'Anomalieerkennung durchführen'}
+            <Button onClick={handleAnalyze} disabled={isLoading || isDisconnected || units.length === 0}>
+              {isLoading ? 'Netzwerk wird analysiert...' : (isDisconnected ? 'Gateway nicht verbunden' : 'Anomalieerkennung durchführen')}
             </Button>
             
             {isLoading && (

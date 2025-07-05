@@ -97,6 +97,13 @@ export default function Home() {
     controlCenterPosition,
    });
 
+  const unitsForMap = React.useMemo(() => {
+    if (gatewayStatus !== 'connected') {
+      return [];
+    }
+    return units;
+  }, [gatewayStatus, units]);
+
 
   const handleConfigureUnit = (unit: MeshUnit) => {
     setSelectedUnit(unit);
@@ -268,7 +275,7 @@ export default function Home() {
               <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
                 {isInitialized ? (
                   <MapView 
-                    units={units} 
+                    units={unitsForMap} 
                     highlightedUnitId={highlightedUnitId} 
                     onMapClick={handleMapClick}
                     onUnitClick={handleMapUnitClick}
@@ -288,7 +295,7 @@ export default function Home() {
                 )}
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
-                <AiAnomalyDetector units={units} />
+                <AiAnomalyDetector units={units} gatewayStatus={gatewayStatus} />
               </TabsContent>
                <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
                 <DeviceRegistry 
