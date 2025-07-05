@@ -1,6 +1,6 @@
 
 export type UnitType = 'Vehicle' | 'Personnel';
-export type UnitStatus = 'Online' | 'Moving' | 'Idle' | 'Alarm' | 'Offline';
+export type UnitStatus = 'Online' | 'Moving' | 'Idle' | 'Alarm' | 'Offline' | 'Maintenance';
 
 export interface UnitMessage {
     text: string;
@@ -55,6 +55,7 @@ export const CODE_TO_UNIT_STATUS: Record<number, UnitStatus> = {
   3: 'Idle',
   4: 'Alarm',
   5: 'Offline',
+  6: 'Maintenance',
 };
 
 export const UNIT_STATUS_TO_CODE: Record<UnitStatus, number> = {
@@ -63,4 +64,5 @@ export const UNIT_STATUS_TO_CODE: Record<UnitStatus, number> = {
   Idle: 3,
   Alarm: 4,
   Offline: 5,
+  Maintenance: 6,
 };

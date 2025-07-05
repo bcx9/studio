@@ -1,3 +1,4 @@
+
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { UnitStatus } from '@/types/mesh';
@@ -13,6 +14,7 @@ const statusTranslations: Record<UnitStatus, string> = {
   Idle: 'Inaktiv',
   Alarm: 'Alarm',
   Offline: 'Offline',
+  Maintenance: 'Wartung',
 };
 
 export default function StatusBadge({ status, className }: StatusBadgeProps) {
@@ -22,6 +24,7 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
     Idle: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
     Alarm: 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse',
     Offline: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    Maintenance: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   };
 
   return (

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MeshUnit, UnitType, Group, UnitHistoryPoint, UnitMessage } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, UnitHistoryPoint, UnitMessage, UnitStatus } from '@/types/mesh';
 import { calculateBearing, calculateDistance } from '@/lib/utils';
 
 const MESH_DATA_STORAGE_KEY = 'mesh-data-state';
@@ -253,7 +253,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
         let newStatus = unit.status;
         if (newBattery === 0 && !unit.isExternallyPowered) {
           newStatus = 'Offline';
-        } else if (newStatus !== 'Alarm') {
+        } else if (newStatus !== 'Alarm' && newStatus !== 'Maintenance') {
           if (newSpeed > 1) newStatus = 'Moving';
           else newStatus = 'Idle';
         }
@@ -380,6 +380,10 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     )
   }, []);
 
+  const setUnitStatus = useCallback((unitId: number, status: UnitStatus) => {
+    setUnits(currentUnits => currentUnits.map(u => u.id === unitId ? { ...u, status } : u));
+  }, []);
+
   const repositionAllUnits = useCallback((radiusKm: number) => {
     if (!controlCenterPositionRef.current) {
       console.warn("Cannot reposition units without a control center position.");
@@ -461,5 +465,6 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       removeGroup,
       assignUnitToGroup,
       repositionAllUnits,
+      setUnitStatus,
     };
 }

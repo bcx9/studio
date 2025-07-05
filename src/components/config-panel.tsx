@@ -1,3 +1,4 @@
+
 'use client';
 import * as React from 'react';
 import type { MeshUnit } from '@/types/mesh';
@@ -37,6 +38,7 @@ const statusTranslations: Record<MeshUnit['status'], string> = {
   Idle: 'Inaktiv',
   Alarm: 'Alarm',
   Offline: 'Offline',
+  Maintenance: 'Wartung',
 };
 
 

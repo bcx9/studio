@@ -77,6 +77,7 @@ export default function UnitList({
             <SelectItem value="moving">In Bewegung</SelectItem>
             <SelectItem value="idle">Inaktiv</SelectItem>
             <SelectItem value="alarm">Alarm</SelectItem>
+            <SelectItem value="maintenance">Wartung</SelectItem>
           </SelectContent>
         </Select>
       </div>

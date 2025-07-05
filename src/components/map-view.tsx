@@ -39,6 +39,7 @@ const STATUS_COLORS: Record<UnitStatus, string> = {
   Idle: '#38bdf8',      // tailwind sky-400
   Alarm: '#f87171',     // tailwind red-400
   Offline: '#9ca3af',   // tailwind gray-400
+  Maintenance: '#f97316', // tailwind orange-500
 };
 
 const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
@@ -49,7 +50,7 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   // SVG paths for lucide icons (Car and User)
   const iconPaths = {
     Vehicle: `
-      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1 1h2"></path>
+      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"></path>
       <path d="M14 17h-4"></path>
       <path d="M15 7h-5"></path>
       <path d="M5 17v-4h4"></path>
@@ -133,10 +134,10 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
       }
     } else if (controlCenterPosition) {
-        map.setView([controlCenterPosition.lat, controlCenterPosition.lng], 14);
+        map.setView([controlCenterPosition.lat, controlCenterPosition.lng], 16);
     } 
     else {
-        map.setView(INITIAL_CENTER, 14);
+        map.setView(INITIAL_CENTER, 16);
     }
   }, [units, controlCenterPosition]);
 
@@ -145,8 +146,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     if (mapContainerRef.current && !mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
           center: INITIAL_CENTER,
-          zoom: 14,
-          maxZoom: 18,
+          zoom: 16,
+          maxZoom: 20,
           scrollWheelZoom: true,
       });
       mapInstanceRef.current = map;

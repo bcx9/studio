@@ -4,6 +4,8 @@
 import { z } from 'zod';
 import type { ConnectionSettings } from '@/types/gateway';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
+import { aiAssistantFlow, type AiAssistantAction } from '@/ai/flows/ai-assistant-flow';
+import type { Group } from '@/types/mesh';
 
 const compactUnitSchema = z.object({
   id: z.number(),
@@ -35,6 +37,25 @@ export async function getNetworkAnalysis(
     };
   }
 }
+
+export async function invokeAiAssistant(
+    query: string,
+    units: z.infer<typeof compactUnitSchema>[],
+    groups: Group[],
+    unitNames: Record<number, string>
+): Promise<{ responseText: string; actions: AiAssistantAction[] }> {
+    try {
+        const result = await aiAssistantFlow({ query, units, groups, unitNames });
+        return result || { responseText: "Ich konnte Ihre Anfrage nicht bearbeiten.", actions: [] };
+    } catch (error) {
+        console.error('AI Assistant flow failed:', error);
+        return {
+            responseText: "Ein interner Fehler ist aufgetreten. Bitte überprüfen Sie die Server-Logs.",
+            actions: [],
+        };
+    }
+}
+
 
 export async function connectToGateway(
     settings: ConnectionSettings
