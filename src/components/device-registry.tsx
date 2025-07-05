@@ -135,7 +135,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                         <Input
                                             value={getUnitValue(unit, 'name')}
                                             onChange={(e) => handleUnitChange(unit.id, 'name', e.target.value)}
-                                            className="h-9"
+                                            className="h-9 border-0 bg-transparent shadow-none focus-visible:bg-background focus-visible:border-input focus-visible:border focus-visible:ring-2"
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -337,5 +337,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
     </div>
   );
 }
+
+    
 
     
