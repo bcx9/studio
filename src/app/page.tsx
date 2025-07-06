@@ -60,7 +60,6 @@ export default function Home() {
   }, []);
 
   const handleUnitMessage = React.useCallback((unitName: string, message: string) => {
-    setGatewayLogs(prev => [...prev, `[EINGANG] ${unitName}: ${message}`]);
     toast({
         title: `Nachricht von ${unitName}`,
         description: message,
