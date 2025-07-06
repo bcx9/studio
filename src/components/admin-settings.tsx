@@ -23,7 +23,7 @@ export default function AdminSettings() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
           <div>
             <h3 className="text-lg font-semibold mb-2">Einheitentyp-IDs</h3>
             <div className="border rounded-lg overflow-hidden">

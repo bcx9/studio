@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CODE_TO_UNIT_STATUS, CODE_TO_UNIT_TYPE } from '@/types/mesh';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
@@ -37,7 +36,7 @@ const statusTranslations: Record<UnitStatus, string> = {
 export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup }: DeviceRegistryProps) {
   const [editableUnits, setEditableUnits] = React.useState<Record<number, Partial<MeshUnit>>>({});
   const { toast } = useToast();
-  const [openCollapsibleId, setOpenCollapsibleId] = React.useState<number | null>(null);
+  const [openConfigId, setOpenConfigId] = React.useState<number | null>(null);
 
 
   const handleUnitChange = (id: number, field: keyof MeshUnit, value: any) => {
@@ -79,7 +78,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
         return newState;
       });
 
-      setOpenCollapsibleId(null); // Close after saving
+      setOpenConfigId(null); // Close after saving
     }
   };
 
@@ -95,7 +94,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
             <div className='flex items-center gap-3'>
                 <ListTree className="h-8 w-8 text-primary" />
                 <div>
-                <CardTitle className="text-2xl">Geräte & Konfiguration</CardTitle>
+                <CardTitle className="text-2xl">Geräte & System</CardTitle>
                 <CardDescription>
                     Verwalten Sie Einheiten, ihre Konfigurationen und sehen Sie die systemweiten ID-Mappings ein.
                 </CardDescription>
@@ -107,7 +106,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-12">
+        <CardContent>
           <div>
             <h3 className="text-lg font-semibold mb-3">Registrierte Einheiten</h3>
             <div className="border rounded-lg">
@@ -125,11 +124,11 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                     <TableBody>
                     {units.map(unit => {
                         const isBeingEdited = !!editableUnits[unit.id];
-                        const isCollapsibleOpen = openCollapsibleId === unit.id;
+                        const isConfigOpen = openConfigId === unit.id;
 
                         return (
                             <React.Fragment key={unit.id}>
-                                <TableRow className={cn("align-middle", isCollapsibleOpen && "border-b-0")}>
+                                <TableRow className={cn("align-middle", isConfigOpen && "border-b-0")}>
                                     <TableCell className="font-medium">{unit.id}</TableCell>
                                     <TableCell>
                                         <Input
@@ -182,7 +181,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                         </Select>
                                     </TableCell>
                                     <TableCell className="text-right space-x-1">
-                                        <Button size="icon" variant="ghost" className='h-9 w-9' onClick={() => setOpenCollapsibleId(isCollapsibleOpen ? null : unit.id)}>
+                                        <Button size="icon" variant="ghost" className='h-9 w-9' onClick={() => setOpenConfigId(isConfigOpen ? null : unit.id)}>
                                             <SlidersHorizontal className="h-4 w-4" />
                                         </Button>
                                         <Button 
@@ -195,7 +194,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                         </Button>
                                     </TableCell>
                                 </TableRow>
-                                {isCollapsibleOpen && (
+                                {isConfigOpen && (
                                      <TableRow>
                                         <TableCell colSpan={6} className='p-0'>
                                             <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
@@ -275,69 +274,8 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                 </Table>
             </div>
           </div>
-          
-          <div className="border-t pt-8">
-            <div className='flex items-center gap-3 mb-4'>
-              <Settings className="h-6 w-6 text-primary" />
-              <div>
-                <h3 className="text-lg font-semibold">System-ID Konfiguration</h3>
-                <p className="text-sm text-muted-foreground">
-                  Übersicht der systemweiten ID-Mappings. Diese sind für die Kompakt-Darstellung der Netzwerk-Nachrichten notwendig.
-                </p>
-              </div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                    <h4 className="font-semibold mb-2">Einheitentyp-IDs</h4>
-                    <div className="border rounded-lg overflow-hidden">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead className="w-[120px]">ID</TableHead>
-                                <TableHead>Typ-Bezeichnung</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {Object.entries(CODE_TO_UNIT_TYPE).map(([id, name]) => (
-                                    <TableRow key={id}>
-                                        <TableCell className="font-mono">{id}</TableCell>
-                                        <TableCell>{name}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 className="font-semibold mb-2">Status-IDs</h4>
-                    <div className="border rounded-lg overflow-hidden">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead className="w-[120px]">ID</TableHead>
-                                <TableHead>Status-Bezeichnung</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {Object.entries(CODE_TO_UNIT_STATUS).map(([id, name]) => (
-                                    <TableRow key={id}>
-                                        <TableCell className="font-mono">{id}</TableCell>
-                                        <TableCell>{name}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
-
-    

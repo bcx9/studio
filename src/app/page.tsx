@@ -14,9 +14,6 @@ import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
 import { Code, Map as MapIcon, ListTree } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
-import GatewayConfig from '@/components/gateway-config';
-import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
-import { connectToGateway } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
@@ -46,9 +43,6 @@ export default function Home() {
   const [isRallying, setIsRallying] = React.useState(false);
   const [isPositioningMode, setIsPositioningMode] = React.useState(false);
 
-  const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('disconnected');
-  const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
-  const [isConnecting, setIsConnecting] = React.useState(false);
   const { toast } = useToast();
 
   const [drawnItems, setDrawnItems] = React.useState<any[]>([]);
@@ -95,12 +89,11 @@ export default function Home() {
     controlCenterPosition,
    });
 
-  const unitsForMap = React.useMemo(() => {
-    if (gatewayStatus !== 'connected') {
-      return [];
-    }
-    return units;
-  }, [gatewayStatus, units]);
+  React.useEffect(() => {
+    startSimulation();
+    return () => stopSimulation();
+  }, [startSimulation, stopSimulation]);
+
 
   const handleDeleteUnit = (unitId: number) => {
     removeUnit(unitId);
@@ -138,32 +131,6 @@ export default function Home() {
     }
   };
 
-  const handleConnect = async (settings: ConnectionSettings) => {
-    setIsConnecting(true);
-    setGatewayStatus('connecting');
-    setGatewayLogs(prev => [...prev, `Verbindungsversuch zu ${settings.type === 'serial' ? settings.serialPort : `${settings.ipAddress}:${settings.port}`}...`]);
-    
-    const result = await connectToGateway(settings);
-
-    if (result.success) {
-        setGatewayStatus('connected');
-        toast({ title: 'Gateway verbunden', description: result.message });
-        startSimulation();
-    } else {
-        setGatewayStatus('error');
-        toast({ variant: 'destructive', title: 'Verbindungsfehler', description: result.message });
-    }
-    setGatewayLogs(prev => [...prev, result.message]);
-    setIsConnecting(false);
-  };
-
-  const handleDisconnect = () => {
-      setGatewayStatus('disconnected');
-      setGatewayLogs(prev => [...prev, 'Verbindung durch Benutzer getrennt.']);
-      toast({ title: 'Gateway getrennt' });
-      stopSimulation();
-  };
-  
   const handleSendMessage = (message: string, target: 'all' | number) => {
     sendMessage(message, target);
     const targetGroup = groups.find(g => g.id === target);
@@ -247,7 +214,6 @@ export default function Home() {
                 <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
                 <TabsTrigger value="device-registry">Geräte & System</TabsTrigger>
                 <TabsTrigger value="group-management">Gruppenverwaltung</TabsTrigger>
-                <TabsTrigger value="gateway-config">Gateway</TabsTrigger>
                 <TabsTrigger value="json-view" disabled={!selectedUnit}>
                   Datenansicht
                 </TabsTrigger>
@@ -255,7 +221,7 @@ export default function Home() {
               <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
                 {isInitialized ? (
                   <MapView 
-                    units={unitsForMap} 
+                    units={units} 
                     highlightedUnitId={highlightedUnitId} 
                     onMapClick={handleMapClick}
                     onUnitClick={handleMapUnitClick}
@@ -275,7 +241,7 @@ export default function Home() {
                 )}
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
-                <AiAnomalyDetector units={units} gatewayStatus={gatewayStatus} />
+                <AiAnomalyDetector units={units} />
               </TabsContent>
                <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
                 <DeviceRegistry 
@@ -296,15 +262,6 @@ export default function Home() {
                         isRepositionPossible={!!controlCenterPosition}
                     />
                 </TabsContent>
-               <TabsContent value="gateway-config" className="flex-1 overflow-y-auto">
-                <GatewayConfig
-                    status={gatewayStatus}
-                    logs={gatewayLogs}
-                    onConnect={handleConnect}
-                    onDisconnect={handleDisconnect}
-                    isConnecting={isConnecting}
-                />
-              </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (
                   <JsonView unit={selectedUnit} />

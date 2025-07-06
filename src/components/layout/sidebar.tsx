@@ -1,5 +1,6 @@
 
 'use client';
+import Link from 'next/link';
 import {
   SidebarHeader,
   SidebarContent,
@@ -104,6 +105,13 @@ export default function AppSidebar({
         <Button variant="ghost" onClick={onCreateUnit}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Neue Einheit hinzufügen
+        </Button>
+        <SidebarSeparator />
+         <Button variant="ghost" asChild>
+            <Link href="/admin">
+                <Settings className="mr-2 h-4 w-4" />
+                Admin-Konsole
+            </Link>
         </Button>
       </SidebarFooter>
     </>
