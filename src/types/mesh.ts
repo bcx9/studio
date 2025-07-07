@@ -8,6 +8,11 @@ export interface UnitMessage {
     source: 'unit' | 'control';
 }
 
+export interface ToastMessage {
+    unitName: string;
+    text: string;
+}
+
 export interface MeshUnit {
   id: number;
   name: string;
@@ -35,6 +40,13 @@ export interface Group {
 export type TypeMapping = Record<number, string>;
 export type StatusMapping = Record<number, string>;
 
+export interface NetworkSnapshot {
+    units: MeshUnit[];
+    groups: Group[];
+    messages: ToastMessage[];
+    typeMapping: TypeMapping;
+    statusMapping: StatusMapping;
+}
 
 // Default configurations, can be overridden by the user in the admin panel
 export const DEFAULT_CODE_TO_UNIT_TYPE: TypeMapping = {

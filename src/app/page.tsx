@@ -74,8 +74,6 @@ export default function Home() {
       chargeUnit, 
       isInitialized, 
       sendMessage, 
-      startSimulation, 
-      stopSimulation,
       groups,
       addGroup,
       updateGroup,
@@ -89,12 +87,6 @@ export default function Home() {
     isRallying,
     controlCenterPosition,
    });
-
-  React.useEffect(() => {
-    startSimulation();
-    return () => stopSimulation();
-  }, [startSimulation, stopSimulation]);
-
 
   const handleDeleteUnit = (unitId: number) => {
     removeUnit(unitId);
@@ -236,13 +228,13 @@ export default function Home() {
                     <Skeleton className="w-full h-full" />
                     <div className="absolute flex flex-col items-center text-muted-foreground">
                       <MapIcon className="h-16 w-16 mb-4 animate-pulse" />
-                      <p>Lade Karte...</p>
+                      <p>Warte auf Verbindung zum Backend...</p>
                     </div>
                   </div>
                 )}
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
-                <AiAnomalyDetector units={units} typeMapping={typeMapping} statusMapping={statusMapping} />
+                <AiAnomalyDetector />
               </TabsContent>
                <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
                 <DeviceRegistry 

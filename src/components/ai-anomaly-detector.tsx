@@ -2,22 +2,14 @@
 'use client';
 
 import * as React from 'react';
-import type { MeshUnit, TypeMapping, StatusMapping } from '@/types/mesh';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Lightbulb, Zap, AlertTriangle } from 'lucide-react';
 import { getNetworkAnalysis } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { createReverseMapping } from '@/lib/utils';
 
 
-interface AiAnomalyDetectorProps {
-  units: MeshUnit[];
-  typeMapping: TypeMapping;
-  statusMapping: StatusMapping;
-}
-
-export default function AiAnomalyDetector({ units, typeMapping, statusMapping }: AiAnomalyDetectorProps) {
+export default function AiAnomalyDetector() {
   const [analysis, setAnalysis] = React.useState<{ summary: string; details: string } | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -25,35 +17,7 @@ export default function AiAnomalyDetector({ units, typeMapping, statusMapping }:
     setIsLoading(true);
     setAnalysis(null);
     try {
-      const UNIT_TYPE_TO_CODE = createReverseMapping(typeMapping);
-      const UNIT_STATUS_TO_CODE = createReverseMapping(statusMapping);
-
-      // --- Compaction Step ---
-      const compactUnits = units.map(unit => ({
-        i: unit.id,
-        t: Number(UNIT_TYPE_TO_CODE[unit.type]),
-        s: Number(UNIT_STATUS_TO_CODE[unit.status]),
-        p: {
-          a: parseFloat(unit.position.lat.toFixed(5)),
-          o: parseFloat(unit.position.lng.toFixed(5)),
-        },
-        v: unit.speed,
-        h: unit.heading,
-        b: parseFloat(unit.battery.toFixed(1)),
-        ts: unit.timestamp,
-        si: unit.sendInterval,
-        a: unit.isActive ? 1 : 0,
-        ss: unit.signalStrength,
-        hc: unit.hopCount,
-      }));
-
-      // Create a map of IDs to names to simulate the central registry lookup on the server.
-      const unitNames = units.reduce((acc, unit) => {
-        acc[unit.id] = unit.name;
-        return acc;
-      }, {} as Record<number, string>);
-
-      const result = await getNetworkAnalysis(compactUnits, unitNames, typeMapping, statusMapping);
+      const result = await getNetworkAnalysis();
       setAnalysis(result);
     } catch (error) {
       console.error('Analyse fehlgeschlagen:', error);
@@ -92,7 +56,7 @@ export default function AiAnomalyDetector({ units, typeMapping, statusMapping }:
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-start gap-6">
-            <Button onClick={handleAnalyze} disabled={isLoading || units.length === 0}>
+            <Button onClick={handleAnalyze} disabled={isLoading}>
               {isLoading ? 'Netzwerk wird analysiert...' : 'Anomalieerkennung durchführen'}
             </Button>
             

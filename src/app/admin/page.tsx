@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AdminSettings from '@/components/admin-settings';
 import GatewayConfig from '@/components/gateway-config';
 import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
-import { connectToGateway } from '@/app/actions';
+import { connectToGateway, disconnectFromGateway } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BotMessageSquare } from 'lucide-react';
@@ -35,9 +35,10 @@ export default function AdminPage() {
     setIsConnecting(false);
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
+      const result = await disconnectFromGateway();
       setGatewayStatus('disconnected');
-      setGatewayLogs(prev => [...prev, 'Verbindung durch Benutzer getrennt.']);
+      setGatewayLogs(prev => [...prev, result.message]);
       toast({ title: 'Gateway getrennt' });
   };
 
