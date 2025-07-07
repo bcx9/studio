@@ -2,12 +2,12 @@
 'use client';
 
 import * as React from 'react';
-import type { MeshUnit, UnitType, Group, UnitStatus, StatusMapping } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, UnitStatus, StatusMapping, TypeMapping } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal } from 'lucide-react';
+import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal, Box } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -23,9 +23,10 @@ interface DeviceRegistryProps {
   addUnit: () => void;
   onAssignGroup: (unitId: number, groupId: number | null) => void;
   statusMapping: StatusMapping;
+  typeMapping: TypeMapping;
 }
 
-export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup, statusMapping }: DeviceRegistryProps) {
+export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup, statusMapping, typeMapping }: DeviceRegistryProps) {
   const [editableUnits, setEditableUnits] = React.useState<Record<number, Partial<MeshUnit>>>({});
   const { toast } = useToast();
   const [openConfigId, setOpenConfigId] = React.useState<number | null>(null);
@@ -132,24 +133,22 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                     <TableCell>
                                         <Select
                                             value={getUnitValue(unit, 'type')}
-                                            onValueChange={(value) => handleUnitChange(unit.id, 'type', value as UnitType)}
+                                            onValueChange={(value) => handleUnitChange(unit.id, 'type', value)}
                                         >
                                             <SelectTrigger className="h-9">
                                             <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                            <SelectItem value="Vehicle">
-                                                <div className="flex items-center gap-2">
-                                                <Car className="h-4 w-4 text-muted-foreground" />
-                                                Fahrzeug
-                                                </div>
-                                            </SelectItem>
-                                            <SelectItem value="Personnel">
-                                                <div className="flex items-center gap-2">
-                                                <User className="h-4 w-4 text-muted-foreground" />
-                                                Personal
-                                                </div>
-                                            </SelectItem>
+                                            {Object.values(typeMapping).map(typeName => (
+                                                <SelectItem key={typeName} value={typeName}>
+                                                    <div className="flex items-center gap-2">
+                                                        {typeName === 'Vehicle' && <Car className="h-4 w-4 text-muted-foreground" />}
+                                                        {typeName === 'Personnel' && <User className="h-4 w-4 text-muted-foreground" />}
+                                                        {typeName !== 'Vehicle' && typeName !== 'Personnel' && <Box className="h-4 w-4 text-muted-foreground" />}
+                                                        {typeName}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
                                             </SelectContent>
                                         </Select>
                                     </TableCell>
@@ -194,7 +193,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                                     <Label>Status</Label>
                                                     <Select
                                                         value={getUnitValue(unit, 'status')}
-                                                        onValueChange={(status) => handleUnitChange(unit.id, 'status', status as UnitStatus)}
+                                                        onValueChange={(status) => handleUnitChange(unit.id, 'status', status)}
                                                         >
                                                         <SelectTrigger>
                                                             <SelectValue />

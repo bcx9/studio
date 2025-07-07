@@ -7,7 +7,7 @@ import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/layout/sidebar';
 import AppHeader from '@/components/layout/header';
 import { useMeshData } from '@/hooks/use-mesh-data';
-import type { MeshUnit } from '@/types/mesh';
+import type { MeshUnit, StatusMapping, TypeMapping } from '@/types/mesh';
 import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
@@ -195,6 +195,7 @@ export default function Home() {
           onConfigureLeitstelle={() => setLeitstellePanelOpen(true)}
           isPositioningMode={isPositioningMode}
           onTogglePositioningMode={handleTogglePositioningMode}
+          statusMapping={statusMapping}
         />
       </Sidebar>
       <SidebarInset>
@@ -244,6 +245,7 @@ export default function Home() {
                     groups={groups}
                     onAssignGroup={assignUnitToGroup}
                     statusMapping={statusMapping}
+                    typeMapping={typeMapping}
                 />
               </TabsContent>
                 <TabsContent value="group-management" className="flex-1 overflow-y-auto">

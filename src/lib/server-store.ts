@@ -17,7 +17,7 @@ const initialGroups: Group[] = [
     { id: 2, name: "Angriffstrupp" }
 ];
 
-const nameTemplates: Record<UnitType, string[]> = {
+const nameTemplates: Record<string, string[]> = {
     Vehicle: ['RTW', 'NEF', 'GW-L', 'DLK-23', 'TSF-W'],
     Personnel: ['GF', 'ZF', 'MA', 'SAN', 'PA-1', 'PA-2'],
 };
@@ -163,8 +163,10 @@ export function updateUnit(updatedUnit: MeshUnit) {
 
 export function addUnit() {
     const newId = state.units.length > 0 ? Math.max(...state.units.map(u => u.id)) + 1 : 1;
-    const type: UnitType = Math.random() > 0.5 ? 'Vehicle' : 'Personnel';
-    const name = `${nameTemplates[type][Math.floor(Math.random() * nameTemplates[type].length)]}-${newId}`;
+    const availableTypes = Object.values(state.typeMapping);
+    const type: UnitType = availableTypes.length > 0 ? availableTypes[Math.floor(Math.random() * availableTypes.length)] : 'Generic';
+    const namePrefix = nameTemplates[type as keyof typeof nameTemplates]?.[Math.floor(Math.random() * nameTemplates[type as keyof typeof nameTemplates]?.length)] || type;
+    const name = `${namePrefix}-${newId}`;
     const newUnit: MeshUnit = { id: newId, name, type, status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: Math.floor(Math.random() * 360), battery: 100, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: null, signalStrength: -75, hopCount: 1 };
     state.units.push(newUnit);
 }

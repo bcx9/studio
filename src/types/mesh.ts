@@ -1,6 +1,6 @@
 
-export type UnitType = 'Vehicle' | 'Personnel';
-export type UnitStatus = 'Online' | 'Moving' | 'Idle' | 'Alarm' | 'Offline' | 'Maintenance';
+export type UnitType = string;
+export type UnitStatus = string;
 
 export interface UnitMessage {
     text: string;

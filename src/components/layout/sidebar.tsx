@@ -10,7 +10,7 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import UnitList from '@/components/unit-list';
-import type { MeshUnit, Group } from '@/types/mesh';
+import type { MeshUnit, Group, StatusMapping } from '@/types/mesh';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Building2, Settings, Plug, MapPin } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +29,7 @@ interface AppSidebarProps {
   onConfigureLeitstelle: () => void;
   isPositioningMode: boolean;
   onTogglePositioningMode: () => void;
+  statusMapping: StatusMapping;
 }
 
 export default function AppSidebar({
@@ -44,6 +45,7 @@ export default function AppSidebar({
   onConfigureLeitstelle,
   isPositioningMode,
   onTogglePositioningMode,
+  statusMapping,
 }: AppSidebarProps) {
   return (
     <>
@@ -99,6 +101,7 @@ export default function AppSidebar({
           selectedUnitId={selectedUnitId}
           onSelectUnit={onSelectUnit}
           controlCenterPosition={controlCenterPosition}
+          statusMapping={statusMapping}
         />
       </SidebarContent>
       <SidebarFooter>

@@ -70,7 +70,7 @@ const createSymbolIcon = (symbolKey: string) => {
 };
 
 
-const STATUS_COLORS: Record<UnitStatus, string> = {
+const STATUS_COLORS: Record<string, string> = {
   Online: '#60a5fa',    // tailwind blue-400
   Moving: '#4ade80',    // tailwind green-400
   Idle: '#38bdf8',      // tailwind sky-400
@@ -84,7 +84,7 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
   const highlightGlowId = `glow-${Math.random().toString(36).substring(7)}`;
 
-  const iconPaths = {
+  const iconPaths: Record<string, string> = {
     Vehicle: `
       <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"></path>
       <path d="M14 17h-4"></path>
@@ -98,8 +98,8 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
       <circle cx="12" cy="7" r="4"></circle>
     `,
   };
-
-  const iconPath = iconPaths[unitType] || '';
+  const genericIconPath = `<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" x2="12" y1="22.08" y2="12" />`;
+  const iconPath = iconPaths[unitType] || genericIconPath;
   const highlightFilter = isHighlighted ? `url(#${highlightGlowId})` : '';
 
   const iconHtml = `

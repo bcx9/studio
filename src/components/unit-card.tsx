@@ -18,6 +18,7 @@ import {
   Plug,
   Rss,
   Waypoints,
+  Box,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
 import { cn, calculateDistance } from '@/lib/utils';
@@ -76,8 +77,10 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
           <div className="flex items-center gap-3">
             {unit.type === 'Vehicle' ? (
               <Car className="h-6 w-6 text-primary" />
-            ) : (
+            ) : unit.type === 'Personnel' ? (
               <User className="h-6 w-6 text-primary" />
+            ) : (
+              <Box className="h-6 w-6 text-primary" />
             )}
             <div>
               <CardTitle className="text-base font-bold">{unit.name}</CardTitle>

@@ -1,7 +1,7 @@
 
 'use client';
 import * as React from 'react';
-import type { MeshUnit, Group } from '@/types/mesh';
+import type { MeshUnit, Group, StatusMapping } from '@/types/mesh';
 import UnitCard from '@/components/unit-card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +18,7 @@ interface UnitListProps {
   selectedUnitId?: number | null;
   onSelectUnit: (unit: MeshUnit | null) => void;
   controlCenterPosition: { lat: number; lng: number } | null;
+  statusMapping: StatusMapping;
 }
 
 export default function UnitList({ 
@@ -28,7 +29,8 @@ export default function UnitList({
   onUnitHover, 
   selectedUnitId, 
   onSelectUnit, 
-  controlCenterPosition 
+  controlCenterPosition,
+  statusMapping,
 }: UnitListProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
@@ -70,12 +72,9 @@ export default function UnitList({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Alle Status</SelectItem>
-            <SelectItem value="online">Online</SelectItem>
-            <SelectItem value="offline">Offline</SelectItem>
-            <SelectItem value="moving">In Bewegung</SelectItem>
-            <SelectItem value="idle">Inaktiv</SelectItem>
-            <SelectItem value="alarm">Alarm</SelectItem>
-            <SelectItem value="maintenance">Wartung</SelectItem>
+            {Object.values(statusMapping).map(statusName => (
+              <SelectItem key={statusName} value={statusName.toLowerCase()}>{statusName}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
