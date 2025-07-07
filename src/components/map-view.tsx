@@ -8,7 +8,7 @@ import L, { type Map } from 'leaflet';
 import 'leaflet-draw';
 
 import type { MeshUnit, UnitStatus, UnitType } from '@/types/mesh';
-import { Globe, Map as MapIcon, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind } from 'lucide-react';
+import { Globe, Map as MapIcon, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MapViewProps {
@@ -96,14 +96,10 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   const iconHtml = `
     <div class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale}">
       <div 
-        class="absolute inset-0 rounded-full"
-        style="background: ${color}; filter: blur(12px); opacity: ${isHighlighted ? 0.75 : 0.5};"
+        class="absolute -inset-1 rounded-full ${alarmAnimationClass}"
+        style="background: ${color}; animation-duration: 1.5s; opacity: 0.8; filter: blur(12px);"
       ></div>
-      <div 
-        class="absolute inset-0 rounded-full ${alarmAnimationClass}"
-        style="background: ${color}; animation-duration: 1.5s; opacity: 0.5;"
-      ></div>
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           <circle cx="18" cy="18" r="17" fill="hsl(var(--background) / 0.5)" stroke="${color}" stroke-width="1.5"/>
           <svg x="6" y="6" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round">
               ${iconPath}
@@ -127,7 +123,7 @@ const createControlCenterIcon = () => {
   const iconHtml = `
     <div class="relative flex items-center justify-center">
         <div class="absolute inset-0 rounded-full" style="background: ${color}; filter: blur(16px); opacity: 0.8;"></div>
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
             <circle cx="22" cy="22" r="21" fill="hsl(var(--background) / 0.6)" stroke="${color}" stroke-width="2"/>
             <path d="M22 17L24.32 21.8L29.5 22.5L25.75 26.1L26.64 31L22 28.4L17.36 31L18.25 26.1L14.5 22.5L19.68 21.8L22 17Z" fill="${color}"/>
         </svg>
@@ -167,12 +163,15 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
   const editableLayersRef = React.useRef<L.FeatureGroup | null>(null);
+  const meshLinesLayerRef = React.useRef<L.FeatureGroup | null>(null);
   const markersRef = React.useRef<Record<number, L.Marker>>({});
   const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('dark');
   const [selectedSymbol, setSelectedSymbol] = React.useState<string | null>(null);
+  const [showMeshConnections, setShowMeshConnections] = React.useState(false);
+
 
   const handleRecenter = React.useCallback(() => {
     const map = mapInstanceRef.current;
@@ -215,6 +214,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       }).addTo(map);
 
       editableLayersRef.current = new L.FeatureGroup().addTo(map);
+      meshLinesLayerRef.current = new L.FeatureGroup().addTo(map);
 
       setTimeout(() => map.invalidateSize(), 100);
     }
@@ -398,6 +398,94 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     }
   }, [units, highlightedUnitId, controlCenterPosition, onUnitClick]);
 
+  // Draw mesh connection lines
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    const meshLinesLayer = meshLinesLayerRef.current;
+    if (!map || !meshLinesLayer) return;
+
+    meshLinesLayer.clearLayers();
+
+    if (!showMeshConnections) {
+        return;
+    }
+
+    const activeUnits = units.filter(u => u.isActive);
+    if (activeUnits.length < 2) return;
+
+    // Group units by hop count for easier lookup
+    const unitsByHop: Record<number, MeshUnit[]> = {};
+    activeUnits.forEach(unit => {
+        if (!unitsByHop[unit.hopCount]) {
+            unitsByHop[unit.hopCount] = [];
+        }
+        unitsByHop[unit.hopCount].push(unit);
+    });
+
+    activeUnits.forEach(unit => {
+        if (unit.hopCount <= 0) return;
+
+        let parentPosition: { lat: number, lng: number } | null = null;
+
+        if (unit.hopCount === 1) {
+            // Units with hopCount 1 connect to the control center
+            if (controlCenterPosition) {
+                parentPosition = controlCenterPosition;
+            }
+        } else {
+            // Units with hopCount > 1 connect to a unit with hopCount - 1
+            const potentialParents = unitsByHop[unit.hopCount - 1];
+            if (potentialParents && potentialParents.length > 0) {
+                // Find the closest parent
+                let closestParent: MeshUnit | null = null;
+                let minDistance = Infinity;
+
+                potentialParents.forEach(parent => {
+                    const distance = L.latLng(unit.position.lat, unit.position.lng).distanceTo(
+                        L.latLng(parent.position.lat, parent.position.lng)
+                    );
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestParent = parent;
+                    }
+                });
+                
+                if (closestParent) {
+                    parentPosition = closestParent.position;
+                }
+            }
+        }
+
+        if (parentPosition) {
+             const line = L.polyline(
+                [
+                    [unit.position.lat, unit.position.lng],
+                    [parentPosition.lat, parentPosition.lng]
+                ],
+                {
+                    color: 'hsl(var(--accent))',
+                    weight: 1.5,
+                    opacity: 0.6,
+                    dashArray: '5, 10',
+                }
+            ).addTo(meshLinesLayer);
+
+            // Add a glow effect using a second, thicker, more transparent line
+            L.polyline(
+                [
+                    [unit.position.lat, unit.position.lng],
+                    [parentPosition.lat, parentPosition.lng]
+                ],
+                {
+                    color: 'hsl(var(--accent))',
+                    weight: 5,
+                    opacity: 0.1,
+                }
+            ).addTo(meshLinesLayer);
+        }
+    });
+  }, [units, showMeshConnections, controlCenterPosition]);
+
   // Perform initial centering only once
   React.useEffect(() => {
     if (!isInitiallyCenteredRef.current && (units.some(u => u.isActive) || controlCenterPosition)) {
@@ -408,7 +496,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-black/20 border border-white/10 backdrop-blur-sm">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-lg">
       <style>{`
         .leaflet-tooltip.glass-tooltip {
           background-color: rgba(0,0,0,0.4);
@@ -425,9 +513,9 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           border-top-color: rgba(255,255,255,0.1);
         }
         .leaflet-bar a, .leaflet-bar a:hover {
-            background-color: rgba(0,0,0,0.5);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.1);
+            background-color: rgba(25, 27, 34, 0.7);
+            color: hsl(var(--foreground));
+            border: 1px solid hsl(var(--border) / 0.5);
             backdrop-filter: blur(8px);
         }
         .leaflet-draw-toolbar {
@@ -437,10 +525,10 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         }
         .leaflet-draw-toolbar a {
             border-radius: 0.5rem !important;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid hsl(var(--border) / 0.5);
         }
          .leaflet-draw-actions a {
-            color: white;
+            color: hsl(var(--foreground));
         }
       `}</style>
       
@@ -460,7 +548,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
          <Button
-          variant="secondary"
+          variant="outline"
           size="icon"
           onClick={() => setMapStyle(style => {
             const styles: MapStyle[] = ['dark', 'street', 'satellite'];
@@ -473,13 +561,22 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           <Globe className="h-5 w-5" />
         </Button>
         <Button
-            variant="secondary"
+            variant="outline"
             size="icon"
             onClick={handleRecenter}
             title="Auf Einheiten zentrieren"
             className="rounded-full"
         >
             <Target className="h-5 w-5" />
+        </Button>
+        <Button
+            variant={showMeshConnections ? 'secondary' : 'outline'}
+            size="icon"
+            onClick={() => setShowMeshConnections(prev => !prev)}
+            title="Mesh-Verbindungen umschalten"
+            className="rounded-full"
+        >
+            <Network className="h-5 w-5" />
         </Button>
       </div>
     </div>
