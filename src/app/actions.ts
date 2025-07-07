@@ -190,3 +190,12 @@ export async function removeStatusMapping(id: number) {
         return { success: false, message: e.message };
     }
 }
+
+
+export async function verifyAdminPassword(password: string): Promise<{ success: boolean }> {
+  // Use a default password if the environment variable is not set.
+  // In a real production environment, this should always be set in a .env.local file.
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+  
+  return { success: password === adminPassword };
+}

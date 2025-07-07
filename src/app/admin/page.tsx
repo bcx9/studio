@@ -1,4 +1,3 @@
-
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
@@ -10,8 +9,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BotMessageSquare } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
+import AdminAuth from '@/components/admin-auth';
 
-export default function AdminPage() {
+function AdminConsole() {
   const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('connecting');
   const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
   const [isConnecting, setIsConnecting] = React.useState(true);
@@ -96,4 +96,13 @@ export default function AdminPage() {
       </main>
     </div>
   );
+}
+
+
+export default function AdminPage() {
+    return (
+        <AdminAuth>
+            <AdminConsole />
+        </AdminAuth>
+    );
 }
