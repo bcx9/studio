@@ -56,13 +56,13 @@ const FIRE_DEPARTMENT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: str
   'HLF-20': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M7 17v-4h4m1.5-6l-3 3h6l-3-3M7 15a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  'AT': { // Angriffstrupp - Personnel with axe
+  'AT': {
     svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M5 15l8-8m-6.5 1.5l5 5"
   },
   'ELW-1': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M12 7l1-2 1 2m-1-2V2m-5 13v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  'Wassertrupp': { // Personnel with water drop
+  'Wassertrupp': {
     svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 m-2-7a4.5 4.5 0 0 1 8.36 2.2"
   },
   'DLK-23': {
@@ -77,7 +77,7 @@ const FIRE_DEPARTMENT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: str
   'MTF': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  'Gerätewagen': { // Equipment vehicle - van with a box/gear
+  'Gerätewagen': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z M11 11.5h2v2h-2z"
   },
   'Einsatzleiter': {
@@ -89,15 +89,11 @@ const getBaseType = (type: UnitType): 'Vehicle' | 'Personnel' | 'Generic' => {
     const vehicleKeywords = ['HLF', 'ELW', 'DLK', 'RTW', 'NEF', 'MTF', 'wagen', 'Vehicle'];
     const personnelKeywords = ['AT', 'trupp', 'leiter', 'Personnel'];
 
-    for (const keyword of vehicleKeywords) {
-        if (type.toLowerCase().includes(keyword.toLowerCase())) {
-            return 'Vehicle';
-        }
+    if (vehicleKeywords.some(keyword => type.includes(keyword))) {
+        return 'Vehicle';
     }
-    for (const keyword of personnelKeywords) {
-        if (type.toLowerCase().includes(keyword.toLowerCase())) {
-            return 'Personnel';
-        }
+    if (personnelKeywords.some(keyword => type.includes(keyword))) {
+        return 'Personnel';
     }
     return 'Generic';
 };
@@ -265,8 +261,10 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
       mapInstanceRef.current = map;
 
-      tileLayerRef.current = L.tileLayer(TILE_LAYERS.dark.url, {
-          attribution: TILE_LAYERS.dark.attribution,
+      const initialTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'street';
+      setMapStyle(initialTheme);
+      tileLayerRef.current = L.tileLayer(TILE_LAYERS[initialTheme].url, {
+          attribution: TILE_LAYERS[initialTheme].attribution,
       }).addTo(map);
 
       editableLayersRef.current = new L.FeatureGroup().addTo(map);
@@ -389,12 +387,11 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
   // Update tile layer style
   React.useEffect(() => {
-      const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'street';
       if (tileLayerRef.current && mapInstanceRef.current) {
-          tileLayerRef.current.setUrl(TILE_LAYERS[currentTheme].url);
-          tileLayerRef.current.options.attribution = TILE_LAYERS[currentTheme].attribution;
+          tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
+          tileLayerRef.current.options.attribution = TILE_LAYERS[mapStyle].attribution;
       }
-  }, [mapStyle]); // Re-run when mapStyle changes (which we can trigger from theme toggle)
+  }, [mapStyle]);
 
 
   React.useEffect(() => {
