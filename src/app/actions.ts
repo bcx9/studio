@@ -18,7 +18,8 @@ import {
   removeGroup as removeGroupInStore,
   assignUnitToGroup as assignUnitToGroupInStore,
   getConfig,
-  updateConfig
+  updateConfig,
+  isSimulationRunning
 } from '@/lib/server-store';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
 import { createReverseMapping } from '@/lib/utils';
@@ -26,6 +27,10 @@ import { createReverseMapping } from '@/lib/utils';
 
 export async function getNetworkSnapshot() {
   return getSnapshot();
+}
+
+export async function getGatewayStatus() {
+    return { isConnected: isSimulationRunning() };
 }
 
 export async function connectToGateway(settings: ConnectionSettings): Promise<{ success: boolean; message: string }> {

@@ -222,3 +222,7 @@ export function removeGroup(groupId: number) {
 export function assignUnitToGroup(unitId: number, groupId: number | null) {
     state.units = state.units.map(u => u.id === unitId ? { ...u, groupId } : u);
 }
+
+export function isSimulationRunning(): boolean {
+    return state.simulationInterval !== null;
+}

@@ -5,17 +5,38 @@ import Link from 'next/link';
 import AdminSettings from '@/components/admin-settings';
 import GatewayConfig from '@/components/gateway-config';
 import type { GatewayStatus, ConnectionSettings } from '@/types/gateway';
-import { connectToGateway, disconnectFromGateway } from '@/app/actions';
+import { connectToGateway, disconnectFromGateway, getGatewayStatus } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BotMessageSquare } from 'lucide-react';
 import ThemeToggle from '@/components/theme-toggle';
 
 export default function AdminPage() {
-  const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('disconnected');
+  const [gatewayStatus, setGatewayStatus] = React.useState<GatewayStatus>('connecting');
   const [gatewayLogs, setGatewayLogs] = React.useState<string[]>(['Initialisiere Gateway-Schnittstelle...']);
-  const [isConnecting, setIsConnecting] = React.useState(false);
+  const [isConnecting, setIsConnecting] = React.useState(true);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const result = await getGatewayStatus();
+        if (result.isConnected) {
+          setGatewayStatus('connected');
+          setGatewayLogs(prev => [...prev, 'Bestehende Verbindung zum Gateway erkannt. Simulation läuft.']);
+        } else {
+          setGatewayStatus('disconnected');
+        }
+      } catch (error) {
+        console.error("Failed to get gateway status", error);
+        setGatewayStatus('error');
+        setGatewayLogs(prev => [...prev, 'Fehler beim Abrufen des Gateway-Status.']);
+      } finally {
+        setIsConnecting(false);
+      }
+    };
+    checkInitialStatus();
+  }, []);
 
   const handleConnect = async (settings: ConnectionSettings) => {
     setIsConnecting(true);
@@ -36,10 +57,12 @@ export default function AdminPage() {
   };
 
   const handleDisconnect = async () => {
+      setIsConnecting(true);
       const result = await disconnectFromGateway();
       setGatewayStatus('disconnected');
       setGatewayLogs(prev => [...prev, result.message]);
       toast({ title: 'Gateway getrennt' });
+      setIsConnecting(false);
   };
 
   return (
