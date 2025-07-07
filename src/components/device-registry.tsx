@@ -80,16 +80,15 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
   };
 
   return (
-    <div className="container mx-auto max-w-6xl py-8">
-      <Card className="bg-card/50">
+      <Card>
         <CardHeader>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-3'>
-                <ListTree className="h-8 w-8 text-primary" />
+                <ListTree className="h-6 w-6 text-primary" />
                 <div>
-                <CardTitle className="text-2xl">Geräte & System</CardTitle>
+                <CardTitle className="text-xl">Geräte-Register</CardTitle>
                 <CardDescription>
-                    Verwalten Sie Einheiten, ihre Konfigurationen und sehen Sie die systemweiten ID-Mappings ein.
+                    Konfigurieren und gruppieren Sie Ihre Einheiten.
                 </CardDescription>
                 </div>
             </div>
@@ -100,12 +99,10 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
           </div>
         </CardHeader>
         <CardContent>
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Registrierte Einheiten</h3>
-            <div className="border rounded-lg">
+            <div className="border-none rounded-lg">
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow className='border-b-0'>
                             <TableHead className="w-[80px]">ID</TableHead>
                             <TableHead className="min-w-[200px]">Name</TableHead>
                             <TableHead className="w-[180px]">Typ</TableHead>
@@ -121,13 +118,13 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
 
                         return (
                             <React.Fragment key={unit.id}>
-                                <TableRow className={cn("align-middle", isConfigOpen && "border-b-0")}>
+                                <TableRow className={cn("align-middle border-b-0", isConfigOpen && "bg-secondary/50")}>
                                     <TableCell className="font-medium">{unit.id}</TableCell>
                                     <TableCell>
                                         <Input
                                             value={getUnitValue(unit, 'name')}
                                             onChange={(e) => handleUnitChange(unit.id, 'name', e.target.value)}
-                                            className="h-9 border-0 bg-transparent shadow-none focus-visible:bg-background focus-visible:border-input focus-visible:border focus-visible:ring-2"
+                                            className="h-9"
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -172,7 +169,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                         </Select>
                                     </TableCell>
                                     <TableCell className="text-right space-x-1">
-                                        <Button size="icon" variant="ghost" className='h-9 w-9' onClick={() => setOpenConfigId(isConfigOpen ? null : unit.id)}>
+                                        <Button size="icon" variant={isConfigOpen ? 'secondary' : 'ghost'} className='h-9 w-9 rounded-full' onClick={() => setOpenConfigId(isConfigOpen ? null : unit.id)}>
                                             <SlidersHorizontal className="h-4 w-4" />
                                         </Button>
                                         <Button 
@@ -186,10 +183,10 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                     </TableCell>
                                 </TableRow>
                                 {isConfigOpen && (
-                                     <TableRow>
+                                     <TableRow className='bg-secondary/50'>
                                         <TableCell colSpan={6} className='p-0'>
-                                            <div className='bg-muted/50 p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4'>
-                                                <div className="space-y-2">
+                                            <div className='p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6'>
+                                                <div className="space-y-3">
                                                     <Label>Status</Label>
                                                     <Select
                                                         value={getUnitValue(unit, 'status')}
@@ -205,7 +202,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
-                                                <div className="space-y-2">
+                                                <div className="space-y-3">
                                                     <Label>Position (Lat/Lon)</Label>
                                                     <div className='flex gap-2'>
                                                         <Input
@@ -220,7 +217,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="space-y-2 col-span-1 md:col-span-2">
+                                                <div className="space-y-3 col-span-1 md:col-span-2">
                                                     <Label>Sendeintervall: {getUnitValue(unit, 'sendInterval')}s</Label>
                                                     <Slider
                                                         min={1}
@@ -230,11 +227,11 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                                         onValueChange={value => handleUnitChange(unit.id, 'sendInterval', value[0])}
                                                     />
                                                 </div>
-                                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                                                <div className="flex items-center justify-between rounded-lg p-3 neumorphic-shadow-inset bg-background">
                                                     <div className="space-y-0.5">
                                                         <Label>Einheit aktivieren</Label>
                                                         <p className="text-xs text-muted-foreground">
-                                                            Aktivieren oder deaktivieren Sie die Datenübertragung.
+                                                            Datenübertragung aktivieren/deaktivieren.
                                                         </p>
                                                     </div>
                                                     <Switch
@@ -242,11 +239,11 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                                         onCheckedChange={checked => handleUnitChange(unit.id, 'isActive', checked)}
                                                     />
                                                 </div>
-                                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                                                <div className="flex items-center justify-between rounded-lg p-3 neumorphic-shadow-inset bg-background">
                                                     <div className="space-y-0.5">
                                                         <Label>Externe Stromversorgung</Label>
                                                         <p className="text-xs text-muted-foreground">
-                                                            Wenn aktiv, lädt die Einheit.
+                                                            Simuliert das Laden der Einheit.
                                                         </p>
                                                     </div>
                                                     <Switch
@@ -264,9 +261,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                     </TableBody>
                 </Table>
             </div>
-          </div>
         </CardContent>
       </Card>
-    </div>
   );
 }

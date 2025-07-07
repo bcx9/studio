@@ -60,20 +60,20 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
     }
 
     return (
-        <div className="container mx-auto max-w-4xl py-8">
-            <Card className="bg-card/50">
+        <div className="flex flex-col gap-8">
+            <Card>
                 <CardHeader>
                     <div className='flex items-center gap-3'>
-                        <Users className="h-8 w-8 text-primary" />
+                        <Users className="h-6 w-6 text-primary" />
                         <div>
-                            <CardTitle className="text-2xl">Gruppenverwaltung</CardTitle>
+                            <CardTitle className="text-xl">Gruppenverwaltung</CardTitle>
                             <CardDescription>
-                                Erstellen, bearbeiten und löschen Sie Einheiten-Gruppen für eine bessere Organisation und gezielte Kommunikation.
+                                Erstellen und bearbeiten Sie Einheiten-Gruppen.
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
                     <div className="flex gap-2">
                         <Input 
                             placeholder="Neuer Gruppenname..."
@@ -83,21 +83,21 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                         />
                         <Button onClick={handleAddGroup}>
                             <PlusCircle className="mr-2" />
-                            Gruppe erstellen
+                            Erstellen
                         </Button>
                     </div>
 
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border-none rounded-lg">
                         <Table>
                             <TableHeader>
-                                <TableRow>
+                                <TableRow className="border-b-0">
                                     <TableHead>Gruppenname</TableHead>
                                     <TableHead className="w-[180px] text-right">Aktionen</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {groups.map(group => (
-                                    <TableRow key={group.id}>
+                                    <TableRow key={group.id} className="border-b-0">
                                         <TableCell>
                                             {editingGroup?.id === group.id ? (
                                                 <Input 
@@ -113,15 +113,15 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                                         <TableCell className="text-right">
                                             {editingGroup?.id === group.id ? (
                                                 <>
-                                                    <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleSaveEditing}><Save className="h-4 w-4" /></Button>
-                                                    <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
+                                                    <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full' onClick={handleSaveEditing}><Save className="h-4 w-4" /></Button>
+                                                    <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing(group)}><Edit className="h-4 w-4" /></Button>
+                                                    <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full' onClick={() => handleStartEditing(group)}><Edit className="h-4 w-4" /></Button>
                                                      <AlertDialog>
                                                         <AlertDialogTrigger asChild>
-                                                            <Button size="icon" variant="ghost" className='h-8 w-8 text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
+                                                            <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
                                                             <AlertDialogHeader>
@@ -144,46 +144,52 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                                 {groups.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={2} className="text-center text-muted-foreground h-24">
-                                            Keine Gruppen vorhanden. Erstellen Sie Ihre erste Gruppe.
+                                            Keine Gruppen vorhanden.
                                         </TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
                         </Table>
                     </div>
-                     <div className="border-t pt-6">
-                         <h3 className="text-lg font-semibold mb-3">Szenario-Steuerung</h3>
-                         <div className="flex items-start gap-4 p-4 border rounded-lg bg-background">
-                            <Move className="h-8 w-8 text-primary mt-1 shrink-0" />
-                            <div>
-                                <h4 className="font-semibold">Einheiten neu positionieren</h4>
-                                <p className="text-sm text-muted-foreground mb-3">
-                                    Positioniert alle Einheiten zufällig in einem definierten Radius um die Leitstelle. Nützlich, um neue Szenarien zu testen.
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <Button onClick={handleRepositionClick} disabled={!isRepositionPossible}>
-                                        <Move className="mr-2" />
-                                        Alle Einheiten neu positionieren
-                                    </Button>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            id="radius"
-                                            type="number"
-                                            value={repositionRadius}
-                                            onChange={(e) => setRepositionRadius(Math.max(1, Number(e.target.value)))}
-                                            className="w-24"
-                                            disabled={!isRepositionPossible}
-                                        />
-                                        <Label htmlFor="radius" className="text-sm text-muted-foreground">km Radius</Label>
-                                    </div>
-                                </div>
-                                {!isRepositionPossible && (
-                                    <p className="text-xs text-yellow-500 mt-2">
-                                        Setzen Sie zuerst einen Leitstellen-Marker auf der Karte, um diese Funktion zu nutzen.
-                                    </p>
-                                )}
-                            </div>
-                         </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <div className='flex items-center gap-3'>
+                        <Move className="h-6 w-6 text-primary" />
+                        <div>
+                            <CardTitle className="text-xl">Szenario-Steuerung</CardTitle>
+                            <CardDescription>
+                                Testen Sie neue Szenarien durch zufällige Neupositionierung.
+                            </CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                 <CardContent>
+                    <div className="flex flex-col gap-3">
+                        <p className="text-sm text-muted-foreground">
+                            Positioniert alle Einheiten zufällig in einem definierten Radius um die Leitstelle.
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Label htmlFor="radius" className="text-sm text-muted-foreground whitespace-nowrap">Radius (km):</Label>
+                            <Input
+                                id="radius"
+                                type="number"
+                                value={repositionRadius}
+                                onChange={(e) => setRepositionRadius(Math.max(1, Number(e.target.value)))}
+                                className="w-24 h-9"
+                                disabled={!isRepositionPossible}
+                            />
+                        </div>
+                        <Button onClick={handleRepositionClick} disabled={!isRepositionPossible}>
+                                <Move className="mr-2" />
+                                Alle Einheiten neu positionieren
+                        </Button>
+                        {!isRepositionPossible && (
+                            <p className="text-xs text-yellow-500 mt-2">
+                                Setzen Sie zuerst einen Leitstellen-Marker auf der Karte, um diese Funktion zu nutzen.
+                            </p>
+                        )}
                     </div>
                 </CardContent>
             </Card>

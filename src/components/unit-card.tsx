@@ -69,19 +69,26 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
 
   return (
     <Card 
-        className={cn("transition-all cursor-pointer", isSelected ? "border-primary shadow-lg" : "border-card hover:border-muted-foreground/50")}
+        className={cn(
+          "transition-all cursor-pointer", 
+          isSelected 
+            ? "shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff]" 
+            : "hover:shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff]"
+        )}
         onClick={() => onSelect(unit)}
     >
       <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
-            {unit.type === 'Vehicle' ? (
-              <Car className="h-6 w-6 text-primary" />
-            ) : unit.type === 'Personnel' ? (
-              <User className="h-6 w-6 text-primary" />
-            ) : (
-              <Box className="h-6 w-6 text-primary" />
-            )}
+            <div className='flex items-center justify-center h-10 w-10 rounded-full neumorphic-shadow-inset bg-background'>
+              {unit.type === 'Vehicle' ? (
+                <Car className="h-5 w-5 text-primary" />
+              ) : unit.type === 'Personnel' ? (
+                <User className="h-5 w-5 text-primary" />
+              ) : (
+                <Box className="h-5 w-5 text-primary" />
+              )}
+            </div>
             <div>
               <CardTitle className="text-base font-bold">{unit.name}</CardTitle>
               <StatusBadge status={unit.status} />
@@ -91,7 +98,7 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
             <TooltipProvider delayDuration={200}>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); onCharge(unit.id)}}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={(e) => {e.stopPropagation(); onCharge(unit.id)}}>
                             <BatteryCharging className="h-4 w-4" />
                         </Button>
                     </TooltipTrigger>
@@ -99,7 +106,7 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
                 </Tooltip>
                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/70 hover:text-destructive" onClick={(e) => {e.stopPropagation(); onDelete(unit.id)}}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive/70 hover:text-destructive" onClick={(e) => {e.stopPropagation(); onDelete(unit.id)}}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </TooltipTrigger>
@@ -110,9 +117,9 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-2">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground mb-3">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-muted-foreground mb-3">
           <TooltipProvider delayDuration={200}>
-            <div className='flex items-center gap-1'>
+            <div className='flex items-center gap-2'>
             {unit.isExternallyPowered ? (
               <Tooltip>
                   <TooltipTrigger className='flex items-center gap-1 text-green-500'>
@@ -131,14 +138,14 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
             </div>
             
             <Tooltip>
-              <TooltipTrigger className='flex items-center gap-1'>
+              <TooltipTrigger className='flex items-center gap-2'>
                   <GaugeCircle className="h-4 w-4" /> {unit.speed} km/h
               </TooltipTrigger>
               <TooltipContent>Geschwindigkeit</TooltipContent>
             </Tooltip>
 
             <Tooltip>
-              <TooltipTrigger className='flex items-center gap-1'>
+              <TooltipTrigger className='flex items-center gap-2'>
                   <Compass className="h-4 w-4" /> {unit.heading}°
               </TooltipTrigger>
               <TooltipContent>Richtung</TooltipContent>
@@ -146,7 +153,7 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
             
             {formattedDistance && (
               <Tooltip>
-                <TooltipTrigger className='flex items-center gap-1'>
+                <TooltipTrigger className='flex items-center gap-2'>
                     <Milestone className="h-4 w-4" /> {formattedDistance}
                 </TooltipTrigger>
                 <TooltipContent>Entfernung zur Leitstelle</TooltipContent>
@@ -154,14 +161,14 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
             )}
 
             <Tooltip>
-                <TooltipTrigger className='flex items-center gap-1'>
+                <TooltipTrigger className='flex items-center gap-2'>
                     <Rss className="h-4 w-4" /> {unit.signalStrength} dBm
                 </TooltipTrigger>
                 <TooltipContent>Signalstärke (RSSI)</TooltipContent>
             </Tooltip>
 
             <Tooltip>
-                <TooltipTrigger className='flex items-center gap-1'>
+                <TooltipTrigger className='flex items-center gap-2'>
                     <Waypoints className="h-4 w-4" /> {unit.hopCount} {unit.hopCount === 1 ? 'Hop' : 'Hops'}
                 </TooltipTrigger>
                 <TooltipContent>Anzahl Hops</TooltipContent>
@@ -171,16 +178,16 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
         </div>
         
         {unit.lastMessage && (
-            <div className="mt-3 pt-3 border-t border-muted-foreground/20">
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+            <div className="mt-3 pt-3 border-t border-border">
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
                     {unit.lastMessage.source === 'unit' ? (
-                        <ArrowUp className="h-4 w-4 shrink-0 mt-0.5 text-blue-400" />
+                        <ArrowUp className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
                     ) : (
-                        <ArrowDown className="h-4 w-4 shrink-0 mt-0.5 text-green-400" />
+                        <ArrowDown className="h-4 w-4 shrink-0 mt-0.5 text-green-500" />
                     )}
                     <div className="flex-1">
                         <p className="text-foreground leading-snug">{unit.lastMessage.text}</p>
-                        <p>{formatDistanceToNow(new Date(unit.lastMessage.timestamp), { addSuffix: true, locale: de })}</p>
+                        <p className='text-xs'>{formatDistanceToNow(new Date(unit.lastMessage.timestamp), { addSuffix: true, locale: de })}</p>
                     </div>
                 </div>
             </div>

@@ -59,7 +59,7 @@ const createSymbolIcon = (symbolKey: string) => {
     
     // We render the Lucide icon to an HTML string. This is a bit of a hack.
     const iconHtml = `
-        <div class="bg-background/80 border border-foreground/50 rounded-md p-1 w-8 h-8 flex items-center justify-center">
+        <div class="bg-background/80 border border-border rounded-md p-1 w-8 h-8 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${symbol.color}">
                 <use href="#${symbol.icon.displayName || symbol.icon.name}" />
             </svg>
@@ -75,57 +75,51 @@ const createSymbolIcon = (symbolKey: string) => {
 
 
 const STATUS_COLORS: Record<string, string> = {
-  Online: '#34d399',    // emerald-400
-  Moving: '#22d3ee',    // cyan-400
-  Idle: '#60a5fa',      // blue-400
-  Alarm: '#f87171',     // red-400
-  Offline: '#9ca3af',   // gray-400
+  Online: '#22d3ee', // cyan-400
+  Moving: '#34d399', // emerald-400
+  Idle: '#60a5fa', // blue-400
+  Alarm: '#f87171', // red-400
+  Offline: '#9ca3af', // gray-400
   Maintenance: '#f97316', // orange-500
 };
 
 const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
   const color = STATUS_COLORS[status] || '#9ca3af';
   const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
-  const highlightGlowId = `glow-${Math.random().toString(36).substring(7)}`;
+  const highlightScale = isHighlighted ? 'scale-110' : 'scale-100';
 
   const iconPaths: Record<string, string> = {
-    Vehicle: `
-      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"></path>
-      <path d="M14 17h-4"></path>
-      <path d="M15 7h-5"></path>
-      <path d="M5 17v-4h4"></path>
-      <circle cx="7" cy="17" r="2"></circle>
-      <circle cx="17" cy="17" r="2"></circle>
-    `,
-    Personnel: `
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-      <circle cx="12" cy="7" r="4"></circle>
-    `,
+    Vehicle: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"/><path d="M14 17h-4"/><path d="M15 7h-5"/><path d="M5 17v-4h4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>`,
+    Personnel: `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
   };
   const genericIconPath = `<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" x2="12" y1="22.08" y2="12" />`;
   const iconPath = iconPaths[unitType] || genericIconPath;
-  const highlightFilter = isHighlighted ? `url(#${highlightGlowId})` : '';
 
   const iconHtml = `
-    <div class="relative flex items-center justify-center ${alarmAnimationClass}" style="filter: drop-shadow(0px 0px 8px ${color});">
-        <svg class="h-10 w-10" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <filter id="${highlightGlowId}" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
-                    <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                </filter>
-            </defs>
-            <g filter="${highlightFilter}">
-                <circle cx="20" cy="20" r="14" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2"/>
-                <circle cx="20" cy="20" r="8" fill="hsl(var(--card))"/>
-                <svg x="10" y="10" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    ${iconPath}
-                </svg>
-            </g>
-        </svg>
+    <div 
+      class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale} ${alarmAnimationClass}"
+      style="filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.1));"
+    >
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+              <linearGradient id="neumorphic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:hsl(var(--background)); stop-opacity:0.5" />
+                  <stop offset="100%" style="stop-color:hsl(var(--background)); stop-opacity:1" />
+              </linearGradient>
+              <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#d1d9e6" />
+                  <feDropShadow dx="-2" dy="-2" stdDeviation="2" flood-color="#ffffff" />
+              </filter>
+          </defs>
+          <g filter="url(#dropshadow)">
+            <circle cx="20" cy="20" r="18" fill="url(#neumorphic-gradient)"/>
+            <circle cx="20" cy="20" r="18" stroke="hsl(var(--border))" stroke-width="0.5"/>
+          </g>
+          <svg x="8" y="8" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              ${iconPath}
+          </svg>
+          <circle cx="30" cy="10" r="4" fill="${color}" stroke="#fff" stroke-width="2" />
+      </svg>
     </div>
   `;
 
@@ -142,11 +136,23 @@ const createControlCenterIcon = () => {
   const color = 'hsl(var(--primary))'; 
   
   const iconHtml = `
-    <div class="relative flex items-center justify-center" style="filter: drop-shadow(0px 0px 10px ${color});">
-        <svg class="h-12 w-12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-             <circle cx="24" cy="24" r="18" fill="hsl(var(--background))" stroke="${color}" stroke-width="2"/>
-             <path d="M24 17L26.32 21.8L31.5 22.5L27.75 26.1L28.64 31L24 28.4L19.36 31L20.25 26.1L16.5 22.5L21.68 21.8L24 17Z" fill="${color}"/>
-             <circle cx="24" cy="24" r="22" stroke="${color}" stroke-width="1" stroke-dasharray="4 4" class="animate-spin" style="animation-duration: 20s;"/>
+    <div class="relative flex items-center justify-center">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="cc-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:hsl(var(--background)); stop-opacity:0.5" />
+                    <stop offset="100%" style="stop-color:hsl(var(--background)); stop-opacity:1" />
+                </linearGradient>
+                 <filter id="cc-dropshadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="3" dy="3" stdDeviation="3" flood-color="#d1d9e6" />
+                  <feDropShadow dx="-3" dy="-3" stdDeviation="3" flood-color="#ffffff" />
+                </filter>
+            </defs>
+            <g filter="url(#cc-dropshadow)">
+              <circle cx="26" cy="26" r="24" fill="url(#cc-gradient)"/>
+              <circle cx="26" cy="26" r="24" stroke="hsl(var(--border))" stroke-width="1"/>
+            </g>
+             <path d="M26 20L28.32 24.8L33.5 25.5L29.75 29.1L30.64 34L26 31.4L21.36 34L22.25 29.1L18.5 25.5L23.68 24.8L26 20Z" fill="${color}"/>
         </svg>
     </div>
   `;
@@ -154,15 +160,15 @@ const createControlCenterIcon = () => {
   return L.divIcon({
     html: iconHtml,
     className: '',
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
-    popupAnchor: [0, -24],
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
+    popupAnchor: [0, -26],
   });
 };
 
 
 const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string | null) => void, selectedSymbol: string | null }) => (
-  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-card/60 backdrop-blur-lg rounded-lg border border-primary/20 shadow-lg">
+  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-background/60 backdrop-blur-sm rounded-full neumorphic-shadow shadow-inner">
     {Object.entries(TACTICAL_SYMBOLS).map(([key, { icon: Icon, tooltip }]) => (
       <Button
         key={key}
@@ -170,7 +176,7 @@ const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string 
         size="icon"
         onClick={() => onSelect(selectedSymbol === key ? null : key)}
         title={tooltip}
-        className='h-9 w-9'
+        className="h-10 w-10 rounded-full"
       >
         <Icon className="w-5 h-5" />
       </Button>
@@ -188,7 +194,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
   
-  const [mapStyle, setMapStyle] = React.useState<MapStyle>('dark');
+  const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
   const [selectedSymbol, setSelectedSymbol] = React.useState<string | null>(null);
 
   const handleRecenter = React.useCallback(() => {
@@ -221,11 +227,14 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           zoom: 16,
           maxZoom: MAX_ZOOM,
           scrollWheelZoom: true,
+          zoomControl: false,
       });
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
       mapInstanceRef.current = map;
 
-      tileLayerRef.current = L.tileLayer(TILE_LAYERS.dark.url, {
-          attribution: TILE_LAYERS.dark.attribution,
+      tileLayerRef.current = L.tileLayer(TILE_LAYERS.street.url, {
+          attribution: TILE_LAYERS.street.attribution,
       }).addTo(map);
 
       editableLayersRef.current = new L.FeatureGroup().addTo(map);
@@ -268,10 +277,10 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const layer = L.geoJSON(itemGeoJson, {
           style: (feature) => ({
             color: 'hsl(var(--primary))',
-            weight: 2,
+            weight: 3,
             opacity: 0.8,
             fillColor: 'hsl(var(--primary))',
-            fillOpacity: 0.1,
+            fillOpacity: 0.2,
           })
         });
         layer.eachLayer(l => editableLayers.addLayer(l));
@@ -286,12 +295,13 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
               showArea: true,
               shapeOptions: { color: 'hsl(var(--primary))' },
             },
-            polyline: { shapeOptions: { color: 'hsl(var(--primary))' } },
+            polyline: { shapeOptions: { color: 'hsl(var(--primary))', weight: 3 } },
             rectangle: { shapeOptions: { color: 'hsl(var(--primary))' } },
             circle: { shapeOptions: { color: 'hsl(var(--primary))' } },
             marker: false, // Replaced by our custom symbols
             circlemarker: false,
         },
+        position: 'bottomright'
     });
     map.addControl(drawControl);
 
@@ -369,8 +379,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     units.forEach(unit => {
         const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
         const tooltipContent = `
-            <div class="font-headline text-base">${unit.name} (${unit.type})</div>
-            <div class="font-body text-sm">
+            <div class="font-semibold text-base">${unit.name} (${unit.type})</div>
+            <div class="text-sm">
                 Status: ${unit.status}<br>
                 Akku: ${unit.battery}%
             </span>`;
@@ -381,7 +391,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const marker = L.marker(position, { icon })
           .addTo(map)
           .bindTooltip(tooltipContent, {
-            className: 'futuristic-tooltip',
+            className: 'neumorphic-tooltip',
             offset: [0, -20]
           });
         
@@ -400,12 +410,12 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     // Add/Update control center marker
     if (controlCenterPosition) {
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
-        const tooltipContent = `<strong class="font-headline text-base">Leitstelle</strong>`;
+        const tooltipContent = `<strong class="font-semibold text-base">Leitstelle</strong>`;
         
         const icon = createControlCenterIcon();
         
         const marker = L.marker(position, { icon, zIndexOffset: 1100 })
-          .bindTooltip(tooltipContent, { className: 'futuristic-tooltip' }).addTo(map);
+          .bindTooltip(tooltipContent, { className: 'neumorphic-tooltip' }).addTo(map);
 
         controlCenterMarkerRef.current = marker;
     }
@@ -421,28 +431,49 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
 
   return (
-    <div className="relative w-full h-full rounded-lg overflow-hidden border border-primary/20 bg-background">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-background neumorphic-shadow-inset">
       <style>{`
-        .leaflet-tooltip.futuristic-tooltip {
-          background-color: hsl(var(--card) / 0.7);
-          backdrop-filter: blur(10px);
-          border-color: hsl(var(--primary) / 0.3);
-          color: hsl(var(--card-foreground));
-          box-shadow: 0 0 10px hsl(var(--primary) / 0.2);
+        .leaflet-tooltip.neumorphic-tooltip {
+          background-color: hsl(var(--background));
+          border: 1px solid hsl(var(--border));
+          color: hsl(var(--foreground));
+          border-radius: var(--radius);
+          box-shadow: 4px 4px 8px hsl(var(--background) / 0.5), -4px -4px 8px #ffffff;
         }
-        .leaflet-tooltip-top.futuristic-tooltip::before,
-        .leaflet-tooltip-bottom.futuristic-tooltip::before,
-        .leaflet-tooltip-left.futuristic-tooltip::before,
-        .leaflet-tooltip-right.futuristic-tooltip::before {
-          border-top-color: hsl(var(--primary) / 0.3);
+        .leaflet-tooltip-top.neumorphic-tooltip::before,
+        .leaflet-tooltip-bottom.neumorphic-tooltip::before,
+        .leaflet-tooltip-left.neumorphic-tooltip::before,
+        .leaflet-tooltip-right.neumorphic-tooltip::before {
+          border-top-color: hsl(var(--border));
+        }
+        .leaflet-bar a, .leaflet-bar a:hover {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            border-bottom: 1px solid hsl(var(--border));
+            box-shadow: 3px 3px 6px hsl(var(--background) / 0.6), -3px -3px 6px #ffffff;
+        }
+        .leaflet-bar a:active {
+            box-shadow: inset 3px 3px 6px hsl(var(--background) / 0.6), inset -3px -3px 6px #ffffff;
+        }
+        .leaflet-draw-toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
         .leaflet-draw-toolbar a {
-          background-color: hsl(var(--card) / 0.7) !important;
-          color: hsl(var(--primary)) !important;
-          border-color: hsl(var(--primary) / 0.3) !important;
+            box-shadow: 3px 3px 6px hsl(var(--background) / 0.6), -3px -3px 6px #ffffff !important;
+            border-radius: 0.5rem !important;
+            border: 1px solid transparent;
         }
         .leaflet-draw-toolbar a:hover {
-          background-color: hsl(var(--card)) !important;
+            border-color: hsl(var(--border));
+        }
+        .leaflet-draw-actions {
+            box-shadow: 3px 3px 6px hsl(var(--background) / 0.6), -3px -3px 6px #ffffff;
+            border-radius: 0.5rem;
+        }
+        .leaflet-draw-actions a {
+            color: hsl(var(--foreground));
         }
       `}</style>
       
@@ -461,26 +492,26 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       
       <TacticalToolbar onSelect={setSelectedSymbol} selectedSymbol={selectedSymbol} />
 
-      <div className="absolute top-2 right-2 z-10 flex gap-2">
+      <div className="absolute bottom-12 right-2 z-10 flex flex-col gap-2">
          <Button
           variant="secondary"
           size="icon"
           onClick={() => setMapStyle(style => {
-            const styles: MapStyle[] = ['dark', 'satellite', 'street'];
+            const styles: MapStyle[] = ['street', 'satellite', 'dark'];
             const currentIndex = styles.indexOf(style);
             return styles[(currentIndex + 1) % styles.length];
           })}
           title="Kartenstil wechseln"
+          className="rounded-full"
         >
-          {mapStyle === 'dark' && <MapIcon className="h-5 w-5" />}
-          {mapStyle === 'street' && <Globe className="h-5 w-5" />}
-          {mapStyle === 'satellite' && <Globe className="h-5 w-5" />}
+          <Globe className="h-5 w-5" />
         </Button>
         <Button
             variant="secondary"
             size="icon"
             onClick={handleRecenter}
             title="Auf Einheiten zentrieren"
+            className="rounded-full"
         >
             <Target className="h-5 w-5" />
         </Button>
