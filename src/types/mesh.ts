@@ -1,5 +1,5 @@
 
-export type UnitType = string;
+export type UnitType = 'Vehicle' | 'Personnel' | 'Support' | 'Air' | 'Military' | 'Police';
 export type UnitStatus = string;
 
 export interface UnitMessage {
@@ -50,18 +50,12 @@ export interface NetworkSnapshot {
 
 // Default configurations, can be overridden by the user in the admin panel
 export const DEFAULT_CODE_TO_UNIT_TYPE: TypeMapping = {
-  1: 'HLF-20',
-  2: 'AT',
-  3: 'ELW-1',
-  4: 'Wassertrupp',
-  5: 'DLK-23',
-  6: 'RTW',
-  7: 'NEF',
-  8: 'MTF',
-  9: 'Gerätewagen',
-  10: 'Einsatzleiter',
-  98: 'Vehicle',
-  99: 'Personnel',
+  1: 'Vehicle',
+  2: 'Personnel',
+  3: 'Support',
+  4: 'Air',
+  5: 'Military',
+  6: 'Police',
 };
 
 

@@ -52,51 +52,15 @@ const TACTICAL_SYMBOLS: Record<string, { icon: React.FC<React.SVGProps<SVGSVGEle
   'wind-direction': { icon: Wind, tooltip: 'Windrichtung', color: 'text-sky-400' },
 };
 
-const FIRE_DEPARTMENT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: string }> = {
-  'HLF-20': {
-    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M7 17v-4h4m1.5-6l-3 3h6l-3-3M7 15a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
-  },
-  'AT': {
-    svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M5 15l8-8m-6.5 1.5l5 5"
-  },
-  'ELW-1': {
-    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M12 7l1-2 1 2m-1-2V2m-5 13v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
-  },
-  'Wassertrupp': {
-    svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 m-2-7a4.5 4.5 0 0 1 8.36 2.2"
-  },
-  'DLK-23': {
-    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2m3-10L2 14M5 17v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
-  },
-  'RTW': {
-    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2m3-8h4m-2-2v4M5 17v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
-  },
-  'NEF': {
-    svgPath: "M14 17H4c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1l1-2h4l1 2h3c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2zM12 9H9.5a1.5 1.5 0 0 0 0 3H12l-2 3 2 3h.5a1.5 1.5 0 0 0 0-3H12l2-3-2-3z M5 15a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"
-  },
-  'MTF': {
-    svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
-  },
-  'Gerätewagen': {
-    svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z M11 11.5h2v2h-2z"
-  },
-  'Einsatzleiter': {
-    svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2m7-14l-2 4h4l-2-4z"
-  }
+const UNIT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: string }> = {
+  Vehicle: { svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M7 17v-4h4m1.5-6l-3 3h6l-3-3M7 15a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z" },
+  Personnel: { svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2m7-10a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" },
+  Support: { svgPath: "M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v2l9 5 9-5z M12 14.47 4.5 10 12 5.53 19.5 10 12 14.47z M21.17 14.83l-7.5 4.22a2 2 0 0 1-2.34 0l-7.5-4.22A2 2 0 0 1 3 13.2V11l9 5 9-5v2.2a2 2 0 0 1-1.17 1.63z" },
+  Air: { svgPath: "M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4.5 21 3c-1.5-1.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5.1 1 .6 1.1L12 11l-4 6-4.5 1.5c-.5.2-.8.6-.8 1.2 0 .8.7 1.5 1.5 1.5.6 0 1.1-.3 1.3-.8L8 18l6 2 2-2.5V19.2z" },
+  Military: { svgPath: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
+  Police: { svgPath: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 8v4 M12 16h.01" },
 };
 
-const getBaseType = (type: UnitType): 'Vehicle' | 'Personnel' | 'Generic' => {
-    const vehicleKeywords = ['HLF', 'ELW', 'DLK', 'RTW', 'NEF', 'MTF', 'wagen', 'Vehicle'];
-    const personnelKeywords = ['AT', 'trupp', 'leiter', 'Personnel'];
-
-    if (vehicleKeywords.some(keyword => type.includes(keyword))) {
-        return 'Vehicle';
-    }
-    if (personnelKeywords.some(keyword => type.includes(keyword))) {
-        return 'Personnel';
-    }
-    return 'Generic';
-};
 
 const createSymbolIcon = (symbolKey: string) => {
     const symbol = TACTICAL_SYMBOLS[symbolKey];
@@ -132,18 +96,8 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   const alarmAnimationClass = unit.status === 'Alarm' ? 'animate-ping' : '';
   const highlightScale = isHighlighted ? 'scale-110' : 'scale-100';
   
-  const customSymbol = FIRE_DEPARTMENT_SYMBOLS[unit.type];
-
-  // Generic icons for base types
-  const typeIcons: Record<'Vehicle' | 'Personnel' | 'Generic', string> = {
-    Vehicle: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"/><path d="M14 17h-4"/><path d="M15 7h-5"/><path d="M5 17v-4h4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>`,
-    Personnel: `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
-    Generic: `<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" x2="12" y1="22.08" y2="12" />`,
-  };
-
-  const baseType = getBaseType(unit.type);
-  const iconPath = customSymbol?.svgPath || typeIcons[baseType];
-  const viewBox = customSymbol?.viewBox || "0 0 24 24";
+  const symbol = UNIT_SYMBOLS[unit.type] || UNIT_SYMBOLS.Support;
+  const { svgPath, viewBox = "0 0 24 24" } = symbol;
 
   const iconHtml = `
     <div class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale}">
@@ -154,7 +108,7 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           <circle cx="18" cy="18" r="17" fill="hsl(var(--card) / 0.5)" stroke="${color}" stroke-width="1.5"/>
           <svg x="6" y="6" width="24" height="24" viewBox="${viewBox}" stroke-width="2" stroke="hsl(var(--card-foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              ${iconPath}
+              ${svgPath}
           </svg>
       </svg>
     </div>

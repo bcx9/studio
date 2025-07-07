@@ -1,6 +1,6 @@
 
 'use client';
-import type { MeshUnit } from '@/types/mesh';
+import type { MeshUnit, UnitType } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,9 @@ import {
   Rss,
   Waypoints,
   Box,
+  Plane,
+  Shield,
+  ShieldAlert,
 } from 'lucide-react';
 import StatusBadge from './status-badge';
 import { cn, calculateDistance } from '@/lib/utils';
@@ -39,6 +42,18 @@ interface UnitCardProps {
   isSelected: boolean;
   controlCenterPosition: { lat: number; lng: number } | null;
 }
+
+const TypeIcon = ({ type }: { type: UnitType }) => {
+    switch (type) {
+        case 'Vehicle': return <Car className="h-5 w-5" />;
+        case 'Personnel': return <User className="h-5 w-5" />;
+        case 'Support': return <Box className="h-5 w-5" />;
+        case 'Air': return <Plane className="h-5 w-5" />;
+        case 'Military': return <Shield className="h-5 w-5" />;
+        case 'Police': return <ShieldAlert className="h-5 w-5" />;
+        default: return <Box className="h-5 w-5" />;
+    }
+};
 
 export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelected, controlCenterPosition }: UnitCardProps) {
   const BatteryIcon = () => {
@@ -81,13 +96,7 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
             <div className='flex items-center justify-center h-10 w-10 rounded-full bg-primary/20 border border-primary/50 text-primary'>
-              {unit.type === 'Vehicle' ? (
-                <Car className="h-5 w-5" />
-              ) : unit.type === 'Personnel' ? (
-                <User className="h-5 w-5" />
-              ) : (
-                <Box className="h-5 w-5" />
-              )}
+              <TypeIcon type={unit.type} />
             </div>
             <div>
               <CardTitle className="text-base font-bold">{unit.name}</CardTitle>

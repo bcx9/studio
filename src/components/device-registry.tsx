@@ -2,12 +2,12 @@
 'use client';
 
 import * as React from 'react';
-import type { MeshUnit, UnitType, Group, UnitStatus, StatusMapping, TypeMapping } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, StatusMapping, TypeMapping } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal, Box } from 'lucide-react';
+import { Save, ListTree, Car, User, PlusCircle, Settings, SlidersHorizontal, Box, Plane, Shield, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,18 @@ interface DeviceRegistryProps {
   statusMapping: StatusMapping;
   typeMapping: TypeMapping;
 }
+
+const TypeIcon = ({ type }: { type: UnitType | string }) => {
+    switch (type) {
+        case 'Vehicle': return <Car className="h-4 w-4 text-muted-foreground" />;
+        case 'Personnel': return <User className="h-4 w-4 text-muted-foreground" />;
+        case 'Support': return <Box className="h-4 w-4 text-muted-foreground" />;
+        case 'Air': return <Plane className="h-4 w-4 text-muted-foreground" />;
+        case 'Military': return <Shield className="h-4 w-4 text-muted-foreground" />;
+        case 'Police': return <ShieldAlert className="h-4 w-4 text-muted-foreground" />;
+        default: return <Box className="h-4 w-4 text-muted-foreground" />;
+    }
+};
 
 export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup, statusMapping, typeMapping }: DeviceRegistryProps) {
   const [editableUnits, setEditableUnits] = React.useState<Record<number, Partial<MeshUnit>>>({});
@@ -130,7 +142,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                     <TableCell>
                                         <Select
                                             value={getUnitValue(unit, 'type')}
-                                            onValueChange={(value) => handleUnitChange(unit.id, 'type', value)}
+                                            onValueChange={(value) => handleUnitChange(unit.id, 'type', value as UnitType)}
                                         >
                                             <SelectTrigger className="h-9">
                                             <SelectValue />
@@ -139,9 +151,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                             {Object.values(typeMapping).map(typeName => (
                                                 <SelectItem key={typeName} value={typeName}>
                                                     <div className="flex items-center gap-2">
-                                                        {typeName === 'Vehicle' && <Car className="h-4 w-4 text-muted-foreground" />}
-                                                        {typeName === 'Personnel' && <User className="h-4 w-4 text-muted-foreground" />}
-                                                        {typeName !== 'Vehicle' && typeName !== 'Personnel' && <Box className="h-4 w-4 text-muted-foreground" />}
+                                                        <TypeIcon type={typeName} />
                                                         {typeName}
                                                     </div>
                                                 </SelectItem>
