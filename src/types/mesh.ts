@@ -50,8 +50,18 @@ export interface NetworkSnapshot {
 
 // Default configurations, can be overridden by the user in the admin panel
 export const DEFAULT_CODE_TO_UNIT_TYPE: TypeMapping = {
-  1: 'Vehicle',
-  2: 'Personnel',
+  1: 'HLF-20',
+  2: 'AT',
+  3: 'ELW-1',
+  4: 'Wassertrupp',
+  5: 'DLK-23',
+  6: 'RTW',
+  7: 'NEF',
+  8: 'MTF',
+  9: 'Gerätewagen',
+  10: 'Einsatzleiter',
+  98: 'Vehicle',
+  99: 'Personnel',
 };
 
 
