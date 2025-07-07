@@ -102,10 +102,18 @@ export function startSimulation() {
             }
 
             if (newSpeed > 1) {
-                const distance = (newSpeed / 3600) * timeSinceLastUpdate; 
+                const distance = (newSpeed / 3600) * timeSinceLastUpdate;
                 const angleRad = (newHeading * Math.PI) / 180;
-                lat += (distance * Math.cos(angleRad)) / 111.32;
-                lng += (distance * Math.sin(angleRad)) / (111.32 * Math.cos(lat * Math.PI / 180));
+                const cosLat = Math.cos(lat * Math.PI / 180);
+
+                if (Math.abs(cosLat) > 1e-9) { // Prevent division by zero at the poles
+                    lat += (distance * Math.cos(angleRad)) / 111.32;
+                    lng += (distance * Math.sin(angleRad)) / (111.32 * cosLat);
+                }
+
+                // Clamp latitude and wrap longitude to keep them in valid ranges
+                lat = Math.max(-90, Math.min(90, lat));
+                lng = (lng + 540) % 360 - 180;
             }
 
             let newStatus = unit.status;
@@ -162,8 +170,10 @@ export function updateConfig({ typeMapping, statusMapping }: { typeMapping: Type
 }
 
 export function updateUnit(updatedUnit: MeshUnit) {
-    const newUnits = state.units.map(u => u.id === updatedUnit.id ? updatedUnit : u);
-    state = { ...state, units: newUnits };
+    state = {
+        ...state,
+        units: state.units.map(u => u.id === updatedUnit.id ? updatedUnit : u),
+    };
 }
 
 export function addUnit() {
@@ -177,24 +187,30 @@ export function addUnit() {
 }
 
 export function removeUnit(unitId: number) {
-    const newUnits = state.units.filter(u => u.id !== unitId);
-    state = { ...state, units: newUnits };
+    state = {
+        ...state,
+        units: state.units.filter(u => u.id !== unitId),
+    };
 }
 
 export function chargeUnit(unitId: number) {
-    const newUnits = state.units.map(u => u.id === unitId ? { ...u, battery: 100, status: u.status === 'Offline' ? 'Online' : u.status, isActive: true } : u);
-    state = { ...state, units: newUnits };
+    state = {
+        ...state,
+        units: state.units.map(u => u.id === unitId ? { ...u, battery: 100, status: u.status === 'Offline' ? 'Online' : u.status, isActive: true } : u),
+    };
 }
 
 export function sendMessage(message: string, target: 'all' | number) {
-    const newUnits = state.units.map(unit => {
-        const shouldReceive = target === 'all' || unit.groupId === target;
-        if (unit.isActive && shouldReceive) {
-            return { ...unit, lastMessage: { text: message, timestamp: Date.now(), source: 'control' } };
-        }
-        return unit;
-    });
-    state = { ...state, units: newUnits };
+    state = {
+        ...state,
+        units: state.units.map(unit => {
+            const shouldReceive = target === 'all' || unit.groupId === target;
+            if (unit.isActive && shouldReceive) {
+                return { ...unit, lastMessage: { text: message, timestamp: Date.now(), source: 'control' } };
+            }
+            return unit;
+        }),
+    };
 }
 
 export function repositionAllUnits(radiusKm: number) {
@@ -223,19 +239,25 @@ export function addGroup(name: string) {
 }
 
 export function updateGroup(updatedGroup: Group) {
-    const newGroups = state.groups.map(g => g.id === updatedGroup.id ? updatedGroup : g);
-    state = { ...state, groups: newGroups };
+    state = {
+        ...state,
+        groups: state.groups.map(g => g.id === updatedGroup.id ? updatedGroup : g),
+    };
 }
 
 export function removeGroup(groupId: number) {
-    const newGroups = state.groups.filter(g => g.id !== groupId);
-    const newUnits = state.units.map(u => u.groupId === groupId ? { ...u, groupId: null } : u);
-    state = { ...state, groups: newGroups, units: newUnits };
+    state = {
+        ...state,
+        groups: state.groups.filter(g => g.id !== groupId),
+        units: state.units.map(u => u.groupId === groupId ? { ...u, groupId: null } : u),
+    };
 }
 
 export function assignUnitToGroup(unitId: number, groupId: number | null) {
-    const newUnits = state.units.map(u => u.id === unitId ? { ...u, groupId } : u);
-    state = { ...state, units: newUnits };
+    state = {
+        ...state,
+        units: state.units.map(u => u.id === unitId ? { ...u, groupId } : u),
+    };
 }
 
 export function isSimulationRunning(): boolean {
