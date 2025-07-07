@@ -233,7 +233,7 @@ export function addTypeMapping(id: number, name: string) {
     if (state.typeMapping[id]) {
         throw new Error(`Die Typ-ID ${id} existiert bereits.`);
     }
-    state.typeMapping[id] = name;
+    state.typeMapping = { ...state.typeMapping, [id]: name };
 }
 
 export function removeTypeMapping(id: number) {
@@ -245,14 +245,17 @@ export function removeTypeMapping(id: number) {
     if (unitsUsingType.length > 0) {
         throw new Error(`Der Typ "${typeName}" wird noch von ${unitsUsingType.length} Einheit(en) verwendet und kann nicht gelöscht werden.`);
     }
-    delete state.typeMapping[id];
+    
+    const newMapping = { ...state.typeMapping };
+    delete newMapping[id];
+    state.typeMapping = newMapping;
 }
 
 export function addStatusMapping(id: number, name: string) {
     if (state.statusMapping[id]) {
         throw new Error(`Die Status-ID ${id} existiert bereits.`);
     }
-    state.statusMapping[id] = name;
+    state.statusMapping = { ...state.statusMapping, [id]: name };
 }
 
 export function removeStatusMapping(id: number) {
@@ -264,5 +267,8 @@ export function removeStatusMapping(id: number) {
     if (unitsUsingStatus.length > 0) {
         throw new Error(`Der Status "${statusName}" wird noch von ${unitsUsingStatus.length} Einheit(en) verwendet und kann nicht gelöscht werden.`);
     }
-    delete state.statusMapping[id];
+    
+    const newMapping = { ...state.statusMapping };
+    delete newMapping[id];
+    state.statusMapping = newMapping;
 }
