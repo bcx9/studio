@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -22,7 +21,7 @@ import GroupManagement from '@/components/group-management';
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
   loading: () => (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+    <div className="relative w-full h-full bg-background flex items-center justify-center">
       <Skeleton className="w-full h-full" />
       <div className="absolute flex flex-col items-center text-muted-foreground">
         <MapIcon className="h-16 w-16 animate-pulse text-primary" />
@@ -202,17 +201,19 @@ export default function Home() {
         <SidebarInset>
           <div className="flex flex-col h-screen">
             <AppHeader />
-            <main className="flex-1 overflow-hidden p-4 md:p-6 flex flex-col">
+            <main className="flex-1 overflow-hidden flex flex-col">
               <Tabs defaultValue="map" className="h-full flex flex-col">
-                <TabsList className="mb-6 self-start">
-                  <TabsTrigger value="map"><MapIcon className="mr-2 h-4 w-4"/>Live-Karte</TabsTrigger>
-                  <TabsTrigger value="ai-monitor"><BrainCircuit className="mr-2 h-4 w-4"/>KI-Analyse</TabsTrigger>
-                  <TabsTrigger value="device-registry"><ListTree className="mr-2 h-4 w-4"/>Geräte & Gruppen</TabsTrigger>
-                  <TabsTrigger value="json-view" disabled={!selectedUnit}>
-                    Rohdaten
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="map" className="flex-1 overflow-hidden rounded-lg data-[state=inactive]:hidden" forceMount>
+                <div className="px-4 md:px-6 pt-4">
+                  <TabsList className="mb-4 self-start">
+                    <TabsTrigger value="map"><MapIcon className="mr-2 h-4 w-4"/>Live-Karte</TabsTrigger>
+                    <TabsTrigger value="ai-monitor"><BrainCircuit className="mr-2 h-4 w-4"/>KI-Analyse</TabsTrigger>
+                    <TabsTrigger value="device-registry"><ListTree className="mr-2 h-4 w-4"/>Geräte & Gruppen</TabsTrigger>
+                    <TabsTrigger value="json-view" disabled={!selectedUnit}>
+                      Rohdaten
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                <TabsContent value="map" className="flex-1 overflow-hidden data-[state=inactive]:hidden" forceMount>
                   {isInitialized ? (
                     <MapView 
                       units={units} 
@@ -225,7 +226,7 @@ export default function Home() {
                       isPositioningMode={isPositioningMode}
                     />
                   ) : (
-                    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                    <div className="relative w-full h-full bg-background flex items-center justify-center">
                       <Skeleton className="w-full h-full" />
                       <div className="absolute flex flex-col items-center text-muted-foreground">
                         <MapIcon className="h-16 w-16 mb-4 animate-pulse text-primary" />
@@ -234,10 +235,10 @@ export default function Home() {
                     </div>
                   )}
                 </TabsContent>
-                <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
+                <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto p-4 md:p-6">
                   <AiAnomalyDetector />
                 </TabsContent>
-                <TabsContent value="device-registry" className="flex-1 overflow-y-auto grid grid-cols-1 gap-8">
+                <TabsContent value="device-registry" className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 gap-8">
                   <DeviceRegistry 
                       units={units} 
                       updateUnit={updateUnit} 
@@ -256,7 +257,7 @@ export default function Home() {
                       isRepositionPossible={!!controlCenterPosition}
                   />
                 </TabsContent>
-                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
+                <TabsContent value="json-view" className="flex-1 overflow-y-auto p-4 md:p-6">
                   {selectedUnit ? (
                     <JsonView unit={selectedUnit} typeMapping={typeMapping} statusMapping={statusMapping} />
                   ) : (

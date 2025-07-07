@@ -496,7 +496,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border bg-background/20 backdrop-blur-lg">
+    <div className="relative w-full h-full overflow-hidden border-t bg-background/20 backdrop-blur-lg">
       <style>{`
         .leaflet-tooltip.glass-tooltip {
           background-color: hsl(var(--popover) / 0.7);
