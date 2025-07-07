@@ -74,7 +74,7 @@ const createSymbolIcon = (symbolKey: string) => {
 
 
 const STATUS_COLORS: Record<string, string> = {
-  Online: 'hsl(188 89% 50%)', // accent
+  Online: 'hsl(var(--accent))',
   Moving: 'hsl(142 71% 45%)', // green-500
   Idle: 'hsl(215 91% 60%)', // blue-500
   Alarm: 'hsl(0 84% 60%)', // red-500
@@ -84,7 +84,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
   const color = STATUS_COLORS[status] || 'hsl(215 20% 65%)';
-  const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
+  const alarmAnimationClass = status === 'Alarm' ? 'animate-ping' : '';
   const highlightScale = isHighlighted ? 'scale-110' : 'scale-100';
 
   const iconPaths: Record<string, string> = {
@@ -95,13 +95,17 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   const iconPath = iconPaths[unitType] || genericIconPath;
 
   const iconHtml = `
-    <div 
-      class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale}"
-      style="filter: drop-shadow(0 0 8px ${isHighlighted ? 'hsl(var(--accent))' : color});"
-    >
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="18" cy="18" r="17" fill="rgba(10, 10, 20, 0.7)" stroke="${color}" stroke-width="1"/>
-          <circle cx="18" cy="18" r="12" fill="${color}" class="${alarmAnimationClass}" style="animation-duration: 1.5s;"/>
+    <div class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale}">
+      <div 
+        class="absolute inset-0 rounded-full"
+        style="background: ${color}; filter: blur(12px); opacity: ${isHighlighted ? 0.75 : 0.5};"
+      ></div>
+      <div 
+        class="absolute inset-0 rounded-full ${alarmAnimationClass}"
+        style="background: ${color}; animation-duration: 1.5s; opacity: 0.5;"
+      ></div>
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative">
+          <circle cx="18" cy="18" r="17" fill="hsl(var(--background) / 0.5)" stroke="${color}" stroke-width="1.5"/>
           <svg x="6" y="6" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round">
               ${iconPath}
           </svg>
@@ -122,11 +126,11 @@ const createControlCenterIcon = () => {
   const color = 'hsl(var(--primary))'; 
   
   const iconHtml = `
-    <div class="relative flex items-center justify-center" style="filter: drop-shadow(0 0 12px ${color});">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="22" cy="22" r="21" fill="rgba(10, 10, 20, 0.7)" stroke="${color}" stroke-width="1.5"/>
-            <circle cx="22" cy="22" r="16" fill="${color}"/>
-            <path d="M22 17L24.32 21.8L29.5 22.5L25.75 26.1L26.64 31L22 28.4L17.36 31L18.25 26.1L14.5 22.5L19.68 21.8L22 17Z" fill="white"/>
+    <div class="relative flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full" style="background: ${color}; filter: blur(16px); opacity: 0.8;"></div>
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative">
+            <circle cx="22" cy="22" r="21" fill="hsl(var(--background) / 0.6)" stroke="${color}" stroke-width="2"/>
+            <path d="M22 17L24.32 21.8L29.5 22.5L25.75 26.1L26.64 31L22 28.4L17.36 31L18.25 26.1L14.5 22.5L19.68 21.8L22 17Z" fill="${color}"/>
         </svg>
     </div>
   `;
@@ -455,7 +459,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       
       <TacticalToolbar onSelect={setSelectedSymbol} selectedSymbol={selectedSymbol} />
 
-      <div className="absolute bottom-12 right-2 z-10 flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
          <Button
           variant="secondary"
           size="icon"
