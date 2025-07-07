@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -201,7 +202,7 @@ export default function Home() {
         <SidebarInset>
           <div className="flex flex-col h-screen">
             <AppHeader />
-            <main className="flex-1 overflow-hidden flex flex-col">
+            <main className="flex-1 overflow-hidden flex flex-col p-0">
               <Tabs defaultValue="map" className="h-full flex flex-col">
                 <div className="px-4 md:px-6 pt-4">
                   <TabsList className="mb-4 self-start">
@@ -213,49 +214,53 @@ export default function Home() {
                     </TabsTrigger>
                   </TabsList>
                 </div>
-                <TabsContent value="map" className="flex-1 overflow-hidden data-[state=inactive]:hidden" forceMount>
-                  {isInitialized ? (
-                    <MapView 
-                      units={units} 
-                      highlightedUnitId={highlightedUnitId} 
-                      onMapClick={handleMapClick}
-                      onUnitClick={handleMapUnitClick}
-                      controlCenterPosition={controlCenterPosition}
-                      drawnItems={drawnItems}
-                      onShapesChange={handleShapesChange}
-                      isPositioningMode={isPositioningMode}
-                    />
-                  ) : (
-                    <div className="relative w-full h-full bg-background flex items-center justify-center">
-                      <Skeleton className="w-full h-full" />
-                      <div className="absolute flex flex-col items-center text-muted-foreground">
-                        <MapIcon className="h-16 w-16 mb-4 animate-pulse text-primary" />
-                        <p>Warte auf Verbindung zum Backend...</p>
+                <TabsContent value="map" className="data-[state=inactive]:hidden p-4 pt-0" forceMount>
+                  <div className="w-full aspect-video rounded-lg overflow-hidden shadow-lg">
+                    {isInitialized ? (
+                      <MapView 
+                        units={units} 
+                        highlightedUnitId={highlightedUnitId} 
+                        onMapClick={handleMapClick}
+                        onUnitClick={handleMapUnitClick}
+                        controlCenterPosition={controlCenterPosition}
+                        drawnItems={drawnItems}
+                        onShapesChange={handleShapesChange}
+                        isPositioningMode={isPositioningMode}
+                      />
+                    ) : (
+                      <div className="relative w-full h-full bg-background flex items-center justify-center">
+                        <Skeleton className="w-full h-full" />
+                        <div className="absolute flex flex-col items-center text-muted-foreground">
+                          <MapIcon className="h-16 w-16 mb-4 animate-pulse text-primary" />
+                          <p>Warte auf Verbindung zum Backend...</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </TabsContent>
                 <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto p-4 md:p-6">
                   <AiAnomalyDetector />
                 </TabsContent>
-                <TabsContent value="device-registry" className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 gap-8">
-                  <DeviceRegistry 
-                      units={units} 
-                      updateUnit={updateUnit} 
-                      addUnit={addUnit} 
-                      groups={groups}
-                      onAssignGroup={assignUnitToGroup}
-                      statusMapping={statusMapping}
-                      typeMapping={typeMapping}
-                  />
-                  <GroupManagement 
-                      groups={groups}
-                      onAddGroup={addGroup}
-                      onUpdateGroup={updateGroup}
-                      onRemoveGroup={removeGroup}
-                      onRepositionAllUnits={handleRepositionAllUnits}
-                      isRepositionPossible={!!controlCenterPosition}
-                  />
+                <TabsContent value="device-registry" className="flex-1 overflow-y-auto p-4 md:p-6">
+                  <div className="grid grid-cols-1 gap-8">
+                    <DeviceRegistry 
+                        units={units} 
+                        updateUnit={updateUnit} 
+                        addUnit={addUnit} 
+                        groups={groups}
+                        onAssignGroup={assignUnitToGroup}
+                        statusMapping={statusMapping}
+                        typeMapping={typeMapping}
+                    />
+                    <GroupManagement 
+                        groups={groups}
+                        onAddGroup={addGroup}
+                        onUpdateGroup={updateGroup}
+                        onRemoveGroup={removeGroup}
+                        onRepositionAllUnits={handleRepositionAllUnits}
+                        isRepositionPossible={!!controlCenterPosition}
+                    />
+                  </div>
                 </TabsContent>
                 <TabsContent value="json-view" className="flex-1 overflow-y-auto p-4 md:p-6">
                   {selectedUnit ? (
