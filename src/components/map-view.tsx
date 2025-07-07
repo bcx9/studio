@@ -52,13 +52,13 @@ const TACTICAL_SYMBOLS: Record<string, { icon: React.FC<React.SVGProps<SVGSVGEle
   'wind-direction': { icon: Wind, tooltip: 'Windrichtung', color: 'text-sky-400' },
 };
 
-const UNIT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: string }> = {
-  Vehicle: { svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M7 17v-4h4m1.5-6l-3 3h6l-3-3M7 15a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z" },
-  Personnel: { svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2m7-10a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" },
-  Support: { svgPath: "M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v2l9 5 9-5z M12 14.47 4.5 10 12 5.53 19.5 10 12 14.47z M21.17 14.83l-7.5 4.22a2 2 0 0 1-2.34 0l-7.5-4.22A2 2 0 0 1 3 13.2V11l9 5 9-5v2.2a2 2 0 0 1-1.17 1.63z" },
-  Air: { svgPath: "M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4.5 21 3c-1.5-1.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5.1 1 .6 1.1L12 11l-4 6-4.5 1.5c-.5.2-.8.6-.8 1.2 0 .8.7 1.5 1.5 1.5.6 0 1.1-.3 1.3-.8L8 18l6 2 2-2.5V19.2z" },
-  Military: { svgPath: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
-  Police: { svgPath: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 8v4 M12 16h.01" },
+const UNIT_SYMBOLS: Record<UnitType, { svgContent: string; viewBox?: string }> = {
+  Vehicle: { svgContent: '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"/><path d="M7 17v-4h4"/><path d="m11.5 12.5-3 3h6l-3-3"/><circle cx="7" cy="15" r="2"/><circle cx="17" cy="15" r="2"/>' },
+  Personnel: { svgContent: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
+  Support: { svgContent: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>' },
+  Air: { svgContent: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4.5 21 3c-1.5-1.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5.1 1 .6 1.1L12 11l-4 6-4.5 1.5c-.5.2-.8.6-.8 1.2 0 .8.7 1.5 1.5 1.5.6 0 1.1-.3 1.3-.8L8 18l6 2 2-2.5V19.2z"/>' },
+  Military: { svgContent: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
+  Police: { svgContent: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/>' },
 };
 
 const createSymbolIcon = (symbolKey: string) => {
@@ -96,7 +96,7 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   const highlightScale = isHighlighted ? 'scale-110' : 'scale-100';
   
   const symbol = UNIT_SYMBOLS[unit.type] || UNIT_SYMBOLS.Support;
-  const { svgPath, viewBox = "0 0 24 24" } = symbol;
+  const { svgContent, viewBox = "0 0 24 24" } = symbol;
 
   const iconHtml = `
     <div class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale}">
@@ -107,7 +107,7 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           <circle cx="18" cy="18" r="17" fill="hsl(var(--card) / 0.7)" stroke="${color}" stroke-width="1.5"/>
           <svg x="6" y="6" width="24" height="24" viewBox="${viewBox}" stroke-width="2" stroke="hsl(var(--card-foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              ${svgPath}
+              ${svgContent}
           </svg>
       </svg>
     </div>
