@@ -85,6 +85,22 @@ const FIRE_DEPARTMENT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: str
   }
 };
 
+const getBaseType = (type: UnitType): 'Vehicle' | 'Personnel' | 'Generic' => {
+    const vehicleKeywords = ['HLF', 'ELW', 'DLK', 'RTW', 'NEF', 'MTF', 'wagen', 'Vehicle'];
+    const personnelKeywords = ['AT', 'trupp', 'leiter', 'Personnel'];
+
+    for (const keyword of vehicleKeywords) {
+        if (type.toLowerCase().includes(keyword.toLowerCase())) {
+            return 'Vehicle';
+        }
+    }
+    for (const keyword of personnelKeywords) {
+        if (type.toLowerCase().includes(keyword.toLowerCase())) {
+            return 'Personnel';
+        }
+    }
+    return 'Generic';
+};
 
 const createSymbolIcon = (symbolKey: string) => {
     const symbol = TACTICAL_SYMBOLS[symbolKey];
@@ -122,13 +138,15 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   
   const customSymbol = FIRE_DEPARTMENT_SYMBOLS[unit.type];
 
-  const typeIcons: Record<UnitType, string> = {
+  // Generic icons for base types
+  const typeIcons: Record<'Vehicle' | 'Personnel' | 'Generic', string> = {
     Vehicle: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"/><path d="M14 17h-4"/><path d="M15 7h-5"/><path d="M5 17v-4h4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>`,
     Personnel: `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+    Generic: `<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" x2="12" y1="22.08" y2="12" />`,
   };
-  const genericIconPath = `<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" x2="12" y1="22.08" y2="12" />`;
 
-  const iconPath = customSymbol?.svgPath || typeIcons[unit.type] || genericIconPath;
+  const baseType = getBaseType(unit.type);
+  const iconPath = customSymbol?.svgPath || typeIcons[baseType];
   const viewBox = customSymbol?.viewBox || "0 0 24 24";
 
   const iconHtml = `
