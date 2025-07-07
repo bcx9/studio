@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import type { ConnectionSettings } from '@/types/gateway';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
-import type { Group } from '@/types/mesh';
+import type { Group, TypeMapping, StatusMapping } from '@/types/mesh';
 
 const compactUnitSchema = z.object({
   i: z.number(),
@@ -25,10 +25,12 @@ const analyzeNetworkSchema = z.array(compactUnitSchema);
 
 export async function getNetworkAnalysis(
   compactUnitsData: z.infer<typeof analyzeNetworkSchema>,
-  unitNames: Record<number, string>
+  unitNames: Record<number, string>,
+  typeMapping: TypeMapping,
+  statusMapping: StatusMapping
 ): Promise<{ summary: string; details: string }> {
   try {
-    const analysis = await analyzeNetwork({ units: compactUnitsData, unitNames });
+    const analysis = await analyzeNetwork({ units: compactUnitsData, unitNames, typeMapping, statusMapping });
     return analysis;
   } catch (error) {
     console.error('Genkit flow failed:', error);

@@ -1,21 +1,25 @@
 
 'use client';
-import type { MeshUnit } from '@/types/mesh';
+import type { MeshUnit, StatusMapping, TypeMapping } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Code2 } from 'lucide-react';
-import { UNIT_STATUS_TO_CODE, UNIT_TYPE_TO_CODE } from '@/types/mesh';
+import { createReverseMapping } from '@/lib/utils';
 
 interface JsonViewProps {
   unit: MeshUnit;
+  typeMapping: TypeMapping;
+  statusMapping: StatusMapping;
 }
 
-export default function JsonView({ unit }: JsonViewProps) {
+export default function JsonView({ unit, typeMapping, statusMapping }: JsonViewProps) {
+  const UNIT_TYPE_TO_CODE = createReverseMapping(typeMapping);
+  const UNIT_STATUS_TO_CODE = createReverseMapping(statusMapping);
 
   // Create the compact version of the unit data for demonstration
   const compactUnit = {
     i: unit.id,
-    t: UNIT_TYPE_TO_CODE[unit.type],
-    s: UNIT_STATUS_TO_CODE[unit.status],
+    t: Number(UNIT_TYPE_TO_CODE[unit.type]),
+    s: Number(UNIT_STATUS_TO_CODE[unit.status]),
     p: {
         a: parseFloat(unit.position.lat.toFixed(5)),
         o: parseFloat(unit.position.lng.toFixed(5)),

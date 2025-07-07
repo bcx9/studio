@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import type { MeshUnit, UnitType, Group, UnitStatus } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, UnitStatus, StatusMapping } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -22,18 +22,10 @@ interface DeviceRegistryProps {
   updateUnit: (unit: MeshUnit) => void;
   addUnit: () => void;
   onAssignGroup: (unitId: number, groupId: number | null) => void;
+  statusMapping: StatusMapping;
 }
 
-const statusTranslations: Record<UnitStatus, string> = {
-  Online: 'Online',
-  Moving: 'In Bewegung',
-  Idle: 'Inaktiv',
-  Alarm: 'Alarm',
-  Offline: 'Offline',
-  Maintenance: 'Wartung',
-};
-
-export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup }: DeviceRegistryProps) {
+export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onAssignGroup, statusMapping }: DeviceRegistryProps) {
   const [editableUnits, setEditableUnits] = React.useState<Record<number, Partial<MeshUnit>>>({});
   const { toast } = useToast();
   const [openConfigId, setOpenConfigId] = React.useState<number | null>(null);
@@ -208,8 +200,8 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            {Object.entries(statusTranslations).map(([statusValue, statusLabel]) => (
-                                                                <SelectItem key={statusValue} value={statusValue}>{statusLabel}</SelectItem>
+                                                            {Object.values(statusMapping).map((statusLabel) => (
+                                                                <SelectItem key={statusLabel} value={statusLabel}>{statusLabel}</SelectItem>
                                                             ))}
                                                         </SelectContent>
                                                     </Select>

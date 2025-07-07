@@ -32,31 +32,22 @@ export interface Group {
     name: string;
 }
 
-// Compact data representation for network efficiency
-export const CODE_TO_UNIT_TYPE: Record<number, UnitType> = {
+export type TypeMapping = Record<number, string>;
+export type StatusMapping = Record<number, string>;
+
+
+// Default configurations, can be overridden by the user in the admin panel
+export const DEFAULT_CODE_TO_UNIT_TYPE: TypeMapping = {
   1: 'Vehicle',
   2: 'Personnel',
 };
 
-export const UNIT_TYPE_TO_CODE: Record<UnitType, number> = {
-  Vehicle: 1,
-  Personnel: 2,
-};
 
-export const CODE_TO_UNIT_STATUS: Record<number, UnitStatus> = {
+export const DEFAULT_CODE_TO_UNIT_STATUS: StatusMapping = {
   1: 'Online',
   2: 'Moving',
   3: 'Idle',
   4: 'Alarm',
   5: 'Offline',
   6: 'Maintenance',
-};
-
-export const UNIT_STATUS_TO_CODE: Record<UnitStatus, number> = {
-  Online: 1,
-  Moving: 2,
-  Idle: 3,
-  Alarm: 4,
-  Offline: 5,
-  Maintenance: 6,
 };

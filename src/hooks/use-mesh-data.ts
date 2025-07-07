@@ -2,10 +2,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MeshUnit, UnitType, Group, UnitMessage, UnitStatus } from '@/types/mesh';
+import type { MeshUnit, UnitType, Group, StatusMapping, TypeMapping } from '@/types/mesh';
 import { calculateBearing, calculateDistance } from '@/lib/utils';
+import { DEFAULT_CODE_TO_UNIT_STATUS, DEFAULT_CODE_TO_UNIT_TYPE } from '@/types/mesh';
 
 const MESH_DATA_STORAGE_KEY = 'mesh-data-state';
+const CONFIG_STORAGE_KEY = 'mesh-config-data';
 const baseCoords = { lat: 53.19745, lng: 10.84507 };
 
 const initialUnits: MeshUnit[] = [
@@ -105,11 +107,17 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
   const [units, setUnits] = useState<MeshUnit[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [typeMapping, setTypeMapping] = useState<TypeMapping>({});
+  const [statusMapping, setStatusMapping] = useState<StatusMapping>({});
   
   const unitsRef = useRef(units);
   unitsRef.current = units;
   const groupsRef = useRef(groups);
   groupsRef.current = groups;
+  const typeMappingRef = useRef(typeMapping);
+  typeMappingRef.current = typeMapping;
+  const statusMappingRef = useRef(statusMapping);
+  statusMappingRef.current = statusMapping;
 
   const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -125,6 +133,24 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
   }, [controlCenterPosition]);
 
   useEffect(() => {
+    // Load Mappings
+    try {
+      const storedConfig = localStorage.getItem(CONFIG_STORAGE_KEY);
+      if (storedConfig) {
+        const { typeMapping: storedTypes, statusMapping: storedStatus } = JSON.parse(storedConfig);
+        setTypeMapping(storedTypes || DEFAULT_CODE_TO_UNIT_TYPE);
+        setStatusMapping(storedStatus || DEFAULT_CODE_TO_UNIT_STATUS);
+      } else {
+        setTypeMapping(DEFAULT_CODE_TO_UNIT_TYPE);
+        setStatusMapping(DEFAULT_CODE_TO_UNIT_STATUS);
+      }
+    } catch (error) {
+      console.error("Failed to load config from localStorage", error);
+      setTypeMapping(DEFAULT_CODE_TO_UNIT_TYPE);
+      setStatusMapping(DEFAULT_CODE_TO_UNIT_STATUS);
+    }
+
+    // Load Mesh Data
     let loadedState;
     try {
       const storedState = localStorage.getItem(MESH_DATA_STORAGE_KEY);
@@ -138,9 +164,8 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     
     let finalUnits = initialUnits;
     if (loadedState?.units && loadedState.units.length > 0) {
-      // Data migration: ensure all units have the new fields if they are missing from localStorage
       finalUnits = loadedState.units.map((unit: Partial<MeshUnit>) => ({
-        ...initialUnits[0], // Use a base object to ensure all fields are present
+        ...initialUnits[0], 
         ...unit,
         signalStrength: unit.signalStrength ?? -75,
         hopCount: unit.hopCount ?? 1,
@@ -462,5 +487,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
       removeGroup,
       assignUnitToGroup,
       repositionAllUnits,
+      typeMapping,
+      statusMapping,
     };
 }

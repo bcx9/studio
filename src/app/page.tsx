@@ -7,7 +7,7 @@ import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'
 import AppSidebar from '@/components/layout/sidebar';
 import AppHeader from '@/components/layout/header';
 import { useMeshData } from '@/hooks/use-mesh-data';
-import type { MeshUnit, Group, UnitStatus } from '@/types/mesh';
+import type { MeshUnit } from '@/types/mesh';
 import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
@@ -82,6 +82,8 @@ export default function Home() {
       removeGroup,
       assignUnitToGroup,
       repositionAllUnits,
+      typeMapping,
+      statusMapping,
    } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
     isRallying,
@@ -240,7 +242,7 @@ export default function Home() {
                 )}
               </TabsContent>
               <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
-                <AiAnomalyDetector units={units} />
+                <AiAnomalyDetector units={units} typeMapping={typeMapping} statusMapping={statusMapping} />
               </TabsContent>
                <TabsContent value="device-registry" className="flex-1 overflow-y-auto">
                 <DeviceRegistry 
@@ -249,6 +251,7 @@ export default function Home() {
                     addUnit={addUnit} 
                     groups={groups}
                     onAssignGroup={assignUnitToGroup}
+                    statusMapping={statusMapping}
                 />
               </TabsContent>
                 <TabsContent value="group-management" className="flex-1 overflow-y-auto">
@@ -263,7 +266,7 @@ export default function Home() {
                 </TabsContent>
                <TabsContent value="json-view" className="flex-1 overflow-y-auto">
                 {selectedUnit ? (
-                  <JsonView unit={selectedUnit} />
+                  <JsonView unit={selectedUnit} typeMapping={typeMapping} statusMapping={statusMapping} />
                 ) : (
                   <Card className="h-full flex items-center justify-center bg-card/50 border-dashed">
                     <CardContent className="text-center text-muted-foreground pt-6">

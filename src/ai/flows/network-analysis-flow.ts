@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { CODE_TO_UNIT_STATUS, CODE_TO_UNIT_TYPE } from '@/types/mesh';
 
 const compactUnitSchema = z.object({
   i: z.number().describe('Unit ID'),
@@ -33,6 +32,8 @@ const compactUnitSchema = z.object({
 const NetworkAnalysisInputSchema = z.object({
   units: z.array(compactUnitSchema),
   unitNames: z.record(z.string()).describe("A map of unit IDs to their names."),
+  typeMapping: z.record(z.string()).describe("A map of unit type codes to their string representation."),
+  statusMapping: z.record(z.string()).describe("A map of unit status codes to their string representation."),
 });
 export type NetworkAnalysisInput = z.infer<typeof NetworkAnalysisInputSchema>;
 
@@ -66,9 +67,9 @@ You will receive a list of units with their current data in a highly compact for
 - ss: Signal Strength (RSSI) in dBm
 - hc: Hop Count
 
-The 't' (type) and 's' (status) fields are numerical codes. Here are the mappings:
-- Unit Types: ${JSON.stringify(CODE_TO_UNIT_TYPE)}
-- Unit Statuses: ${JSON.stringify(CODE_TO_UNIT_STATUS)}
+The 't' (type) and 's' (status) fields are numerical codes. Use these current, user-defined mappings:
+- Unit Types: {{{json typeMapping}}}
+- Unit Statuses: {{{json statusMapping}}}
 
 Analyze the provided list of units:
 {{{json units}}}

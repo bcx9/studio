@@ -42,3 +42,7 @@ export function calculateBearing(lat1: number, lon1: number, lat2: number, lon2:
   brng = toDegrees(brng);
   return (brng + 360) % 360; // Normalize to 0-360
 }
+
+export function createReverseMapping(mapping: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(mapping).map(([key, value]) => [value, key]));
+}

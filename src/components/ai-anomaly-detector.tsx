@@ -2,19 +2,22 @@
 'use client';
 
 import * as React from 'react';
-import type { MeshUnit } from '@/types/mesh';
+import type { MeshUnit, TypeMapping, StatusMapping } from '@/types/mesh';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Lightbulb, Zap, AlertTriangle } from 'lucide-react';
 import { getNetworkAnalysis } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { UNIT_STATUS_TO_CODE, UNIT_TYPE_TO_CODE } from '@/types/mesh';
+import { createReverseMapping } from '@/lib/utils';
+
 
 interface AiAnomalyDetectorProps {
   units: MeshUnit[];
+  typeMapping: TypeMapping;
+  statusMapping: StatusMapping;
 }
 
-export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
+export default function AiAnomalyDetector({ units, typeMapping, statusMapping }: AiAnomalyDetectorProps) {
   const [analysis, setAnalysis] = React.useState<{ summary: string; details: string } | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -22,13 +25,14 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
     setIsLoading(true);
     setAnalysis(null);
     try {
+      const UNIT_TYPE_TO_CODE = createReverseMapping(typeMapping);
+      const UNIT_STATUS_TO_CODE = createReverseMapping(statusMapping);
+
       // --- Compaction Step ---
-      // Transform the hydrated frontend data into a compact format for the server action.
-      // This simulates sending efficient messages over a real network.
       const compactUnits = units.map(unit => ({
         i: unit.id,
-        t: UNIT_TYPE_TO_CODE[unit.type],
-        s: UNIT_STATUS_TO_CODE[unit.status],
+        t: Number(UNIT_TYPE_TO_CODE[unit.type]),
+        s: Number(UNIT_STATUS_TO_CODE[unit.status]),
         p: {
           a: parseFloat(unit.position.lat.toFixed(5)),
           o: parseFloat(unit.position.lng.toFixed(5)),
@@ -49,7 +53,7 @@ export default function AiAnomalyDetector({ units }: AiAnomalyDetectorProps) {
         return acc;
       }, {} as Record<number, string>);
 
-      const result = await getNetworkAnalysis(compactUnits, unitNames);
+      const result = await getNetworkAnalysis(compactUnits, unitNames, typeMapping, statusMapping);
       setAnalysis(result);
     } catch (error) {
       console.error('Analyse fehlgeschlagen:', error);
