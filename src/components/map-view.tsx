@@ -1,4 +1,3 @@
-
 'use client';
 // CSS must be imported first
 import 'leaflet/dist/leaflet.css';
@@ -459,7 +458,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       
       <TacticalToolbar onSelect={setSelectedSymbol} selectedSymbol={selectedSymbol} />
 
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
          <Button
           variant="secondary"
           size="icon"
