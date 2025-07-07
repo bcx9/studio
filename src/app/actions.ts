@@ -19,7 +19,11 @@ import {
   assignUnitToGroup as assignUnitToGroupInStore,
   getConfig,
   updateConfig,
-  isSimulationRunning
+  isSimulationRunning,
+  addTypeMapping as addTypeMappingInStore,
+  removeTypeMapping as removeTypeMappingInStore,
+  addStatusMapping as addStatusMappingInStore,
+  removeStatusMapping as removeStatusMappingInStore,
 } from '@/lib/server-store';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
 import { createReverseMapping } from '@/lib/utils';
@@ -151,4 +155,38 @@ export async function removeGroupOnBackend(groupId: number) {
 export async function assignUnitToGroupOnBackend(unitId: number, groupId: number | null) {
     assignUnitToGroupInStore(unitId, groupId);
     return { success: true };
+}
+
+export async function addTypeMapping(id: number, name: string) {
+    try {
+        addTypeMappingInStore(id, name);
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, message: e.message };
+    }
+}
+export async function removeTypeMapping(id: number) {
+    try {
+        removeTypeMappingInStore(id);
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, message: e.message };
+    }
+}
+
+export async function addStatusMapping(id: number, name: string) {
+     try {
+        addStatusMappingInStore(id, name);
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, message: e.message };
+    }
+}
+export async function removeStatusMapping(id: number) {
+    try {
+        removeStatusMappingInStore(id);
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, message: e.message };
+    }
 }

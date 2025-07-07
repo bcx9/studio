@@ -226,3 +226,41 @@ export function assignUnitToGroup(unitId: number, groupId: number | null) {
 export function isSimulationRunning(): boolean {
     return state.simulationInterval !== null;
 }
+
+export function addTypeMapping(id: number, name: string) {
+    if (state.typeMapping[id]) {
+        throw new Error(`Die Typ-ID ${id} existiert bereits.`);
+    }
+    state.typeMapping[id] = name;
+}
+
+export function removeTypeMapping(id: number) {
+    const typeName = state.typeMapping[id];
+    if (!typeName) return;
+
+    const unitsUsingType = state.units.filter(u => u.type === typeName);
+
+    if (unitsUsingType.length > 0) {
+        throw new Error(`Der Typ "${typeName}" wird noch von ${unitsUsingType.length} Einheit(en) verwendet und kann nicht gelöscht werden.`);
+    }
+    delete state.typeMapping[id];
+}
+
+export function addStatusMapping(id: number, name: string) {
+    if (state.statusMapping[id]) {
+        throw new Error(`Die Status-ID ${id} existiert bereits.`);
+    }
+    state.statusMapping[id] = name;
+}
+
+export function removeStatusMapping(id: number) {
+    const statusName = state.statusMapping[id];
+    if (!statusName) return;
+    
+    const unitsUsingStatus = state.units.filter(u => u.status === statusName);
+
+    if (unitsUsingStatus.length > 0) {
+        throw new Error(`Der Status "${statusName}" wird noch von ${unitsUsingStatus.length} Einheit(en) verwendet und kann nicht gelöscht werden.`);
+    }
+    delete state.statusMapping[id];
+}

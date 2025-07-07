@@ -3,48 +3,57 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Settings, Save, X, Edit, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { Settings, Save, X, Edit, Loader2, Trash2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { TypeMapping, StatusMapping } from '@/types/mesh';
-import { loadAdminSettings, saveAdminSettings } from '@/app/actions';
+import { loadAdminSettings, saveAdminSettings, addTypeMapping, removeTypeMapping, addStatusMapping, removeStatusMapping } from '@/app/actions';
 import { Skeleton } from './ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function AdminSettings() {
   const [typeMapping, setTypeMapping] = React.useState<TypeMapping | null>(null);
   const [statusMapping, setStatusMapping] = React.useState<StatusMapping | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isAdding, setIsAdding] = React.useState<'type' | 'status' | null>(null);
 
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editingValue, setEditingValue] = React.useState('');
+
+  const [newTypeId, setNewTypeId] = React.useState('');
+  const [newTypeName, setNewTypeName] = React.useState('');
+  const [newStatusId, setNewStatusId] = React.useState('');
+  const [newStatusName, setNewStatusName] = React.useState('');
+
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    const fetchSettings = async () => {
-        try {
-            setIsLoading(true);
-            const settings = await loadAdminSettings();
-            setTypeMapping(settings.typeMapping);
-            setStatusMapping(settings.statusMapping);
-        } catch (error) {
-            console.error("Failed to load admin settings", error);
-            toast({ variant: 'destructive', title: 'Fehler beim Laden', description: 'Die Konfiguration konnte nicht vom Server geladen werden.' });
-        } finally {
-            setIsLoading(false);
-        }
+  const fetchSettings = React.useCallback(async () => {
+    try {
+        !isLoading && setIsLoading(true);
+        const settings = await loadAdminSettings();
+        setTypeMapping(settings.typeMapping);
+        setStatusMapping(settings.statusMapping);
+    } catch (error) {
+        console.error("Failed to load admin settings", error);
+        toast({ variant: 'destructive', title: 'Fehler beim Laden', description: 'Die Konfiguration konnte nicht vom Server geladen werden.' });
+    } finally {
+        setIsLoading(false);
     }
-    fetchSettings();
-  }, [toast]);
+  }, [toast, isLoading]);
 
-  const handleSave = async () => {
+  React.useEffect(() => {
+    fetchSettings();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveEdits = async () => {
     if (!typeMapping || !statusMapping) return;
     try {
         setIsSaving(true);
         await saveAdminSettings({ typeMapping, statusMapping });
-        toast({ title: 'Konfiguration gespeichert', description: 'Die System-Mappings wurden erfolgreich aktualisiert.' });
+        toast({ title: 'Konfiguration gespeichert', description: 'Alle Änderungen an bestehenden Einträgen wurden gespeichert.' });
     } catch (error) {
         console.error("Failed to save config", error);
         toast({ variant: 'destructive', title: 'Fehler beim Speichern', description: 'Die Konfiguration konnte nicht gespeichert werden.' });
@@ -64,7 +73,7 @@ export default function AdminSettings() {
     setEditingValue('');
   };
   
-  const handleSaveEditing = () => {
+  const handleConfirmEdit = () => {
     if (!editingId) return;
     const [type, idStr] = editingId.split('-');
     const id = Number(idStr);
@@ -76,6 +85,52 @@ export default function AdminSettings() {
     }
     handleCancelEditing();
   };
+
+  const handleAdd = async (type: 'type' | 'status') => {
+    setIsAdding(type);
+    let result;
+    if (type === 'type') {
+        if (!newTypeId || !newTypeName) {
+            toast({ variant: 'destructive', title: 'Validierungsfehler', description: 'ID und Bezeichnung dürfen nicht leer sein.' });
+            setIsAdding(null);
+            return;
+        }
+        result = await addTypeMapping(Number(newTypeId), newTypeName);
+    } else {
+        if (!newStatusId || !newStatusName) {
+            toast({ variant: 'destructive', title: 'Validierungsfehler', description: 'ID und Bezeichnung dürfen nicht leer sein.' });
+            setIsAdding(null);
+            return;
+        }
+        result = await addStatusMapping(Number(newStatusId), newStatusName);
+    }
+
+    if (result.success) {
+        toast({ title: 'Eintrag hinzugefügt', description: 'Die Konfiguration wurde aktualisiert.' });
+        if (type === 'type') {
+            setNewTypeId('');
+            setNewTypeName('');
+        } else {
+            setNewStatusId('');
+            setNewStatusName('');
+        }
+        await fetchSettings();
+    } else {
+        toast({ variant: 'destructive', title: 'Fehler beim Hinzufügen', description: result.message });
+    }
+    setIsAdding(null);
+  };
+
+  const handleRemove = async (type: 'type' | 'status', id: number) => {
+      const result = type === 'type' ? await removeTypeMapping(id) : await removeStatusMapping(id);
+      if (result.success) {
+          toast({ title: 'Eintrag entfernt', description: 'Die Konfiguration wurde aktualisiert.' });
+          await fetchSettings();
+      } else {
+          toast({ variant: 'destructive', title: 'Fehler beim Entfernen', description: result.message });
+      }
+  };
+
   
   const renderTableSkeleton = () => (
     <div className='space-y-2'>
@@ -102,7 +157,7 @@ export default function AdminSettings() {
                 </CardDescription>
                 </div>
             </div>
-             <Button onClick={handleSave} disabled={isSaving || isLoading}>
+             <Button onClick={handleSaveEdits} disabled={isSaving || isLoading}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Änderungen Speichern
             </Button>
@@ -125,7 +180,7 @@ export default function AdminSettings() {
                           <TableRow>
                               <TableHead className="w-[80px]">ID</TableHead>
                               <TableHead>Typ-Bezeichnung</TableHead>
-                              <TableHead className="w-[100px] text-right">Aktion</TableHead>
+                              <TableHead className="w-[140px] text-right">Aktion</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -139,19 +194,47 @@ export default function AdminSettings() {
                                       name
                                     )}
                                   </TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="text-right space-x-0.5">
                                      {editingId === `type-${id}` ? (
                                       <>
-                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleSaveEditing}><Save className="h-4 w-4" /></Button>
+                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleConfirmEdit}><Save className="h-4 w-4" /></Button>
                                           <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
                                       </>
                                      ) : (
-                                      <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('type', id)}><Edit className="h-4 w-4" /></Button>
+                                      <>
+                                        <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('type', id)}><Edit className="h-4 w-4" /></Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button size="icon" variant="ghost" className='h-8 w-8 text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Möchten Sie den Typ "{name}" (ID: {id}) wirklich löschen? Dies kann nicht rückgängig gemacht werden.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleRemove('type', Number(id))} className="bg-destructive hover:bg-destructive/90">Löschen</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                      </>
                                      )}
                                   </TableCell>
                               </TableRow>
                           ))}
                       </TableBody>
+                      <TableFooter>
+                          <TableRow>
+                              <TableCell><Input type="number" placeholder="ID" className="h-9" value={newTypeId} onChange={e => setNewTypeId(e.target.value)} /></TableCell>
+                              <TableCell><Input placeholder="Bezeichnung" className="h-9" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} /></TableCell>
+                              <TableCell className="text-right">
+                                  <Button size="sm" onClick={() => handleAdd('type')} disabled={isAdding === 'type'}>
+                                      {isAdding === 'type' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} Hinzufügen
+                                  </Button>
+                              </TableCell>
+                          </TableRow>
+                      </TableFooter>
                   </Table>
               </div>
             </div>
@@ -166,7 +249,7 @@ export default function AdminSettings() {
                           <TableRow>
                               <TableHead className="w-[80px]">ID</TableHead>
                               <TableHead>Status-Bezeichnung</TableHead>
-                               <TableHead className="w-[100px] text-right">Aktion</TableHead>
+                               <TableHead className="w-[140px] text-right">Aktion</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -180,19 +263,47 @@ export default function AdminSettings() {
                                       name
                                     )}
                                   </TableCell>
-                                  <TableCell className="text-right">
+                                  <TableCell className="text-right space-x-0.5">
                                      {editingId === `status-${id}` ? (
                                       <>
-                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleSaveEditing}><Save className="h-4 w-4" /></Button>
+                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleConfirmEdit}><Save className="h-4 w-4" /></Button>
                                           <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
                                       </>
                                      ) : (
-                                      <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('status', id)}><Edit className="h-4 w-4" /></Button>
+                                      <>
+                                        <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('status', id)}><Edit className="h-4 w-4" /></Button>
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button size="icon" variant="ghost" className='h-8 w-8 text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Möchten Sie den Status "{name}" (ID: {id}) wirklich löschen? Dies kann nicht rückgängig gemacht werden.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleRemove('status', Number(id))} className="bg-destructive hover:bg-destructive/90">Löschen</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                      </>
                                      )}
                                   </TableCell>
                               </TableRow>
                           ))}
                       </TableBody>
+                      <TableFooter>
+                          <TableRow>
+                              <TableCell><Input type="number" placeholder="ID" className="h-9" value={newStatusId} onChange={e => setNewStatusId(e.target.value)} /></TableCell>
+                              <TableCell><Input placeholder="Bezeichnung" className="h-9" value={newStatusName} onChange={e => setNewStatusName(e.target.value)} /></TableCell>
+                              <TableCell className="text-right">
+                                  <Button size="sm" onClick={() => handleAdd('status')} disabled={isAdding === 'status'}>
+                                     {isAdding === 'status' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} Hinzufügen
+                                  </Button>
+                              </TableCell>
+                          </TableRow>
+                      </TableFooter>
                   </Table>
               </div>
             </div>
