@@ -1,9 +1,19 @@
 import type {Metadata} from 'next';
-import { Inter } from 'next/font/google';
+import { Orbitron, Roboto_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const orbitron = Orbitron({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-orbitron',
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto-mono',
+})
 
 export const metadata: Metadata = {
   title: 'MeshControl',
@@ -16,9 +26,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className="dark">
+    <html lang="de" suppressHydrationWarning>
       <head />
-      <body className={`antialiased font-sans ${inter.variable}`}>
+      <body className={`antialiased ${orbitron.variable} ${robotoMono.variable} font-sans`}>
         {children}
         <Toaster />
       </body>
