@@ -67,6 +67,8 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             const snapshot = await getNetworkSnapshot();
             setUnits(snapshot.units);
             setGroups(snapshot.groups);
+            setTypeMapping(snapshot.typeMapping);
+            setStatusMapping(snapshot.statusMapping);
 
             snapshot.messages.forEach(msg => onUnitMessage(msg.unitName, msg.text));
 
