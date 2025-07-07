@@ -1,4 +1,3 @@
-
 'use client';
 import type { MeshUnit, StatusMapping, TypeMapping } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -39,7 +38,7 @@ export default function JsonView({ unit, typeMapping, statusMapping }: JsonViewP
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
-       <Card className="bg-card/50">
+       <Card>
         <CardHeader>
           <div className='flex items-center gap-3'>
             <Code2 className="h-8 w-8 text-primary" />
@@ -56,14 +55,14 @@ export default function JsonView({ unit, typeMapping, statusMapping }: JsonViewP
                 <div>
                     <h3 className="font-semibold mb-2 text-lg">Netzwerknachricht (Kompakt)</h3>
                     <p className="text-sm text-muted-foreground mb-3">Dies ist die tatsächliche Nachricht, die von der Node gesendet wird, um Datenverkehr zu sparen.</p>
-                    <pre className="p-4 rounded-lg bg-black/80 text-orange-400 overflow-x-auto text-sm font-mono h-full">
+                    <pre className="p-4 rounded-lg bg-muted text-orange-400 overflow-x-auto text-sm font-mono h-full">
                         <code>{JSON.stringify(compactUnit, null, 2)}</code>
                     </pre>
                 </div>
                  <div>
                     <h3 className="font-semibold mb-2 text-lg">Leitstellenansicht (Angereichert)</h3>
                     <p className="text-sm text-muted-foreground mb-3">Nach dem Empfang reichert die Leitstelle die Daten mit bekannten Informationen (Name, etc.) an.</p>
-                    <pre className="p-4 rounded-lg bg-black/80 text-green-400 overflow-x-auto text-sm font-mono h-full">
+                    <pre className="p-4 rounded-lg bg-muted text-green-400 overflow-x-auto text-sm font-mono h-full">
                         <code>{JSON.stringify(hydratedUnit, null, 2)}</code>
                     </pre>
                 </div>

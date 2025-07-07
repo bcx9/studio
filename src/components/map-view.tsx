@@ -100,8 +100,8 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
         style="background: ${color}; animation-duration: 1.5s; opacity: 0.8; filter: blur(12px);"
       ></div>
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-          <circle cx="18" cy="18" r="17" fill="hsl(var(--background) / 0.5)" stroke="${color}" stroke-width="1.5"/>
-          <svg x="6" y="6" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="18" r="17" fill="hsl(var(--card) / 0.5)" stroke="${color}" stroke-width="1.5"/>
+          <svg x="6" y="6" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="hsl(var(--card-foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
               ${iconPath}
           </svg>
       </svg>
@@ -124,7 +124,7 @@ const createControlCenterIcon = () => {
     <div class="relative flex items-center justify-center">
         <div class="absolute inset-0 rounded-full" style="background: ${color}; filter: blur(16px); opacity: 0.8;"></div>
         <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-            <circle cx="22" cy="22" r="21" fill="hsl(var(--background) / 0.6)" stroke="${color}" stroke-width="2"/>
+            <circle cx="22" cy="22" r="21" fill="hsl(var(--card) / 0.6)" stroke="${color}" stroke-width="2"/>
             <path d="M22 17L24.32 21.8L29.5 22.5L25.75 26.1L26.64 31L22 28.4L17.36 31L18.25 26.1L14.5 22.5L19.68 21.8L22 17Z" fill="${color}"/>
         </svg>
     </div>
@@ -141,7 +141,7 @@ const createControlCenterIcon = () => {
 
 
 const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string | null) => void, selectedSymbol: string | null }) => (
-  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-black/30 backdrop-blur-sm rounded-full border border-white/10">
+  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-card/50 backdrop-blur-sm rounded-full border">
     {Object.entries(TACTICAL_SYMBOLS).map(([key, { icon: Icon, tooltip }]) => (
       <Button
         key={key}
@@ -496,12 +496,12 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-lg">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden border bg-background/20 backdrop-blur-lg">
       <style>{`
         .leaflet-tooltip.glass-tooltip {
-          background-color: rgba(0,0,0,0.4);
-          border: 1px solid rgba(255,255,255,0.1);
-          color: white;
+          background-color: hsl(var(--popover) / 0.7);
+          border: 1px solid hsl(var(--border));
+          color: hsl(var(--popover-foreground));
           border-radius: var(--radius);
           backdrop-filter: blur(8px);
           box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
@@ -510,10 +510,10 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         .leaflet-tooltip-bottom.glass-tooltip::before,
         .leaflet-tooltip-left.glass-tooltip::before,
         .leaflet-tooltip-right.glass-tooltip::before {
-          border-top-color: rgba(255,255,255,0.1);
+          border-top-color: hsl(var(--border));
         }
         .leaflet-bar a, .leaflet-bar a:hover {
-            background-color: rgba(25, 27, 34, 0.7);
+            background-color: hsl(var(--card) / 0.7);
             color: hsl(var(--foreground));
             border: 1px solid hsl(var(--border) / 0.5);
             backdrop-filter: blur(8px);

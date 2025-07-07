@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -10,15 +9,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { invokeAiAssistant } from '@/app/actions';
 import type { AiAssistantAction } from '@/ai/flows/ai-assistant-flow';
-import type { MeshUnit, Group, UnitStatus } from '@/types/mesh';
+import type { MeshUnit, Group, UnitStatus, StatusMapping, TypeMapping } from '@/types/mesh';
 import { useToast } from '@/hooks/use-toast';
-import { UNIT_STATUS_TO_CODE, UNIT_TYPE_TO_CODE } from '@/types/mesh';
+import { createReverseMapping } from '@/lib/utils';
 
 interface AiAssistantProps {
     units: MeshUnit[];
     groups: Group[];
     setUnitStatus: (unitId: number, status: UnitStatus) => void;
     sendMessage: (message: string, target: 'all' | number) => void;
+    typeMapping: TypeMapping;
+    statusMapping: StatusMapping;
 }
 
 interface Message {
@@ -26,7 +27,7 @@ interface Message {
     text: string;
 }
 
-export default function AiAssistant({ units, groups, setUnitStatus, sendMessage }: AiAssistantProps) {
+export default function AiAssistant({ units, groups, setUnitStatus, sendMessage, typeMapping, statusMapping }: AiAssistantProps) {
     const [messages, setMessages] = React.useState<Message[]>([
         { role: 'ai', text: 'Hallo! Wie kann ich Ihnen heute helfen? Sie können mich nach dem Status von Einheiten fragen oder Befehle erteilen, z.B. "Setze HLF-20 in den Wartungsmodus".' }
     ]);
@@ -88,10 +89,13 @@ export default function AiAssistant({ units, groups, setUnitStatus, sendMessage 
         setIsLoading(true);
         scrollToBottom();
         
+        const UNIT_TYPE_TO_CODE = createReverseMapping(typeMapping);
+        const UNIT_STATUS_TO_CODE = createReverseMapping(statusMapping);
+
         const compactUnits = units.map(unit => ({
             i: unit.id,
-            t: UNIT_TYPE_TO_CODE[unit.type],
-            s: UNIT_STATUS_TO_CODE[unit.status],
+            t: Number(UNIT_TYPE_TO_CODE[unit.type]),
+            s: Number(UNIT_STATUS_TO_CODE[unit.status]),
             p: {
                 a: parseFloat(unit.position.lat.toFixed(5)),
                 o: parseFloat(unit.position.lng.toFixed(5)),
@@ -126,7 +130,7 @@ export default function AiAssistant({ units, groups, setUnitStatus, sendMessage 
 
     return (
         <div className="container mx-auto max-w-4xl py-8 h-full">
-            <Card className="h-full flex flex-col bg-card/50">
+            <Card className="h-full flex flex-col">
                 <CardHeader>
                     <div className='flex items-center gap-3'>
                         <Bot className="h-8 w-8 text-primary" />

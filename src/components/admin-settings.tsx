@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -145,7 +144,7 @@ export default function AdminSettings() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
-      <Card className="bg-card/50">
+      <Card>
         <CardHeader>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-3'>

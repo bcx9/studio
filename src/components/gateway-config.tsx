@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -46,7 +45,7 @@ export default function GatewayConfig({ status, logs, onConnect, onDisconnect, i
 
     return (
         <div className="container mx-auto max-w-4xl py-8">
-            <Card className="bg-card/50">
+            <Card>
                 <CardHeader>
                     <div className='flex items-center gap-3'>
                         <Server className="h-8 w-8 text-primary" />
@@ -130,7 +129,7 @@ export default function GatewayConfig({ status, logs, onConnect, onDisconnect, i
                         </Card>
                         <div className="space-y-2">
                             <Label htmlFor="logs">Live-Logs</Label>
-                            <div id="logs" className="h-48 bg-black/80 text-green-400 font-mono text-xs rounded-md p-3 overflow-y-auto">
+                            <div id="logs" className="h-48 bg-muted text-foreground font-mono text-xs rounded-md p-3 overflow-y-auto">
                                 <Terminal className="h-4 w-4 inline-block mr-2" /> Gateway Logs:
                                 <pre className="whitespace-pre-wrap">
                                     {logs.join('\n')}
