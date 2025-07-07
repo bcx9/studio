@@ -100,40 +100,50 @@ export async function saveAdminSettings(config: {typeMapping: TypeMapping, statu
 
 export async function updateUnitOnBackend(unit: MeshUnit) {
     updateUnit(unit);
+    return { success: true };
 }
 
 export async function addUnitOnBackend() {
     addUnitInStore();
+    return { success: true };
 }
 
 export async function removeUnitOnBackend(unitId: number) {
     removeUnitInStore(unitId);
+    return { success: true };
 }
 
 export async function chargeUnitOnBackend(unitId: number) {
     chargeUnitInStore(unitId);
+    return { success: true };
 }
 
 export async function sendMessageOnBackend(message: string, target: 'all' | number) {
     sendMessageInStore(message, target);
+    return { success: true };
 }
 
 export async function repositionAllUnitsOnBackend(radius: number) {
     repositionAllUnitsInStore(radius);
+    return { success: true };
 }
 
 export async function addGroupOnBackend(name: string) {
     addGroupInStore(name);
+    return { success: true };
 }
 
 export async function updateGroupOnBackend(group: Group) {
     updateGroupInStore(group);
+    return { success: true };
 }
 
 export async function removeGroupOnBackend(groupId: number) {
     removeGroupInStore(groupId);
+    return { success: true };
 }
 
 export async function assignUnitToGroupOnBackend(unitId: number, groupId: number | null) {
     assignUnitToGroupInStore(unitId, groupId);
+    return { success: true };
 }
