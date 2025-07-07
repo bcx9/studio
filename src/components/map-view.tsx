@@ -82,7 +82,7 @@ const STATUS_COLORS: Record<UnitStatus, string> = {
 const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
   const color = STATUS_COLORS[status] || '#9ca3af';
   const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
-  const highlightDropShadow = isHighlighted ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.9)]' : '';
+  const highlightGlowId = `glow-${Math.random().toString(36).substring(7)}`;
 
   const iconPaths = {
     Vehicle: `
@@ -100,16 +100,27 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   };
 
   const iconPath = iconPaths[unitType] || '';
-  const iconColor = '#fff';
+  const highlightFilter = isHighlighted ? `url(#${highlightGlowId})` : '';
 
   const iconHtml = `
     <div class="relative flex items-center justify-center ${alarmAnimationClass}">
-      <svg class="h-10 w-10 ${highlightDropShadow}" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 42 16 42C16 42 32 24.837 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
-        <circle cx="16" cy="16" r="8" fill="white"/>
-        <svg x="8" y="8" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          ${iconPath}
-        </svg>
+      <svg class="h-10 w-10" viewBox="0 0 40 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));">
+        <defs>
+            <filter id="${highlightGlowId}" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+        </defs>
+        <g filter="${highlightFilter}">
+            <path d="M20 0C10.059 0 2 8.059 2 18C2 27.941 20 46 20 46C20 46 38 27.941 38 18C38 8.059 29.941 0 20 0Z" fill="${color}"/>
+            <circle cx="20" cy="18" r="12" fill="hsl(var(--card))" stroke="${color}" stroke-width="2"/>
+            <svg x="10" y="8" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="hsl(var(--foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              ${iconPath}
+            </svg>
+        </g>
       </svg>
     </div>
   `;
@@ -117,20 +128,20 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   return L.divIcon({
     html: iconHtml,
     className: '',
-    iconSize: [40, 42],
-    iconAnchor: [20, 42],
-    popupAnchor: [0, -42],
+    iconSize: [40, 46],
+    iconAnchor: [20, 46],
+    popupAnchor: [0, -46],
   });
 };
 
 const createControlCenterIcon = () => {
-  const color = 'hsl(221, 83%, 58%)'; 
+  const color = 'hsl(var(--primary))'; 
   
   const iconHtml = `
     <div class="relative flex items-center justify-center">
-      <svg class="h-10 w-10" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 42 16 42C16 42 32 24.837 32 16C32 7.163 24.837 0 16 0Z" fill="${color}"/>
-        <path d="M16 11L18.09 15.26L23 15.9L19.5 19.29L20.18 24L16 21.75L11.82 24L12.5 19.29L9 15.9L13.91 15.26L16 11Z" fill="white"/>
+      <svg class="h-10 w-10" viewBox="0 0 40 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));">
+        <path d="M20 0C10.059 0 2 8.059 2 18C2 27.941 20 46 20 46C20 46 38 27.941 38 18C38 8.059 29.941 0 20 0Z" fill="${color}"/>
+        <path d="M20 13L22.09 17.26L27 17.9L23.5 21.29L24.18 26L20 23.75L15.82 26L16.5 21.29L13 17.9L17.91 17.26L20 13Z" fill="hsl(var(--primary-foreground))"/>
       </svg>
     </div>
   `;
@@ -138,9 +149,9 @@ const createControlCenterIcon = () => {
   return L.divIcon({
     html: iconHtml,
     className: '',
-    iconSize: [40, 42],
-    iconAnchor: [20, 42],
-    popupAnchor: [0, -42],
+    iconSize: [40, 46],
+    iconAnchor: [20, 46],
+    popupAnchor: [0, -46],
   });
 };
 
