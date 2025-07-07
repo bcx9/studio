@@ -83,23 +83,72 @@ export function startSimulation() {
             let newHeading = unit.heading;
             let newSpeed = unit.speed;
             
+            // Type-specific movement simulation
             if (isRallyingMode && rallyPosition) {
                 const distanceToCenter = calculateDistance(lat, lng, rallyPosition.lat, rallyPosition.lng);
+                
+                // If far from rally point, move towards it
                 if (distanceToCenter > 0.5) {
                     newHeading = calculateBearing(lat, lng, rallyPosition.lat, rallyPosition.lng);
-                    newSpeed = unit.type === 'Vehicle' ? Math.max(10, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)) : Math.max(2, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
-                } else {
-                    newSpeed = unit.type === 'Vehicle' ? Math.max(0, Math.min(15, unit.speed + (Math.random() - 0.5) * 4)) : Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.5) * 2));
-                    if (newSpeed > (unit.type === 'Vehicle' ? 1 : 0.5)) {
-                        const headingUpdate = unit.heading + (Math.random() - 0.5) * (unit.type === 'Vehicle' ? 25 : 60);
+                     switch(unit.type) {
+                        case 'Vehicle':
+                        case 'Military':
+                        case 'Police':
+                            newSpeed = Math.max(20, Math.min(80, unit.speed + (Math.random() - 0.4) * 5));
+                            break;
+                        case 'Air':
+                             newSpeed = Math.max(100, Math.min(300, unit.speed + (Math.random() - 0.4) * 20));
+                            break;
+                        case 'Personnel':
+                        case 'Support':
+                            newSpeed = Math.max(3, Math.min(8, unit.speed + (Math.random() - 0.5) * 2));
+                            break;
+                    }
+                } else { 
+                    // If close to rally point, slow down and circle
+                    newSpeed = Math.max(0, unit.speed + (Math.random() - 0.6) * 4);
+                    if (newSpeed > 1) {
+                        const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
                         newHeading = (headingUpdate % 360 + 360) % 360;
                     }
                 }
             } else {
-                newSpeed = unit.type === 'Vehicle' ? Math.max(0, Math.min(60, unit.speed + (Math.random() - 0.4) * 4)) : Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
-                if (newSpeed > (unit.type === 'Vehicle' ? 1 : 0.5)) {
-                    const headingUpdate = unit.heading + (Math.random() - 0.5) * (unit.type === 'Vehicle' ? 10 : 45);
-                    newHeading = (headingUpdate % 360 + 360) % 360;
+                // Standard movement logic
+                switch(unit.type) {
+                    case 'Vehicle':
+                    case 'Military':
+                    case 'Police':
+                        // Tend to stay on course, can be fast
+                        newSpeed = Math.max(0, Math.min(70, unit.speed + (Math.random() - 0.45) * 5)); 
+                        if (newSpeed > 1) {
+                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 15; // less erratic turns
+                             newHeading = (headingUpdate % 360 + 360) % 360;
+                        }
+                        break;
+                    case 'Personnel':
+                        // Slower, more erratic turns when moving
+                        newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
+                        if (newSpeed > 0.5) {
+                            const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
+                            newHeading = (headingUpdate % 360 + 360) % 360;
+                        }
+                        break;
+                    case 'Support':
+                        // Tends to be stationary
+                        newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.6) * 1)); // more likely to slow down
+                        if (newSpeed > 0.5) {
+                            const headingUpdate = unit.heading + (Math.random() - 0.5) * 30;
+                            newHeading = (headingUpdate % 360 + 360) % 360;
+                        }
+                        break;
+                    case 'Air':
+                        // Fast, wide turns
+                        newSpeed = Math.max(0, Math.min(400, unit.speed + (Math.random() - 0.4) * 25));
+                        if (newSpeed > 50) {
+                            const headingUpdate = unit.heading + (Math.random() - 0.5) * 10;
+                            newHeading = (headingUpdate % 360 + 360) % 360;
+                        }
+                        break;
                 }
             }
 
@@ -107,13 +156,12 @@ export function startSimulation() {
                 const distance = (newSpeed / 3600) * timeSinceLastUpdate;
                 const angleRad = (newHeading * Math.PI) / 180;
                 const cosLat = Math.cos(lat * Math.PI / 180);
-
-                if (Math.abs(cosLat) > 1e-9) { // Prevent division by zero at the poles
+                
+                if (Math.abs(cosLat) > 1e-9) {
                     lat += (distance * Math.cos(angleRad)) / 111.32;
                     lng += (distance * Math.sin(angleRad)) / (111.32 * cosLat);
                 }
 
-                // Clamp latitude and wrap longitude to keep them in valid ranges
                 lat = Math.max(-90, Math.min(90, lat));
                 lng = (lng + 540) % 360 - 180;
             }
