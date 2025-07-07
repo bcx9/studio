@@ -51,6 +51,37 @@ const TACTICAL_SYMBOLS: Record<string, { icon: React.FC<React.SVGProps<SVGSVGEle
   'wind-direction': { icon: Wind, tooltip: 'Windrichtung', color: 'text-sky-400' },
 };
 
+const FIRE_DEPARTMENT_SYMBOLS: Record<number, { name: string; svgPath: string; viewBox?: string }> = {
+  1: { // HLF-20 (Fire Engine with ladder symbol)
+    name: "HLF-20",
+    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M7 17v-4h4m1.5-6l-3 3h6l-3-3M7 15a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
+  },
+  3: { // ELW-1 (Command Vehicle with antenna)
+    name: "ELW-1",
+    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M12 7l1-2 1 2m-1-2V2m-5 13v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
+  },
+  5: { // DLK-23 (Ladder Truck with extended ladder)
+    name: "DLK-23",
+    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2m3-10L2 14M5 17v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
+  },
+  6: { // RTW (Ambulance with cross)
+    name: "RTW",
+    svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2m3-8h4m-2-2v4M5 17v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
+  },
+  7: { // NEF (Doctor's Car)
+    name: "NEF",
+    svgPath: "M14 17H4c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1l1-2h4l1 2h3c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2zM12 9H9.5a1.5 1.5 0 0 0 0 3H12l-2 3 2 3h.5a1.5 1.5 0 0 0 0-3H12l2-3-2-3z M5 15a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"
+  },
+  8: { // MTF (Troop Transport, van/bus)
+    name: "MTF",
+    svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
+  },
+  10: { // Einsatzleiter (Commander, person with star)
+    name: "Einsatzleiter",
+    svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2m7-14l-2 4h4l-2-4z"
+  }
+};
+
 
 const createSymbolIcon = (symbolKey: string) => {
     const symbol = TACTICAL_SYMBOLS[symbolKey];
@@ -81,17 +112,21 @@ const STATUS_COLORS: Record<string, string> = {
   Maintenance: 'hsl(25 95% 53%)', // orange-500
 };
 
-const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
-  const color = STATUS_COLORS[status] || 'hsl(215 20% 65%)';
-  const alarmAnimationClass = status === 'Alarm' ? 'animate-ping' : '';
+const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
+  const color = STATUS_COLORS[unit.status] || 'hsl(215 20% 65%)';
+  const alarmAnimationClass = unit.status === 'Alarm' ? 'animate-ping' : '';
   const highlightScale = isHighlighted ? 'scale-110' : 'scale-100';
+  
+  const customSymbol = FIRE_DEPARTMENT_SYMBOLS[unit.id];
 
-  const iconPaths: Record<string, string> = {
+  const typeIcons: Record<string, string> = {
     Vehicle: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"/><path d="M14 17h-4"/><path d="M15 7h-5"/><path d="M5 17v-4h4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>`,
     Personnel: `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
   };
   const genericIconPath = `<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" x2="12" y1="22.08" y2="12" />`;
-  const iconPath = iconPaths[unitType] || genericIconPath;
+
+  const iconPath = customSymbol?.svgPath || typeIcons[unit.type] || genericIconPath;
+  const viewBox = customSymbol?.viewBox || "0 0 24 24";
 
   const iconHtml = `
     <div class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale}">
@@ -101,7 +136,7 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
       ></div>
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
           <circle cx="18" cy="18" r="17" fill="hsl(var(--card) / 0.5)" stroke="${color}" stroke-width="1.5"/>
-          <svg x="6" y="6" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="hsl(var(--card-foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <svg x="6" y="6" width="24" height="24" viewBox="${viewBox}" stroke-width="2" stroke="hsl(var(--card-foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
               ${iconPath}
           </svg>
       </svg>
@@ -333,11 +368,27 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
   // Update tile layer style
   React.useEffect(() => {
+      const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'street';
       if (tileLayerRef.current && mapInstanceRef.current) {
-          tileLayerRef.current.setUrl(TILE_LAYERS[mapStyle].url);
-          tileLayerRef.current.options.attribution = TILE_LAYERS[mapStyle].attribution;
+          tileLayerRef.current.setUrl(TILE_LAYERS[currentTheme].url);
+          tileLayerRef.current.options.attribution = TILE_LAYERS[currentTheme].attribution;
       }
-  }, [mapStyle]);
+  }, [mapStyle]); // Re-run when mapStyle changes (which we can trigger from theme toggle)
+
+
+  React.useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'street';
+      setMapStyle(currentTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Manage all markers (Units and Control Center)
   React.useEffect(() => {
@@ -363,7 +414,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             </span>`;
         
         const isHighlighted = unit.id === highlightedUnitId;
-        const icon = createStatusIcon(unit.status, unit.type, isHighlighted);
+        const icon = createUnitIcon(unit, isHighlighted);
         
         const marker = L.marker(position, { icon })
           .addTo(map)
@@ -550,11 +601,11 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
          <Button
           variant="outline"
           size="icon"
-          onClick={() => setMapStyle(style => {
-            const styles: MapStyle[] = ['dark', 'street', 'satellite'];
-            const currentIndex = styles.indexOf(style);
-            return styles[(currentIndex + 1) % styles.length];
-          })}
+          onClick={() => {
+              const newStyle = mapStyle === 'dark' || mapStyle === 'street' ? 'satellite' : document.documentElement.classList.contains('dark') ? 'dark' : 'street';
+              setMapStyle(newStyle);
+            }
+          }
           title="Kartenstil wechseln"
           className="rounded-full"
         >
