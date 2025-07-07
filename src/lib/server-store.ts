@@ -34,7 +34,8 @@ interface ServerState {
 }
 
 // This is our in-memory "database" on the server.
-const state: ServerState = {
+// It must be 'let' to allow for immutable updates.
+let state: ServerState = {
     units: initialUnits,
     groups: initialGroups,
     typeMapping: DEFAULT_CODE_TO_UNIT_TYPE,
@@ -48,12 +49,12 @@ const state: ServerState = {
 export function startSimulation() {
     if (state.simulationInterval) return;
 
-    state.simulationInterval = setInterval(() => {
+    const intervalId = setInterval(() => {
         const isRallyingMode = state.isRallying && state.controlCenterPosition;
         const rallyPosition = state.controlCenterPosition;
         const now = Date.now();
         
-        state.units = state.units.map(unit => {
+        const newUnits = state.units.map(unit => {
             if (!unit.isActive) {
                 if (unit.status !== 'Offline') {
                     return { ...unit, status: 'Offline', signalStrength: -120, hopCount: 0 };
@@ -121,19 +122,23 @@ export function startSimulation() {
             
             return { ...unit, position: { lat, lng }, speed: parseFloat(newSpeed.toFixed(1)), heading: parseInt(newHeading.toFixed(0)), battery: parseFloat(newBattery.toFixed(2)), status: newStatus, isActive: newBattery > 0 || unit.isExternallyPowered, timestamp: now, lastMessage: newLastMessage, signalStrength: Math.floor(Math.max(-120, Math.min(-50, unit.signalStrength + (Math.random() - 0.5) * 5))), hopCount: Math.max(1, Math.min(4, unit.hopCount + (Math.random() > 0.8 ? (Math.random() > 0.5 ? 1 : -1) : 0))) };
         });
+        
+        state = { ...state, units: newUnits };
     }, 1000);
+
+    state = { ...state, simulationInterval: intervalId };
 }
 
 export function stopSimulation() {
     if (state.simulationInterval) {
         clearInterval(state.simulationInterval);
-        state.simulationInterval = null;
+        state = { ...state, simulationInterval: null };
     }
 }
 
 export function getSnapshot() {
     const messages = [...state.messages];
-    state.messages = [];
+    state = { ...state, messages: [] };
     return { 
         units: state.units, 
         groups: state.groups,
@@ -153,12 +158,12 @@ export function getConfig() {
 }
 
 export function updateConfig({ typeMapping, statusMapping }: { typeMapping: TypeMapping, statusMapping: StatusMapping }) {
-    state.typeMapping = typeMapping;
-    state.statusMapping = statusMapping;
+    state = { ...state, typeMapping, statusMapping };
 }
 
 export function updateUnit(updatedUnit: MeshUnit) {
-    state.units = state.units.map(u => u.id === updatedUnit.id ? updatedUnit : u);
+    const newUnits = state.units.map(u => u.id === updatedUnit.id ? updatedUnit : u);
+    state = { ...state, units: newUnits };
 }
 
 export function addUnit() {
@@ -168,25 +173,28 @@ export function addUnit() {
     const namePrefix = nameTemplates[type as keyof typeof nameTemplates]?.[Math.floor(Math.random() * nameTemplates[type as keyof typeof nameTemplates]?.length)] || type;
     const name = `${namePrefix}-${newId}`;
     const newUnit: MeshUnit = { id: newId, name, type, status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: Math.floor(Math.random() * 360), battery: 100, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: null, signalStrength: -75, hopCount: 1 };
-    state.units.push(newUnit);
+    state = { ...state, units: [...state.units, newUnit] };
 }
 
 export function removeUnit(unitId: number) {
-    state.units = state.units.filter(u => u.id !== unitId);
+    const newUnits = state.units.filter(u => u.id !== unitId);
+    state = { ...state, units: newUnits };
 }
 
 export function chargeUnit(unitId: number) {
-    state.units = state.units.map(u => u.id === unitId ? { ...u, battery: 100, status: u.status === 'Offline' ? 'Online' : u.status, isActive: true } : u);
+    const newUnits = state.units.map(u => u.id === unitId ? { ...u, battery: 100, status: u.status === 'Offline' ? 'Online' : u.status, isActive: true } : u);
+    state = { ...state, units: newUnits };
 }
 
 export function sendMessage(message: string, target: 'all' | number) {
-    state.units = state.units.map(unit => {
+    const newUnits = state.units.map(unit => {
         const shouldReceive = target === 'all' || unit.groupId === target;
         if (unit.isActive && shouldReceive) {
             return { ...unit, lastMessage: { text: message, timestamp: Date.now(), source: 'control' } };
         }
         return unit;
     });
+    state = { ...state, units: newUnits };
 }
 
 export function repositionAllUnits(radiusKm: number) {
@@ -196,7 +204,7 @@ export function repositionAllUnits(radiusKm: number) {
     const toRadians = (deg: number) => deg * Math.PI / 180;
     const toDegrees = (rad: number) => rad * 180 / Math.PI;
 
-    state.units = state.units.map(unit => {
+    const newUnits = state.units.map(unit => {
         const randomDist = radiusKm * Math.sqrt(Math.random());
         const randomAngle = Math.random() * 2 * Math.PI;
         const lat1Rad = toRadians(centerLat);
@@ -206,23 +214,28 @@ export function repositionAllUnits(radiusKm: number) {
         const newLonRad = lon1Rad + Math.atan2(Math.sin(randomAngle) * Math.sin(angularDistance) * Math.cos(lat1Rad), Math.cos(angularDistance) - Math.sin(lat1Rad) * Math.sin(newLatRad));
         return { ...unit, position: { lat: toDegrees(newLatRad), lng: toDegrees(newLonRad) }, speed: 0, heading: Math.floor(Math.random() * 360), status: 'Online', timestamp: Date.now() };
     });
+    state = { ...state, units: newUnits };
 }
 
 export function addGroup(name: string) {
-    state.groups.push({ id: Date.now(), name });
+    const newGroup = { id: Date.now(), name };
+    state = { ...state, groups: [...state.groups, newGroup] };
 }
 
 export function updateGroup(updatedGroup: Group) {
-    state.groups = state.groups.map(g => g.id === updatedGroup.id ? updatedGroup : g);
+    const newGroups = state.groups.map(g => g.id === updatedGroup.id ? updatedGroup : g);
+    state = { ...state, groups: newGroups };
 }
 
 export function removeGroup(groupId: number) {
-    state.groups = state.groups.filter(g => g.id !== groupId);
-    state.units = state.units.map(u => u.groupId === groupId ? { ...u, groupId: null } : u);
+    const newGroups = state.groups.filter(g => g.id !== groupId);
+    const newUnits = state.units.map(u => u.groupId === groupId ? { ...u, groupId: null } : u);
+    state = { ...state, groups: newGroups, units: newUnits };
 }
 
 export function assignUnitToGroup(unitId: number, groupId: number | null) {
-    state.units = state.units.map(u => u.id === unitId ? { ...u, groupId } : u);
+    const newUnits = state.units.map(u => u.id === unitId ? { ...u, groupId } : u);
+    state = { ...state, units: newUnits };
 }
 
 export function isSimulationRunning(): boolean {
@@ -233,7 +246,7 @@ export function addTypeMapping(id: number, name: string) {
     if (state.typeMapping[id]) {
         throw new Error(`Die Typ-ID ${id} existiert bereits.`);
     }
-    state.typeMapping = { ...state.typeMapping, [id]: name };
+    state = { ...state, typeMapping: { ...state.typeMapping, [id]: name } };
 }
 
 export function removeTypeMapping(id: number) {
@@ -248,14 +261,14 @@ export function removeTypeMapping(id: number) {
     
     const newMapping = { ...state.typeMapping };
     delete newMapping[id];
-    state.typeMapping = newMapping;
+    state = { ...state, typeMapping: newMapping };
 }
 
 export function addStatusMapping(id: number, name: string) {
     if (state.statusMapping[id]) {
         throw new Error(`Die Status-ID ${id} existiert bereits.`);
     }
-    state.statusMapping = { ...state.statusMapping, [id]: name };
+    state = { ...state, statusMapping: { ...state.statusMapping, [id]: name } };
 }
 
 export function removeStatusMapping(id: number) {
@@ -270,5 +283,5 @@ export function removeStatusMapping(id: number) {
     
     const newMapping = { ...state.statusMapping };
     delete newMapping[id];
-    state.statusMapping = newMapping;
+    state = { ...state, statusMapping: newMapping };
 }
