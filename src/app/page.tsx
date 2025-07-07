@@ -237,7 +237,7 @@ export default function Home() {
                 <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto">
                   <AiAnomalyDetector />
                 </TabsContent>
-                <TabsContent value="device-registry" className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <TabsContent value="device-registry" className="flex-1 overflow-y-auto grid grid-cols-1 gap-8">
                   <DeviceRegistry 
                       units={units} 
                       updateUnit={updateUnit} 
