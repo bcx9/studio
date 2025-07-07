@@ -214,12 +214,13 @@ export default function Home() {
                     </TabsTrigger>
                   </TabsList>
                 </div>
-                <TabsContent value="map" className="data-[state=inactive]:hidden p-4 pt-0" forceMount>
+                <TabsContent value="map" className="data-[state=inactive]:hidden p-4 pt-0 md:p-0 md:pt-0" forceMount>
                   <div className="w-full aspect-video rounded-lg overflow-hidden shadow-lg">
                     {isInitialized ? (
                       <MapView 
                         units={units} 
                         highlightedUnitId={highlightedUnitId} 
+                        selectedUnit={selectedUnit}
                         onMapClick={handleMapClick}
                         onUnitClick={handleMapUnitClick}
                         controlCenterPosition={controlCenterPosition}

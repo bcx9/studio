@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 interface MapViewProps {
   units: MeshUnit[];
   highlightedUnitId: number | null;
+  selectedUnit: MeshUnit | null;
   controlCenterPosition: { lat: number; lng: number } | null;
   drawnItems: any[];
   onMapClick: (position: { lat: number; lng: number }) => void;
@@ -163,7 +164,7 @@ const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string 
 );
 
 
-export default function MapView({ units, highlightedUnitId, controlCenterPosition, drawnItems, onMapClick, onUnitClick, onShapesChange, isPositioningMode }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId, selectedUnit, controlCenterPosition, drawnItems, onMapClick, onUnitClick, onShapesChange, isPositioningMode }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
@@ -516,9 +517,21 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     }
   }, [units, controlCenterPosition, handleRecenter]);
 
+  // Center on selected unit
+  React.useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (map && selectedUnit) {
+      const currentZoom = map.getZoom();
+      map.flyTo([selectedUnit.position.lat, selectedUnit.position.lng], Math.max(currentZoom, 16), {
+        animate: true,
+        duration: 0.5,
+      });
+    }
+  }, [selectedUnit]);
+
 
   return (
-    <div className="relative w-full h-full overflow-hidden border-t bg-background/20 backdrop-blur-lg">
+    <div className="relative w-full h-full overflow-hidden border-t bg-background/20">
       <style>{`
         .leaflet-tooltip.glass-tooltip {
           background-color: hsl(var(--popover) / 0.7);
