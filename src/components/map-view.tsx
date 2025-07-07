@@ -61,13 +61,12 @@ const UNIT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: string }> = {
   Police: { svgPath: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 8v4 M12 16h.01" },
 };
 
-
 const createSymbolIcon = (symbolKey: string) => {
     const symbol = TACTICAL_SYMBOLS[symbolKey];
     if (!symbol) return new L.Icon.Default();
     
     const iconHtml = `
-        <div class="bg-black/40 border border-white/20 rounded-md p-1 w-8 h-8 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-card/50 border border-border/20 rounded-md p-1 w-8 h-8 flex items-center justify-center backdrop-blur-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${symbol.color}">
                 <use href="#${symbol.icon.displayName || symbol.icon.name}" />
             </svg>
@@ -106,7 +105,7 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
         style="background: ${color}; animation-duration: 1.5s; opacity: 0.8; filter: blur(12px);"
       ></div>
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-          <circle cx="18" cy="18" r="17" fill="hsl(var(--card) / 0.5)" stroke="${color}" stroke-width="1.5"/>
+          <circle cx="18" cy="18" r="17" fill="hsl(var(--card) / 0.7)" stroke="${color}" stroke-width="1.5"/>
           <svg x="6" y="6" width="24" height="24" viewBox="${viewBox}" stroke-width="2" stroke="hsl(var(--card-foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
               ${svgPath}
           </svg>
@@ -130,7 +129,7 @@ const createControlCenterIcon = () => {
     <div class="relative flex items-center justify-center">
         <div class="absolute inset-0 rounded-full" style="background: ${color}; filter: blur(16px); opacity: 0.8;"></div>
         <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-            <circle cx="22" cy="22" r="21" fill="hsl(var(--card) / 0.6)" stroke="${color}" stroke-width="2"/>
+            <circle cx="22" cy="22" r="21" fill="hsl(var(--card) / 0.7)" stroke="${color}" stroke-width="2"/>
             <path d="M22 17L24.32 21.8L29.5 22.5L25.75 26.1L26.64 31L22 28.4L17.36 31L18.25 26.1L14.5 22.5L19.68 21.8L22 17Z" fill="${color}"/>
         </svg>
     </div>
@@ -579,7 +578,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             }
           }
           title="Kartenstil wechseln"
-          className="rounded-full"
+          className="rounded-full bg-card/70 backdrop-blur-sm"
         >
           <Globe className="h-5 w-5" />
         </Button>
@@ -588,7 +587,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             size="icon"
             onClick={handleRecenter}
             title="Auf Einheiten zentrieren"
-            className="rounded-full"
+            className="rounded-full bg-card/70 backdrop-blur-sm"
         >
             <Target className="h-5 w-5" />
         </Button>
@@ -597,7 +596,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             size="icon"
             onClick={() => setShowMeshConnections(prev => !prev)}
             title="Mesh-Verbindungen umschalten"
-            className="rounded-full"
+            className="rounded-full bg-card/70 backdrop-blur-sm"
         >
             <Network className="h-5 w-5" />
         </Button>
