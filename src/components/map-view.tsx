@@ -1,3 +1,4 @@
+
 'use client';
 // CSS must be imported first
 import 'leaflet/dist/leaflet.css';
@@ -8,7 +9,7 @@ import L, { type Map } from 'leaflet';
 import 'leaflet-draw';
 
 import type { MeshUnit, UnitStatus, UnitType } from '@/types/mesh';
-import { Globe, Map as MapIcon, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind, Network } from 'lucide-react';
+import { Globe, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MapViewProps {
@@ -51,33 +52,35 @@ const TACTICAL_SYMBOLS: Record<string, { icon: React.FC<React.SVGProps<SVGSVGEle
   'wind-direction': { icon: Wind, tooltip: 'Windrichtung', color: 'text-sky-400' },
 };
 
-const FIRE_DEPARTMENT_SYMBOLS: Record<number, { name: string; svgPath: string; viewBox?: string }> = {
-  1: { // HLF-20 (Fire Engine with ladder symbol)
-    name: "HLF-20",
+const FIRE_DEPARTMENT_SYMBOLS: Record<UnitType, { svgPath: string; viewBox?: string }> = {
+  'HLF-20': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M7 17v-4h4m1.5-6l-3 3h6l-3-3M7 15a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  3: { // ELW-1 (Command Vehicle with antenna)
-    name: "ELW-1",
+  'AT': { // Angriffstrupp - Personnel with axe
+    svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M5 15l8-8m-6.5 1.5l5 5"
+  },
+  'ELW-1': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2M12 7l1-2 1 2m-1-2V2m-5 13v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  5: { // DLK-23 (Ladder Truck with extended ladder)
-    name: "DLK-23",
+  'Wassertrupp': { // Personnel with water drop
+    svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 m-2-7a4.5 4.5 0 0 1 8.36 2.2"
+  },
+  'DLK-23': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2m3-10L2 14M5 17v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  6: { // RTW (Ambulance with cross)
-    name: "RTW",
+  'RTW': {
     svgPath: "M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2m3-8h4m-2-2v4M5 17v-4h4m3 2a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  7: { // NEF (Doctor's Car)
-    name: "NEF",
+  'NEF': {
     svgPath: "M14 17H4c-1.1 0-2-.9-2-2V9c0-1.1.9-2 2-2h1l1-2h4l1 2h3c1.1 0 2 .9 2 2v6c0 1.1-.9 2-2 2zM12 9H9.5a1.5 1.5 0 0 0 0 3H12l-2 3 2 3h.5a1.5 1.5 0 0 0 0-3H12l2-3-2-3z M5 15a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z"
   },
-  8: { // MTF (Troop Transport, van/bus)
-    name: "MTF",
-    svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
+  'MTF': {
+    svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z"
   },
-  10: { // Einsatzleiter (Commander, person with star)
-    name: "Einsatzleiter",
+  'Gerätewagen': { // Equipment vehicle - van with a box/gear
+    svgPath: "M19 17h2c.6 0 1-.4 1-1v-4c0-.9-.7-1.7-1.5-1.9C18.7 9.6 16 9 16 9H4c-.9 0-1.7.7-1.9 1.5S3 12 3 12v4c0 .6.4 1 1h2M5 17v-5h14v5M7 17a2 2 0 100-4 2 2 0 000 4zm10 0a2 2 0 100-4 2 2 0 000 4z M11 11.5h2v2h-2z"
+  },
+  'Einsatzleiter': {
     svgPath: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2m7-14l-2 4h4l-2-4z"
   }
 };
@@ -117,9 +120,9 @@ const createUnitIcon = (unit: MeshUnit, isHighlighted: boolean) => {
   const alarmAnimationClass = unit.status === 'Alarm' ? 'animate-ping' : '';
   const highlightScale = isHighlighted ? 'scale-110' : 'scale-100';
   
-  const customSymbol = FIRE_DEPARTMENT_SYMBOLS[unit.id];
+  const customSymbol = FIRE_DEPARTMENT_SYMBOLS[unit.type];
 
-  const typeIcons: Record<string, string> = {
+  const typeIcons: Record<UnitType, string> = {
     Vehicle: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1 .4-1 1v7c0 .6.4 1 1h2"/><path d="M14 17h-4"/><path d="M15 7h-5"/><path d="M5 17v-4h4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>`,
     Personnel: `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
   };
