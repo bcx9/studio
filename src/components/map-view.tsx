@@ -44,8 +44,8 @@ const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
 const MAX_ZOOM = 20;
 
 const TACTICAL_SYMBOLS: Record<string, { icon: React.FC<React.SVGProps<SVGSVGElement>>, tooltip: string, color: string }> = {
-  'fire-source': { icon: Flame, tooltip: 'Brandherd', color: 'text-orange-500' },
-  'water-source': { icon: Droplets, tooltip: 'Wasserentnahmestelle', color: 'text-blue-500' },
+  'fire-source': { icon: Flame, tooltip: 'Brandherd', color: 'text-orange-400' },
+  'water-source': { icon: Droplets, tooltip: 'Wasserentnahmestelle', color: 'text-cyan-400' },
   'command-post': { icon: Star, tooltip: 'Einsatzleitung', color: 'text-yellow-400' },
   'staging-area': { icon: ParkingCircle, tooltip: 'Bereitstellungsraum', color: 'text-gray-400' },
   'danger-zone': { icon: TriangleAlert, tooltip: 'Gefahrenbereich', color: 'text-red-500' },
@@ -57,9 +57,8 @@ const createSymbolIcon = (symbolKey: string) => {
     const symbol = TACTICAL_SYMBOLS[symbolKey];
     if (!symbol) return new L.Icon.Default();
     
-    // We render the Lucide icon to an HTML string. This is a bit of a hack.
     const iconHtml = `
-        <div class="bg-background/80 border border-border rounded-md p-1 w-8 h-8 flex items-center justify-center">
+        <div class="bg-black/40 border border-white/20 rounded-md p-1 w-8 h-8 flex items-center justify-center backdrop-blur-sm">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${symbol.color}">
                 <use href="#${symbol.icon.displayName || symbol.icon.name}" />
             </svg>
@@ -75,16 +74,16 @@ const createSymbolIcon = (symbolKey: string) => {
 
 
 const STATUS_COLORS: Record<string, string> = {
-  Online: '#22d3ee', // cyan-400
-  Moving: '#34d399', // emerald-400
-  Idle: '#60a5fa', // blue-400
-  Alarm: '#f87171', // red-400
-  Offline: '#9ca3af', // gray-400
-  Maintenance: '#f97316', // orange-500
+  Online: 'hsl(188 89% 50%)', // accent
+  Moving: 'hsl(142 71% 45%)', // green-500
+  Idle: 'hsl(215 91% 60%)', // blue-500
+  Alarm: 'hsl(0 84% 60%)', // red-500
+  Offline: 'hsl(215 20% 65%)', // muted-foreground
+  Maintenance: 'hsl(25 95% 53%)', // orange-500
 };
 
 const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
-  const color = STATUS_COLORS[status] || '#9ca3af';
+  const color = STATUS_COLORS[status] || 'hsl(215 20% 65%)';
   const alarmAnimationClass = status === 'Alarm' ? 'animate-pulse' : '';
   const highlightScale = isHighlighted ? 'scale-110' : 'scale-100';
 
@@ -97,28 +96,15 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
 
   const iconHtml = `
     <div 
-      class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale} ${alarmAnimationClass}"
-      style="filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.1));"
+      class="relative flex items-center justify-center transition-transform duration-200 ${highlightScale}"
+      style="filter: drop-shadow(0 0 8px ${isHighlighted ? 'hsl(var(--accent))' : color});"
     >
-      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-              <linearGradient id="neumorphic-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style="stop-color:hsl(var(--background)); stop-opacity:0.5" />
-                  <stop offset="100%" style="stop-color:hsl(var(--background)); stop-opacity:1" />
-              </linearGradient>
-              <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#d1d9e6" />
-                  <feDropShadow dx="-2" dy="-2" stdDeviation="2" flood-color="#ffffff" />
-              </filter>
-          </defs>
-          <g filter="url(#dropshadow)">
-            <circle cx="20" cy="20" r="18" fill="url(#neumorphic-gradient)"/>
-            <circle cx="20" cy="20" r="18" stroke="hsl(var(--border))" stroke-width="0.5"/>
-          </g>
-          <svg x="8" y="8" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="17" fill="rgba(10, 10, 20, 0.7)" stroke="${color}" stroke-width="1"/>
+          <circle cx="18" cy="18" r="12" fill="${color}" class="${alarmAnimationClass}" style="animation-duration: 1.5s;"/>
+          <svg x="6" y="6" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round">
               ${iconPath}
           </svg>
-          <circle cx="30" cy="10" r="4" fill="${color}" stroke="#fff" stroke-width="2" />
       </svg>
     </div>
   `;
@@ -126,9 +112,9 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   return L.divIcon({
     html: iconHtml,
     className: '',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
-    popupAnchor: [0, -20],
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -18],
   });
 };
 
@@ -136,23 +122,11 @@ const createControlCenterIcon = () => {
   const color = 'hsl(var(--primary))'; 
   
   const iconHtml = `
-    <div class="relative flex items-center justify-center">
-        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="cc-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:hsl(var(--background)); stop-opacity:0.5" />
-                    <stop offset="100%" style="stop-color:hsl(var(--background)); stop-opacity:1" />
-                </linearGradient>
-                 <filter id="cc-dropshadow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="3" dy="3" stdDeviation="3" flood-color="#d1d9e6" />
-                  <feDropShadow dx="-3" dy="-3" stdDeviation="3" flood-color="#ffffff" />
-                </filter>
-            </defs>
-            <g filter="url(#cc-dropshadow)">
-              <circle cx="26" cy="26" r="24" fill="url(#cc-gradient)"/>
-              <circle cx="26" cy="26" r="24" stroke="hsl(var(--border))" stroke-width="1"/>
-            </g>
-             <path d="M26 20L28.32 24.8L33.5 25.5L29.75 29.1L30.64 34L26 31.4L21.36 34L22.25 29.1L18.5 25.5L23.68 24.8L26 20Z" fill="${color}"/>
+    <div class="relative flex items-center justify-center" style="filter: drop-shadow(0 0 12px ${color});">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="22" cy="22" r="21" fill="rgba(10, 10, 20, 0.7)" stroke="${color}" stroke-width="1.5"/>
+            <circle cx="22" cy="22" r="16" fill="${color}"/>
+            <path d="M22 17L24.32 21.8L29.5 22.5L25.75 26.1L26.64 31L22 28.4L17.36 31L18.25 26.1L14.5 22.5L19.68 21.8L22 17Z" fill="white"/>
         </svg>
     </div>
   `;
@@ -160,15 +134,15 @@ const createControlCenterIcon = () => {
   return L.divIcon({
     html: iconHtml,
     className: '',
-    iconSize: [52, 52],
-    iconAnchor: [26, 26],
-    popupAnchor: [0, -26],
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -22],
   });
 };
 
 
 const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string | null) => void, selectedSymbol: string | null }) => (
-  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-background/60 backdrop-blur-sm rounded-full neumorphic-shadow shadow-inner">
+  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-black/30 backdrop-blur-sm rounded-full border border-white/10">
     {Object.entries(TACTICAL_SYMBOLS).map(([key, { icon: Icon, tooltip }]) => (
       <Button
         key={key}
@@ -194,7 +168,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
   
-  const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
+  const [mapStyle, setMapStyle] = React.useState<MapStyle>('dark');
   const [selectedSymbol, setSelectedSymbol] = React.useState<string | null>(null);
 
   const handleRecenter = React.useCallback(() => {
@@ -233,8 +207,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
       mapInstanceRef.current = map;
 
-      tileLayerRef.current = L.tileLayer(TILE_LAYERS.street.url, {
-          attribution: TILE_LAYERS.street.attribution,
+      tileLayerRef.current = L.tileLayer(TILE_LAYERS.dark.url, {
+          attribution: TILE_LAYERS.dark.attribution,
       }).addTo(map);
 
       editableLayersRef.current = new L.FeatureGroup().addTo(map);
@@ -293,11 +267,11 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             polygon: { 
               allowIntersection: false, 
               showArea: true,
-              shapeOptions: { color: 'hsl(var(--primary))' },
+              shapeOptions: { color: 'hsl(var(--primary))', fillOpacity: 0.1 },
             },
             polyline: { shapeOptions: { color: 'hsl(var(--primary))', weight: 3 } },
-            rectangle: { shapeOptions: { color: 'hsl(var(--primary))' } },
-            circle: { shapeOptions: { color: 'hsl(var(--primary))' } },
+            rectangle: { shapeOptions: { color: 'hsl(var(--primary))', fillOpacity: 0.1 } },
+            circle: { shapeOptions: { color: 'hsl(var(--primary))', fillOpacity: 0.1 } },
             marker: false, // Replaced by our custom symbols
             circlemarker: false,
         },
@@ -391,7 +365,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const marker = L.marker(position, { icon })
           .addTo(map)
           .bindTooltip(tooltipContent, {
-            className: 'neumorphic-tooltip',
+            className: 'glass-tooltip',
             offset: [0, -20]
           });
         
@@ -415,7 +389,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         const icon = createControlCenterIcon();
         
         const marker = L.marker(position, { icon, zIndexOffset: 1100 })
-          .bindTooltip(tooltipContent, { className: 'neumorphic-tooltip' }).addTo(map);
+          .bindTooltip(tooltipContent, { className: 'glass-tooltip' }).addTo(map);
 
         controlCenterMarkerRef.current = marker;
     }
@@ -431,29 +405,27 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-background neumorphic-shadow-inset">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-black/20 border border-white/10 backdrop-blur-sm">
       <style>{`
-        .leaflet-tooltip.neumorphic-tooltip {
-          background-color: hsl(var(--background));
-          border: 1px solid hsl(var(--border));
-          color: hsl(var(--foreground));
+        .leaflet-tooltip.glass-tooltip {
+          background-color: rgba(0,0,0,0.4);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: white;
           border-radius: var(--radius);
-          box-shadow: 4px 4px 8px hsl(var(--background) / 0.5), -4px -4px 8px #ffffff;
+          backdrop-filter: blur(8px);
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
         }
-        .leaflet-tooltip-top.neumorphic-tooltip::before,
-        .leaflet-tooltip-bottom.neumorphic-tooltip::before,
-        .leaflet-tooltip-left.neumorphic-tooltip::before,
-        .leaflet-tooltip-right.neumorphic-tooltip::before {
-          border-top-color: hsl(var(--border));
+        .leaflet-tooltip-top.glass-tooltip::before,
+        .leaflet-tooltip-bottom.glass-tooltip::before,
+        .leaflet-tooltip-left.glass-tooltip::before,
+        .leaflet-tooltip-right.glass-tooltip::before {
+          border-top-color: rgba(255,255,255,0.1);
         }
         .leaflet-bar a, .leaflet-bar a:hover {
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-            border-bottom: 1px solid hsl(var(--border));
-            box-shadow: 3px 3px 6px hsl(var(--background) / 0.6), -3px -3px 6px #ffffff;
-        }
-        .leaflet-bar a:active {
-            box-shadow: inset 3px 3px 6px hsl(var(--background) / 0.6), inset -3px -3px 6px #ffffff;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(8px);
         }
         .leaflet-draw-toolbar {
             display: flex;
@@ -461,23 +433,14 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             gap: 2px;
         }
         .leaflet-draw-toolbar a {
-            box-shadow: 3px 3px 6px hsl(var(--background) / 0.6), -3px -3px 6px #ffffff !important;
             border-radius: 0.5rem !important;
-            border: 1px solid transparent;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        .leaflet-draw-toolbar a:hover {
-            border-color: hsl(var(--border));
-        }
-        .leaflet-draw-actions {
-            box-shadow: 3px 3px 6px hsl(var(--background) / 0.6), -3px -3px 6px #ffffff;
-            border-radius: 0.5rem;
-        }
-        .leaflet-draw-actions a {
-            color: hsl(var(--foreground));
+         .leaflet-draw-actions a {
+            color: white;
         }
       `}</style>
       
-      {/* This SVG definition block is for the tactical symbols to use */}
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
           {Object.entries(TACTICAL_SYMBOLS).map(([key, { icon: Icon }]) => (
@@ -497,7 +460,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
           variant="secondary"
           size="icon"
           onClick={() => setMapStyle(style => {
-            const styles: MapStyle[] = ['street', 'satellite', 'dark'];
+            const styles: MapStyle[] = ['dark', 'street', 'satellite'];
             const currentIndex = styles.indexOf(style);
             return styles[(currentIndex + 1) % styles.length];
           })}

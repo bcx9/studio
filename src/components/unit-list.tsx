@@ -59,8 +59,8 @@ export default function UnitList({
   const defaultAccordionItems = React.useMemo(() => groups.map(g => g.id.toString()), [groups]);
   
   return (
-    <div className="flex flex-col h-full px-2">
-      <div className="flex flex-col gap-2 p-2">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col gap-3 p-3">
         <Input
           placeholder="Einheiten filtern..."
           value={searchTerm}
@@ -79,24 +79,24 @@ export default function UnitList({
         </Select>
       </div>
       <ScrollArea className="flex-1">
-        <Accordion type="multiple" defaultValue={defaultAccordionItems} className="w-full">
+        <Accordion type="multiple" defaultValue={defaultAccordionItems} className="w-full px-3">
             {groups.map(group => {
                 const unitsInGroup = unitsByGroup[group.id] || [];
                 return (
-                    <AccordionItem value={group.id.toString()} key={group.id}>
-                        <AccordionTrigger className="px-2 py-2 text-sm hover:no-underline">{group.name} ({unitsInGroup.length})</AccordionTrigger>
+                    <AccordionItem value={group.id.toString()} key={group.id} className="border-b-white/10">
+                        <AccordionTrigger className="py-3 text-sm font-semibold hover:no-underline">{group.name} ({unitsInGroup.length})</AccordionTrigger>
                         <AccordionContent>
-                            <div className="space-y-2 p-2 pt-0">
+                            <div className="space-y-2 pb-2">
                                 <AnimatePresence>
                                     {unitsInGroup.length > 0 ? (
                                         unitsInGroup.map(unit => (
                                          <motion.div
                                             key={unit.id}
                                             layout
-                                            initial={{ opacity: 0, y: 20 }}
+                                            initial={{ opacity: 0, y: -20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, x: -50 }}
-                                            transition={{ duration: 0.3 }}
+                                            transition={{ duration: 0.2 }}
                                             onMouseEnter={() => onUnitHover(unit.id)}
                                             onMouseLeave={() => onUnitHover(null)}
                                         >
@@ -122,17 +122,17 @@ export default function UnitList({
                  )
             })}
         </Accordion>
-         <div className="space-y-2 p-2">
-            {ungrouped.length > 0 && <h4 className="text-sm font-medium text-muted-foreground px-2 pt-2">Ungruppiert</h4>}
+         <div className="space-y-2 p-3">
+            {ungrouped.length > 0 && groups.length > 0 && <h4 className="text-sm font-semibold text-muted-foreground px-2 pt-2">Ungruppiert</h4>}
             <AnimatePresence>
                 {ungrouped.map(unit => (
                 <motion.div
                     key={unit.id}
                     layout
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.2 }}
                     onMouseEnter={() => onUnitHover(unit.id)}
                     onMouseLeave={() => onUnitHover(null)}
                 >

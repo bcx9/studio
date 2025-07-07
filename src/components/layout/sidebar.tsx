@@ -52,10 +52,12 @@ export default function AppSidebar({
       <SidebarHeader>
         <SidebarGroup>
           <SidebarGroupLabel>Leitstelle</SidebarGroupLabel>
-          <div className="p-3 -mt-2 rounded-md border bg-background/50">
+          <div className="p-3 -mt-2 rounded-lg border border-white/10 bg-black/10 backdrop-blur-sm">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <Building2 className="h-6 w-6 text-primary" />
+                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/20 border border-primary/50 text-primary">
+                    <Building2 className="h-5 w-5" />
+                </div>
                 <div>
                   <h3 className="text-base font-semibold">Leitstelle</h3>
                   <div className="flex items-center gap-1.5 text-xs text-green-400">
@@ -105,12 +107,12 @@ export default function AppSidebar({
         />
       </SidebarContent>
       <SidebarFooter>
-        <Button variant="ghost" onClick={onCreateUnit}>
+        <Button variant="ghost" onClick={onCreateUnit} className="w-full">
           <PlusCircle className="mr-2 h-4 w-4" />
           Neue Einheit hinzufügen
         </Button>
         <SidebarSeparator />
-         <Button variant="ghost" asChild>
+         <Button variant="ghost" asChild className="w-full">
             <Link href="/admin">
                 <Settings className="mr-2 h-4 w-4" />
                 Admin-Konsole

@@ -72,21 +72,21 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
         className={cn(
           "transition-all cursor-pointer", 
           isSelected 
-            ? "shadow-[inset_6px_6px_12px_#d1d9e6,inset_-6px_-6px_12px_#ffffff]" 
-            : "hover:shadow-[4px_4px_8px_#d1d9e6,-4px_-4px_8px_#ffffff]"
+            ? "bg-primary/10 border-primary/80" 
+            : "hover:bg-white/5"
         )}
         onClick={() => onSelect(unit)}
     >
       <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
-            <div className='flex items-center justify-center h-10 w-10 rounded-full neumorphic-shadow-inset bg-background'>
+            <div className='flex items-center justify-center h-10 w-10 rounded-full bg-primary/20 border border-primary/50 text-primary'>
               {unit.type === 'Vehicle' ? (
-                <Car className="h-5 w-5 text-primary" />
+                <Car className="h-5 w-5" />
               ) : unit.type === 'Personnel' ? (
-                <User className="h-5 w-5 text-primary" />
+                <User className="h-5 w-5" />
               ) : (
-                <Box className="h-5 w-5 text-primary" />
+                <Box className="h-5 w-5" />
               )}
             </div>
             <div>
@@ -178,7 +178,7 @@ export default function UnitCard({ unit, onDelete, onCharge, onSelect, isSelecte
         </div>
         
         {unit.lastMessage && (
-            <div className="mt-3 pt-3 border-t border-border">
+            <div className="mt-3 pt-3 border-t border-white/10">
                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
                     {unit.lastMessage.source === 'unit' ? (
                         <ArrowUp className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
