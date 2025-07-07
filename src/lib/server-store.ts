@@ -56,7 +56,8 @@ export function startSimulation() {
         const rallyPosition = state.controlCenterPosition;
         const now = Date.now();
         
-        const newUnits = state.units.map(unit => {
+        // Step 1: Update individual unit properties (movement, battery, etc.)
+        let updatedUnits = state.units.map(unit => {
             if (!unit.isActive) {
                 if (unit.status !== 'Offline') {
                     return { ...unit, status: 'Offline', signalStrength: -120, hopCount: 0 };
@@ -68,7 +69,7 @@ export function startSimulation() {
             const timeSinceLastUpdate = (now - unit.timestamp) / 1000;
 
             if (timeSinceLastUpdate < effectiveSendInterval) {
-                return unit;
+                return unit; // Not time to update this unit yet
             }
             
             let newBattery = unit.battery;
@@ -83,11 +84,9 @@ export function startSimulation() {
             let newHeading = unit.heading;
             let newSpeed = unit.speed;
             
-            // Type-specific movement simulation
             if (isRallyingMode && rallyPosition) {
                 const distanceToCenter = calculateDistance(lat, lng, rallyPosition.lat, rallyPosition.lng);
                 
-                // If far from rally point, move towards it
                 if (distanceToCenter > 0.5) {
                     newHeading = calculateBearing(lat, lng, rallyPosition.lat, rallyPosition.lng);
                      switch(unit.type) {
@@ -105,7 +104,6 @@ export function startSimulation() {
                             break;
                     }
                 } else { 
-                    // If close to rally point, slow down and circle
                     newSpeed = Math.max(0, unit.speed + (Math.random() - 0.6) * 4);
                     if (newSpeed > 1) {
                         const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
@@ -113,20 +111,17 @@ export function startSimulation() {
                     }
                 }
             } else {
-                // Standard movement logic
                 switch(unit.type) {
                     case 'Vehicle':
                     case 'Military':
                     case 'Police':
-                        // Tend to stay on course, can be fast
                         newSpeed = Math.max(0, Math.min(70, unit.speed + (Math.random() - 0.45) * 5)); 
                         if (newSpeed > 1) {
-                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 15; // less erratic turns
+                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 15;
                              newHeading = (headingUpdate % 360 + 360) % 360;
                         }
                         break;
                     case 'Personnel':
-                        // Slower, more erratic turns when moving
                         newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
                         if (newSpeed > 0.5) {
                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
@@ -134,15 +129,13 @@ export function startSimulation() {
                         }
                         break;
                     case 'Support':
-                        // Tends to be stationary
-                        newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.6) * 1)); // more likely to slow down
+                        newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.6) * 1));
                         if (newSpeed > 0.5) {
                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 30;
                             newHeading = (headingUpdate % 360 + 360) % 360;
                         }
                         break;
                     case 'Air':
-                        // Fast, wide turns
                         newSpeed = Math.max(0, Math.min(400, unit.speed + (Math.random() - 0.4) * 25));
                         if (newSpeed > 50) {
                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 10;
@@ -178,10 +171,87 @@ export function startSimulation() {
                 state = { ...state, messages: [...state.messages, { unitName: unit.name, text: messageText }] };
             }
             
-            return { ...unit, position: { lat, lng }, speed: parseFloat(newSpeed.toFixed(1)), heading: parseInt(newHeading.toFixed(0)), battery: parseFloat(newBattery.toFixed(2)), status: newStatus, isActive: newBattery > 0 || unit.isExternallyPowered, timestamp: now, lastMessage: newLastMessage, signalStrength: Math.floor(Math.max(-120, Math.min(-50, unit.signalStrength + (Math.random() - 0.5) * 5))), hopCount: Math.max(1, Math.min(4, unit.hopCount + (Math.random() > 0.8 ? (Math.random() > 0.5 ? 1 : -1) : 0))) };
+            return { ...unit, position: { lat, lng }, speed: parseFloat(newSpeed.toFixed(1)), heading: parseInt(newHeading.toFixed(0)), battery: parseFloat(newBattery.toFixed(2)), status: newStatus, isActive: newBattery > 0 || unit.isExternallyPowered, timestamp: now, lastMessage: newLastMessage };
         });
         
-        state = { ...state, units: newUnits };
+        // Step 2: Simulate mesh network topology (hops and signal strength)
+        if (state.controlCenterPosition) {
+            const gatewayPos = state.controlCenterPosition;
+            const MAX_RANGE_KM = 3; // Max range between any two nodes or node-to-gateway
+
+            // Initialize all active units for topology calculation
+            updatedUnits.forEach(unit => {
+                if (unit.isActive) {
+                    unit.hopCount = Infinity;
+                    unit.signalStrength = -120;
+                } else {
+                    unit.hopCount = 0;
+                    unit.signalStrength = -120;
+                    unit.status = 'Offline';
+                }
+            });
+
+            // Pass 1: Connect units directly to the gateway
+            updatedUnits.forEach(unit => {
+                if (unit.isActive) {
+                    const distToGateway = calculateDistance(unit.position.lat, unit.position.lng, gatewayPos.lat, gatewayPos.lng);
+                    if (distToGateway <= MAX_RANGE_KM) {
+                        unit.hopCount = 1;
+                        // Signal strength degrades with distance. -50 is excellent, -110 is poor.
+                        unit.signalStrength = Math.round(Math.max(-120, -50 - (distToGateway * 20))); 
+                    }
+                }
+            });
+
+            // Iteratively connect remaining units to the mesh
+            let connectionsMadeInLastPass = true;
+            while (connectionsMadeInLastPass) {
+                connectionsMadeInLastPass = false;
+                updatedUnits.forEach(childUnit => {
+                    // If this unit is already connected or inactive, skip it
+                    if (!childUnit.isActive || childUnit.hopCount !== Infinity) {
+                        return;
+                    }
+
+                    let bestParent: MeshUnit | null = null;
+                    let minDistance = MAX_RANGE_KM;
+
+                    // Find the closest already-connected unit to be its parent
+                    updatedUnits.forEach(potentialParent => {
+                        // A valid parent must be active and already part of the mesh
+                        if (potentialParent.isActive && potentialParent.hopCount !== Infinity && potentialParent.id !== childUnit.id) {
+                            const distance = calculateDistance(
+                                childUnit.position.lat, childUnit.position.lng,
+                                potentialParent.position.lat, potentialParent.position.lng
+                            );
+
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                bestParent = potentialParent;
+                            }
+                        }
+                    });
+
+                    // If a suitable parent was found, connect the child
+                    if (bestParent) {
+                        childUnit.hopCount = bestParent.hopCount + 1;
+                        childUnit.signalStrength = Math.round(Math.max(-120, -50 - (minDistance * 20)));
+                        connectionsMadeInLastPass = true;
+                    }
+                });
+            }
+
+            // Final cleanup: Any unit that couldn't connect is now offline
+            updatedUnits.forEach(unit => {
+                if (unit.hopCount === Infinity) {
+                    unit.hopCount = 0;
+                    unit.status = 'Offline';
+                    unit.isActive = false;
+                }
+            });
+        }
+        
+        state = { ...state, units: updatedUnits };
     }, 1000);
 
     state = { ...state, simulationInterval: intervalId };
