@@ -6,7 +6,7 @@ import { BotMessageSquare } from 'lucide-react';
 
 export default function AppHeader() {
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 shrink-0">
+    <header className="flex h-16 items-center justify-between border-b border-primary/10 bg-card/60 backdrop-blur-lg px-4 md:px-6 shrink-0 sticky top-0 z-20">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
         <BotMessageSquare className="h-7 w-7 text-primary" />

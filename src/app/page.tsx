@@ -12,7 +12,7 @@ import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code, Map as MapIcon, ListTree } from 'lucide-react';
+import { Code, Map as MapIcon, ListTree, BrainCircuit } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,11 +22,11 @@ import GroupManagement from '@/components/group-management';
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
   loading: () => (
-    <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">
+    <div className="relative w-full h-full rounded-lg overflow-hidden border border-primary/20 bg-background flex items-center justify-center">
       <Skeleton className="w-full h-full" />
       <div className="absolute flex flex-col items-center text-muted-foreground">
-        <MapIcon className="h-16 w-16 animate-pulse" />
-        <p>Lade Karte...</p>
+        <MapIcon className="h-16 w-16 animate-pulse text-primary" />
+        <p className='font-headline mt-2'>Lade Karte...</p>
       </div>
     </div>
   ),
@@ -201,12 +201,12 @@ export default function Home() {
       <SidebarInset>
         <div className="flex flex-col h-screen">
           <AppHeader />
-          <main className="flex-1 overflow-hidden p-4 md:p-6">
+          <main className="flex-1 overflow-hidden p-4 md:p-6 flex flex-col">
             <Tabs defaultValue="map" className="h-full flex flex-col">
               <TabsList className="mb-4 self-start">
-                <TabsTrigger value="map">Live-Karte</TabsTrigger>
-                <TabsTrigger value="ai-monitor">KI-Anomalieerkennung</TabsTrigger>
-                <TabsTrigger value="device-registry">Geräte & System</TabsTrigger>
+                <TabsTrigger value="map"><MapIcon className="mr-2 h-4 w-4"/>Live-Karte</TabsTrigger>
+                <TabsTrigger value="ai-monitor"><BrainCircuit className="mr-2 h-4 w-4"/>KI-Anomalieerkennung</TabsTrigger>
+                <TabsTrigger value="device-registry"><ListTree className="mr-2 h-4 w-4"/>Geräte & System</TabsTrigger>
                 <TabsTrigger value="group-management">Gruppenverwaltung</TabsTrigger>
                 <TabsTrigger value="json-view" disabled={!selectedUnit}>
                   Datenansicht
@@ -225,11 +225,11 @@ export default function Home() {
                     isPositioningMode={isPositioningMode}
                   />
                 ) : (
-                   <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background flex items-center justify-center">
+                   <div className="relative w-full h-full rounded-lg overflow-hidden border border-primary/20 bg-background flex items-center justify-center">
                     <Skeleton className="w-full h-full" />
                     <div className="absolute flex flex-col items-center text-muted-foreground">
-                      <MapIcon className="h-16 w-16 mb-4 animate-pulse" />
-                      <p>Warte auf Verbindung zum Backend...</p>
+                      <MapIcon className="h-16 w-16 mb-4 animate-pulse text-primary" />
+                      <p className="font-headline">Warte auf Verbindung zum Backend...</p>
                     </div>
                   </div>
                 )}
@@ -262,7 +262,7 @@ export default function Home() {
                 {selectedUnit ? (
                   <JsonView unit={selectedUnit} typeMapping={typeMapping} statusMapping={statusMapping} />
                 ) : (
-                  <Card className="h-full flex items-center justify-center bg-card/50 border-dashed">
+                  <Card className="h-full flex items-center justify-center bg-transparent border-dashed">
                     <CardContent className="text-center text-muted-foreground pt-6">
                       <Code className="mx-auto h-12 w-12 mb-4" />
                       <p>Wählen Sie eine Einheit aus der Liste oder auf der Karte aus, um die Rohdaten anzuzeigen.</p>

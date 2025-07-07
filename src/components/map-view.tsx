@@ -23,7 +23,7 @@ interface MapViewProps {
   isPositioningMode: boolean;
 }
 
-type MapStyle = 'satellite' | 'street';
+type MapStyle = 'satellite' | 'street' | 'dark';
 
 const TILE_LAYERS = {
   street: {
@@ -34,6 +34,10 @@ const TILE_LAYERS = {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri',
   },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  }
 };
 
 const INITIAL_CENTER: L.LatLngExpression = [53.19745, 10.84507];
@@ -71,12 +75,12 @@ const createSymbolIcon = (symbolKey: string) => {
 
 
 const STATUS_COLORS: Record<string, string> = {
-  Online: '#60a5fa',    // tailwind blue-400
-  Moving: '#4ade80',    // tailwind green-400
-  Idle: '#38bdf8',      // tailwind sky-400
-  Alarm: '#f87171',     // tailwind red-400
-  Offline: '#9ca3af',   // tailwind gray-400
-  Maintenance: '#f97316', // tailwind orange-500
+  Online: '#34d399',    // emerald-400
+  Moving: '#22d3ee',    // cyan-400
+  Idle: '#60a5fa',      // blue-400
+  Alarm: '#f87171',     // red-400
+  Offline: '#9ca3af',   // gray-400
+  Maintenance: '#f97316', // orange-500
 };
 
 const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted: boolean) => {
@@ -103,34 +107,34 @@ const createStatusIcon = (status: UnitStatus, unitType: UnitType, isHighlighted:
   const highlightFilter = isHighlighted ? `url(#${highlightGlowId})` : '';
 
   const iconHtml = `
-    <div class="relative flex items-center justify-center ${alarmAnimationClass}">
-      <svg class="h-10 w-10" viewBox="0 0 40 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));">
-        <defs>
-            <filter id="${highlightGlowId}" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-        </defs>
-        <g filter="${highlightFilter}">
-            <path d="M20 0C10.059 0 2 8.059 2 18C2 27.941 20 46 20 46C20 46 38 27.941 38 18C38 8.059 29.941 0 20 0Z" fill="${color}"/>
-            <circle cx="20" cy="18" r="12" fill="hsl(var(--card))" stroke="${color}" stroke-width="2"/>
-            <svg x="10" y="8" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="hsl(var(--foreground))" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              ${iconPath}
-            </svg>
-        </g>
-      </svg>
+    <div class="relative flex items-center justify-center ${alarmAnimationClass}" style="filter: drop-shadow(0px 0px 8px ${color});">
+        <svg class="h-10 w-10" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <filter id="${highlightGlowId}" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+                    <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
+            <g filter="${highlightFilter}">
+                <circle cx="20" cy="20" r="14" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2"/>
+                <circle cx="20" cy="20" r="8" fill="hsl(var(--card))"/>
+                <svg x="10" y="10" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    ${iconPath}
+                </svg>
+            </g>
+        </svg>
     </div>
   `;
 
   return L.divIcon({
     html: iconHtml,
     className: '',
-    iconSize: [40, 46],
-    iconAnchor: [20, 46],
-    popupAnchor: [0, -46],
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20],
   });
 };
 
@@ -138,26 +142,27 @@ const createControlCenterIcon = () => {
   const color = 'hsl(var(--primary))'; 
   
   const iconHtml = `
-    <div class="relative flex items-center justify-center">
-      <svg class="h-10 w-10" viewBox="0 0 40 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));">
-        <path d="M20 0C10.059 0 2 8.059 2 18C2 27.941 20 46 20 46C20 46 38 27.941 38 18C38 8.059 29.941 0 20 0Z" fill="${color}"/>
-        <path d="M20 13L22.09 17.26L27 17.9L23.5 21.29L24.18 26L20 23.75L15.82 26L16.5 21.29L13 17.9L17.91 17.26L20 13Z" fill="hsl(var(--primary-foreground))"/>
-      </svg>
+    <div class="relative flex items-center justify-center" style="filter: drop-shadow(0px 0px 10px ${color});">
+        <svg class="h-12 w-12" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <circle cx="24" cy="24" r="18" fill="hsl(var(--background))" stroke="${color}" stroke-width="2"/>
+             <path d="M24 17L26.32 21.8L31.5 22.5L27.75 26.1L28.64 31L24 28.4L19.36 31L20.25 26.1L16.5 22.5L21.68 21.8L24 17Z" fill="${color}"/>
+             <circle cx="24" cy="24" r="22" stroke="${color}" stroke-width="1" stroke-dasharray="4 4" class="animate-spin" style="animation-duration: 20s;"/>
+        </svg>
     </div>
   `;
 
   return L.divIcon({
     html: iconHtml,
     className: '',
-    iconSize: [40, 46],
-    iconAnchor: [20, 46],
-    popupAnchor: [0, -46],
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    popupAnchor: [0, -24],
   });
 };
 
 
 const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string | null) => void, selectedSymbol: string | null }) => (
-  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-background/80 rounded-lg border shadow-lg">
+  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex gap-1 p-1 bg-card/60 backdrop-blur-lg rounded-lg border border-primary/20 shadow-lg">
     {Object.entries(TACTICAL_SYMBOLS).map(([key, { icon: Icon, tooltip }]) => (
       <Button
         key={key}
@@ -183,7 +188,7 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
   const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
   
-  const [mapStyle, setMapStyle] = React.useState<MapStyle>('street');
+  const [mapStyle, setMapStyle] = React.useState<MapStyle>('dark');
   const [selectedSymbol, setSelectedSymbol] = React.useState<string | null>(null);
 
   const handleRecenter = React.useCallback(() => {
@@ -219,8 +224,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       });
       mapInstanceRef.current = map;
 
-      tileLayerRef.current = L.tileLayer(TILE_LAYERS.street.url, {
-          attribution: TILE_LAYERS.street.attribution,
+      tileLayerRef.current = L.tileLayer(TILE_LAYERS.dark.url, {
+          attribution: TILE_LAYERS.dark.attribution,
       }).addTo(map);
 
       editableLayersRef.current = new L.FeatureGroup().addTo(map);
@@ -260,7 +265,15 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         editableLayers.addLayer(marker);
       } else {
         // It's a regular shape from leaflet-draw
-        const layer = L.geoJSON(itemGeoJson);
+        const layer = L.geoJSON(itemGeoJson, {
+          style: (feature) => ({
+            color: 'hsl(var(--primary))',
+            weight: 2,
+            opacity: 0.8,
+            fillColor: 'hsl(var(--primary))',
+            fillOpacity: 0.1,
+          })
+        });
         layer.eachLayer(l => editableLayers.addLayer(l));
       }
     });
@@ -268,10 +281,14 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     const drawControl = new L.Control.Draw({
         edit: { featureGroup: editableLayers },
         draw: {
-            polygon: { allowIntersection: false, showArea: true },
-            polyline: true,
-            rectangle: true,
-            circle: true,
+            polygon: { 
+              allowIntersection: false, 
+              showArea: true,
+              shapeOptions: { color: 'hsl(var(--primary))' },
+            },
+            polyline: { shapeOptions: { color: 'hsl(var(--primary))' } },
+            rectangle: { shapeOptions: { color: 'hsl(var(--primary))' } },
+            circle: { shapeOptions: { color: 'hsl(var(--primary))' } },
             marker: false, // Replaced by our custom symbols
             circlemarker: false,
         },
@@ -352,8 +369,8 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     units.forEach(unit => {
         const position: L.LatLngExpression = [unit.position.lat, unit.position.lng];
         const tooltipContent = `
-            <strong>${unit.name} (${unit.type})</strong><br>
-            <span>
+            <div class="font-headline text-base">${unit.name} (${unit.type})</div>
+            <div class="font-body text-sm">
                 Status: ${unit.status}<br>
                 Akku: ${unit.battery}%
             </span>`;
@@ -363,7 +380,10 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
         
         const marker = L.marker(position, { icon })
           .addTo(map)
-          .bindTooltip(tooltipContent);
+          .bindTooltip(tooltipContent, {
+            className: 'futuristic-tooltip',
+            offset: [0, -20]
+          });
         
         marker.setZIndexOffset(isHighlighted ? 1000 : unit.id);
 
@@ -380,12 +400,12 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
     // Add/Update control center marker
     if (controlCenterPosition) {
         const position: L.LatLngExpression = [controlCenterPosition.lat, controlCenterPosition.lng];
-        const tooltipContent = `<strong>Leitstelle</strong>`;
+        const tooltipContent = `<strong class="font-headline text-base">Leitstelle</strong>`;
         
         const icon = createControlCenterIcon();
         
         const marker = L.marker(position, { icon, zIndexOffset: 1100 })
-          .bindTooltip(tooltipContent).addTo(map);
+          .bindTooltip(tooltipContent, { className: 'futuristic-tooltip' }).addTo(map);
 
         controlCenterMarkerRef.current = marker;
     }
@@ -401,7 +421,31 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
 
 
   return (
-    <div className="relative w-full h-full rounded-lg overflow-hidden border bg-background">
+    <div className="relative w-full h-full rounded-lg overflow-hidden border border-primary/20 bg-background">
+      <style>{`
+        .leaflet-tooltip.futuristic-tooltip {
+          background-color: hsl(var(--card) / 0.7);
+          backdrop-filter: blur(10px);
+          border-color: hsl(var(--primary) / 0.3);
+          color: hsl(var(--card-foreground));
+          box-shadow: 0 0 10px hsl(var(--primary) / 0.2);
+        }
+        .leaflet-tooltip-top.futuristic-tooltip::before,
+        .leaflet-tooltip-bottom.futuristic-tooltip::before,
+        .leaflet-tooltip-left.futuristic-tooltip::before,
+        .leaflet-tooltip-right.futuristic-tooltip::before {
+          border-top-color: hsl(var(--primary) / 0.3);
+        }
+        .leaflet-draw-toolbar a {
+          background-color: hsl(var(--card) / 0.7) !important;
+          color: hsl(var(--primary)) !important;
+          border-color: hsl(var(--primary) / 0.3) !important;
+        }
+        .leaflet-draw-toolbar a:hover {
+          background-color: hsl(var(--card)) !important;
+        }
+      `}</style>
+      
       {/* This SVG definition block is for the tactical symbols to use */}
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
@@ -418,6 +462,20 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
       <TacticalToolbar onSelect={setSelectedSymbol} selectedSymbol={selectedSymbol} />
 
       <div className="absolute top-2 right-2 z-10 flex gap-2">
+         <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => setMapStyle(style => {
+            const styles: MapStyle[] = ['dark', 'satellite', 'street'];
+            const currentIndex = styles.indexOf(style);
+            return styles[(currentIndex + 1) % styles.length];
+          })}
+          title="Kartenstil wechseln"
+        >
+          {mapStyle === 'dark' && <MapIcon className="h-5 w-5" />}
+          {mapStyle === 'street' && <Globe className="h-5 w-5" />}
+          {mapStyle === 'satellite' && <Globe className="h-5 w-5" />}
+        </Button>
         <Button
             variant="secondary"
             size="icon"
@@ -425,14 +483,6 @@ export default function MapView({ units, highlightedUnitId, controlCenterPositio
             title="Auf Einheiten zentrieren"
         >
             <Target className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="secondary"
-          size="icon"
-          onClick={() => setMapStyle(style => style === 'satellite' ? 'street' : 'satellite')}
-          title={mapStyle === 'satellite' ? 'Straßenansicht' : 'Satellitenansicht'}
-        >
-          {mapStyle === 'satellite' ? <MapIcon className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
         </Button>
       </div>
     </div>

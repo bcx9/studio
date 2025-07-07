@@ -1,11 +1,24 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { Orbitron, Roboto_Mono } from 'next/font/google';
 
 export const metadata: Metadata = {
   title: 'Leitstelle',
   description: 'Web-basierte Leitstelle für Mesh-Netzwerke',
 };
+
+const orbitron = Orbitron({
+  subsets: ['latin'],
+  variable: '--font-orbitron',
+  display: 'swap',
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ['latin'],
+  variable: '--font-roboto-mono',
+  display: 'swap',
+});
 
 export default function RootLayout({
   children,
@@ -13,12 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="de" className={`dark ${orbitron.variable} ${robotoMono.variable}`}>
+      <head />
       <body className="font-body antialiased">
         {children}
         <Toaster />
