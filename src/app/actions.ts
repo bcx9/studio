@@ -25,7 +25,8 @@ import {
   addStatusMapping as addStatusMappingInStore,
   removeStatusMapping as removeStatusMappingInStore,
   assignPatrolToGroup as assignPatrolToGroupInStore,
-  removePatrolFromGroup as removePatrolFromGroupInStore,
+  assignPendulumToGroup as assignPendulumToGroupInStore,
+  removeAssignmentFromGroup as removeAssignmentFromGroupInStore,
 } from '@/lib/server-store';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
 import { createReverseMapping } from '@/lib/utils';
@@ -165,8 +166,13 @@ export async function assignPatrolToGroupOnBackend(groupId: number, target: { la
     return { success: true };
 }
 
-export async function removePatrolFromGroupOnBackend(groupId: number) {
-    removePatrolFromGroupInStore(groupId);
+export async function assignPendulumToGroupOnBackend(groupId: number, points: { lat: number, lng: number }[]) {
+    assignPendulumToGroupInStore(groupId, points);
+    return { success: true };
+}
+
+export async function removeAssignmentFromGroupOnBackend(groupId: number) {
+    removeAssignmentFromGroupInStore(groupId);
     return { success: true };
 }
 

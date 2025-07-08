@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MeshUnit, Group, TypeMapping, StatusMapping, UnitMessage, PatrolAssignment } from '@/types/mesh';
+import type { MeshUnit, Group, TypeMapping, StatusMapping, UnitMessage, Assignment } from '@/types/mesh';
 import {
   getNetworkSnapshot,
   updateUnitOnBackend,
@@ -16,7 +16,8 @@ import {
   removeGroupOnBackend,
   assignUnitToGroupOnBackend,
   assignPatrolToGroupOnBackend,
-  removePatrolFromGroupOnBackend,
+  removeAssignmentFromGroupOnBackend,
+  assignPendulumToGroupOnBackend,
 } from '@/app/actions';
 
 interface ToastMessage {
@@ -33,7 +34,7 @@ interface UseMeshDataProps {
 export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }: UseMeshDataProps) {
   const [units, setUnits] = useState<MeshUnit[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [patrolAssignments, setPatrolAssignments] = useState<PatrolAssignment[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [typeMapping, setTypeMapping] = useState<TypeMapping>({});
   const [statusMapping, setStatusMapping] = useState<StatusMapping>({});
@@ -57,7 +58,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             setGroups(snapshot.groups);
             setTypeMapping(snapshot.typeMapping);
             setStatusMapping(snapshot.statusMapping);
-            setPatrolAssignments(snapshot.patrolAssignments);
+            setAssignments(snapshot.assignments);
             setIsInitialized(true);
         } catch (error) {
             console.error("Failed to fetch initial network snapshot", error);
@@ -73,7 +74,7 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
             setGroups(snapshot.groups);
             setTypeMapping(snapshot.typeMapping);
             setStatusMapping(snapshot.statusMapping);
-            setPatrolAssignments(snapshot.patrolAssignments);
+            setAssignments(snapshot.assignments);
 
             snapshot.messages.forEach(msg => onUnitMessage(msg.unitName, msg.text));
 
@@ -132,9 +133,13 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
   const assignPatrolToGroup = useCallback(async (groupId: number, target: { lat: number, lng: number }, radius: number) => {
     await assignPatrolToGroupOnBackend(groupId, target, radius);
   }, []);
+  
+  const assignPendulumToGroup = useCallback(async (groupId: number, points: { lat: number, lng: number }[]) => {
+    await assignPendulumToGroupOnBackend(groupId, points);
+  }, []);
 
-  const removePatrolFromGroup = useCallback(async (groupId: number) => {
-    await removePatrolFromGroupOnBackend(groupId);
+  const removeAssignmentFromGroup = useCallback(async (groupId: number) => {
+    await removeAssignmentFromGroupOnBackend(groupId);
   }, []);
 
   return {
@@ -153,8 +158,9 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
     repositionAllUnits,
     typeMapping,
     statusMapping,
-    patrolAssignments,
+    assignments,
     assignPatrolToGroup,
-    removePatrolFromGroup,
+    assignPendulumToGroup,
+    removeAssignmentFromGroup,
   };
 }

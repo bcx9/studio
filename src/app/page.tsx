@@ -34,6 +34,14 @@ const MapView = dynamic(() => import('@/components/map-view'), {
 
 const TACTICAL_DRAWINGS_KEY = 'tactical-drawings';
 
+type AssignmentState = {
+  type: 'patrol' | 'pendulum';
+  groupId: number;
+  groupName: string;
+  points: { lat: number; lng: number }[];
+  radius: number;
+}
+
 export default function Home() {
   const [selectedUnit, setSelectedUnit] = React.useState<MeshUnit | null>(null);
   const [isLeitstellePanelOpen, setLeitstellePanelOpen] = React.useState(false);
@@ -42,7 +50,7 @@ export default function Home() {
   const [controlCenterPosition, setControlCenterPosition] = React.useState<{ lat: number; lng: number } | null>({ lat: 53.19745, lng: 10.84507 });
   const [isRallying, setIsRallying] = React.useState(false);
   const [isPositioningMode, setIsPositioningMode] = React.useState(false);
-  const [patrolAssignmentState, setPatrolAssignmentState] = React.useState<{ groupId: number; groupName: string } | null>(null);
+  const [assignmentState, setAssignmentState] = React.useState<AssignmentState | null>(null);
 
   const { toast } = useToast();
 
@@ -83,9 +91,10 @@ export default function Home() {
       repositionAllUnits,
       typeMapping,
       statusMapping,
-      patrolAssignments,
+      assignments,
       assignPatrolToGroup,
-      removePatrolFromGroup,
+      assignPendulumToGroup,
+      removeAssignmentFromGroup,
    } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
     isRallying,
@@ -100,13 +109,31 @@ export default function Home() {
   }
   
   const handleMapClick = React.useCallback((position: { lat: number; lng: number }) => {
-    if (patrolAssignmentState) {
-        assignPatrolToGroup(patrolAssignmentState.groupId, position, 1.5); // Default 1.5km radius
+    if (assignmentState) {
+      if (assignmentState.type === 'patrol') {
+        assignPatrolToGroup(assignmentState.groupId, position, assignmentState.radius);
         toast({
-            title: 'Patrouille zugewiesen',
-            description: `Gruppe "${patrolAssignmentState.groupName}" patrouilliert nun um die neue Position.`,
+          title: 'Patrouille zugewiesen',
+          description: `Gruppe "${assignmentState.groupName}" patrouilliert nun um die neue Position.`,
         });
-        setPatrolAssignmentState(null);
+        setAssignmentState(null);
+      } else if (assignmentState.type === 'pendulum') {
+        const newPoints = [...assignmentState.points, position];
+        if (newPoints.length === 2) {
+          assignPendulumToGroup(assignmentState.groupId, newPoints);
+          toast({
+            title: 'Pendelroute zugewiesen',
+            description: `Gruppe "${assignmentState.groupName}" pendelt nun zwischen den zwei Punkten.`,
+          });
+          setAssignmentState(null);
+        } else {
+          setAssignmentState({ ...assignmentState, points: newPoints });
+          toast({
+            title: `Punkt 1 für ${assignmentState.groupName} gesetzt`,
+            description: 'Klicken Sie auf die Karte, um den zweiten Punkt der Route festzulegen.',
+          });
+        }
+      }
     } else if (isPositioningMode) {
       setControlCenterPosition(position);
       toast({
@@ -115,7 +142,7 @@ export default function Home() {
       });
       setIsPositioningMode(false); // Deactivate after setting
     }
-  }, [isPositioningMode, toast, patrolAssignmentState, assignPatrolToGroup]);
+  }, [isPositioningMode, toast, assignmentState, assignPatrolToGroup, assignPendulumToGroup]);
 
   const handleTogglePositioningMode = () => {
     const nextState = !isPositioningMode;
@@ -128,19 +155,27 @@ export default function Home() {
     }
   };
   
-  const handleAssignPatrol = (groupId: number, groupName: string) => {
-    setPatrolAssignmentState({ groupId, groupName });
-    toast({
-      title: `Befehlsmodus: Patrouille für ${groupName}`,
-      description: 'Klicken Sie auf die Karte, um das Zentrum der Patrouillenzone festzulegen.',
-    });
+  const handleStartAssignment = (type: 'patrol' | 'pendulum', groupId: number, groupName: string, radius = 1.5) => {
+    setAssignmentState({ type, groupId, groupName, points: [], radius });
+    if (type === 'patrol') {
+      toast({
+        title: `Befehlsmodus: Patrouille für ${groupName}`,
+        description: `Radius: ${radius}km. Klicken Sie auf die Karte, um das Zentrum festzulegen.`,
+      });
+    } else {
+      toast({
+        title: `Befehlsmodus: Pendelroute für ${groupName}`,
+        description: 'Klicken Sie auf die Karte, um den Startpunkt der Route festzulegen.',
+      });
+    }
   };
 
-  const handleRemovePatrol = (groupId: number) => {
-    removePatrolFromGroup(groupId);
+
+  const handleRemoveAssignment = (groupId: number) => {
+    removeAssignmentFromGroup(groupId);
     toast({
-      title: 'Patrouillenbefehl aufgehoben',
-      description: 'Die Gruppe hat ihre Patrouille beendet.',
+      title: 'Befehl aufgehoben',
+      description: 'Die Gruppe hat ihre zugewiesene Aufgabe beendet.',
     });
   };
 
@@ -253,8 +288,8 @@ export default function Home() {
                         controlCenterPosition={controlCenterPosition}
                         drawnItems={drawnItems}
                         onShapesChange={handleShapesChange}
-                        isPositioningMode={isPositioningMode || !!patrolAssignmentState}
-                        patrolAssignments={patrolAssignments}
+                        isPositioningMode={isPositioningMode || !!assignmentState}
+                        assignments={assignments}
                       />
                     ) : (
                       <div className="relative w-full h-full bg-background flex items-center justify-center">
@@ -288,9 +323,9 @@ export default function Home() {
                         onRemoveGroup={removeGroup}
                         onRepositionAllUnits={handleRepositionAllUnits}
                         isRepositionPossible={!!controlCenterPosition}
-                        patrolAssignments={patrolAssignments}
-                        onAssignPatrol={handleAssignPatrol}
-                        onRemovePatrol={handleRemovePatrol}
+                        assignments={assignments}
+                        onStartAssignment={handleStartAssignment}
+                        onRemoveAssignment={handleRemoveAssignment}
                     />
                   </div>
                 </TabsContent>

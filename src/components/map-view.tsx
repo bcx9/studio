@@ -8,7 +8,7 @@ import * as React from 'react';
 import L, { type Map } from 'leaflet';
 import 'leaflet-draw';
 
-import type { MeshUnit, UnitStatus, UnitType, PatrolAssignment } from '@/types/mesh';
+import type { MeshUnit, UnitStatus, UnitType, Assignment } from '@/types/mesh';
 import { Globe, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -18,7 +18,7 @@ interface MapViewProps {
   selectedUnit: MeshUnit | null;
   controlCenterPosition: { lat: number; lng: number } | null;
   drawnItems: any[];
-  patrolAssignments: PatrolAssignment[];
+  assignments: Assignment[];
   onMapClick: (position: { lat: number; lng: number }) => void;
   onUnitClick?: (unitId: number) => void;
   onShapesChange: (featureGroup: L.FeatureGroup) => void;
@@ -55,12 +55,12 @@ const TACTICAL_SYMBOLS: Record<string, { icon: React.FC<React.SVGProps<SVGSVGEle
 };
 
 const UNIT_SYMBOLS: Record<UnitType, { svgContent: string; viewBox?: string }> = {
-    Vehicle: { svgContent: '<rect x="3" y="11" width="18" height="10" rx="2" /><path d="m3 11-1.9-0.9a1 1 0 0 1-0.2-1.4l1.4-2.4c0.2-0.3 0.5-0.5 0.9-0.5h16.4c0.4 0 0.7 0.2 0.9 0.5l1.4 2.4c0.2 0.3 0.1 0.7-0.2 1.4l-1.9 0.9" /><path d="M12 4v7" /><circle cx="6.5" cy="17.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" />' },
-    Personnel: { svgContent: '<circle cx="12" cy="7" r="4" /><path d="M12 11v10" /><path d="M9 15h6" /><path d="M9 21h6" />' },
-    Support: { svgContent: '<path d="m21.64 3.64-1.28 1.28a1.2 1.2 0 0 0-1.7 0L12 11.58l-6.64-6.64a1.2 1.2 0 0 0-1.7 0L2.36 3.64a1.2 1.2 0 0 0 0 1.7L8.9 11.88a1.2 1.2 0 0 0 1.7 0l1.4-1.4 1.4 1.4a1.2 1.2 0 0 0 1.7 0L21.64 5.34a1.2 1.2 0 0 0 0-1.7z" /><path d="m18 12 4 4" /><path d="m6 12-4 4" /><path d="m12 12 4 10h-8l4-10z" />' },
-    Air: { svgContent: '<path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />' },
-    Military: { svgContent: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>' },
-    Police: { svgContent: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/>' },
+    Vehicle: { svgContent: '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C20.7 10.6 21 10.1 21 9.5V7c0-.6-.4-1-1-1H4c-.6 0-1 .4-1 1v2.5c0 .6.3 1.1.8 1.4C3.7 11.3 3 12.1 3 13v3c0 .6.4 1 1 1h2" /><path d="M7 17h10" /><path d="M12 17v-4h-2v4" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" />' },
+    Personnel: { svgContent: '<circle cx="12" cy="5" r="3" /><path d="M6.5 8.5c1.7-1 3.3-1 5 0" /><path d="M12 11v4" /><path d="M15 11.5c-1.5 1.5-3 1.5-4.5 0" /><path d="M7 18c2.5 1.5 5.5 1.5 8 0" /><path d="M10 21h4" />' },
+    Support: { svgContent: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" />' },
+    Air: { svgContent: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1.5-1.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />' },
+    Military: { svgContent: '<path d="M20 18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8L8 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16z" /><path d="M8 18V4" /><path d="m14 10-4 4" /><path d="m10 10 4 4" />' },
+    Police: { svgContent: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m9 12 2 2 4-4" />' },
 };
 
 const createSymbolIcon = (symbolKey: string) => {
@@ -68,7 +68,7 @@ const createSymbolIcon = (symbolKey: string) => {
     if (!symbol) return new L.Icon.Default();
     
     const iconHtml = `
-        <div class="bg-card/50 border border-border/20 rounded-md p-1 w-8 h-8 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-card/50 border border-border/20 rounded-md p-1 w-8 h-8 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${symbol.color}">
                 <use href="#${symbol.icon.displayName || symbol.icon.name}" />
             </svg>
@@ -165,13 +165,13 @@ const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string 
 );
 
 
-export default function MapView({ units, highlightedUnitId, selectedUnit, controlCenterPosition, drawnItems, patrolAssignments, onMapClick, onUnitClick, onShapesChange, isPositioningMode }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId, selectedUnit, controlCenterPosition, drawnItems, assignments, onMapClick, onUnitClick, onShapesChange, isPositioningMode }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
   const editableLayersRef = React.useRef<L.FeatureGroup | null>(null);
   const meshLinesLayerRef = React.useRef<L.FeatureGroup | null>(null);
-  const patrolZonesLayerRef = React.useRef<L.FeatureGroup | null>(null);
+  const assignmentZonesLayerRef = React.useRef<L.FeatureGroup | null>(null);
   const markersRef = React.useRef<Record<number, L.Marker>>({});
   const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
@@ -225,7 +225,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
 
       editableLayersRef.current = new L.FeatureGroup().addTo(map);
       meshLinesLayerRef.current = new L.FeatureGroup().addTo(map);
-      patrolZonesLayerRef.current = new L.FeatureGroup().addTo(map);
+      assignmentZonesLayerRef.current = new L.FeatureGroup().addTo(map);
 
       setTimeout(() => map.invalidateSize(), 100);
     }
@@ -512,25 +512,43 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
     });
   }, [units, showMeshConnections, controlCenterPosition]);
 
-  // Draw patrol zones
+  // Draw assignment zones and routes
   React.useEffect(() => {
-    const layer = patrolZonesLayerRef.current;
+    const layer = assignmentZonesLayerRef.current;
     if (!layer) return;
 
     layer.clearLayers();
 
-    patrolAssignments.forEach(assignment => {
-        L.circle(assignment.target, {
-            radius: assignment.radius * 1000, // km to meters
-            color: 'hsl(var(--accent))',
-            weight: 2,
-            opacity: 0.8,
-            dashArray: '5, 10',
-            fillColor: 'hsl(var(--accent))',
-            fillOpacity: 0.1,
-        }).addTo(layer);
+    assignments.forEach(assignment => {
+        if (assignment.type === 'patrol') {
+            L.circle(assignment.target, {
+                radius: assignment.radius * 1000, // km to meters
+                color: 'hsl(var(--accent))',
+                weight: 2,
+                opacity: 0.8,
+                dashArray: '5, 10',
+                fillColor: 'hsl(var(--accent))',
+                fillOpacity: 0.1,
+            }).addTo(layer);
+        } else if (assignment.type === 'pendulum') {
+            L.polyline(assignment.points, {
+                color: 'hsl(var(--accent))',
+                weight: 3,
+                opacity: 0.8,
+                dashArray: '10, 10',
+            }).addTo(layer);
+            assignment.points.forEach(point => {
+                L.circleMarker(point, {
+                    radius: 5,
+                    color: 'hsl(var(--accent))',
+                    weight: 2,
+                    fillColor: 'hsl(var(--background))',
+                    fillOpacity: 1,
+                }).addTo(layer);
+            });
+        }
     });
-  }, [patrolAssignments]);
+  }, [assignments]);
 
   // Perform initial centering only once
   React.useEffect(() => {
@@ -612,7 +630,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
             }
           }
           title="Kartenstil wechseln"
-          className="rounded-full bg-card/70 backdrop-blur-sm"
+          className="rounded-full bg-card/70"
         >
           <Globe className="h-5 w-5" />
         </Button>
@@ -621,7 +639,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
             size="icon"
             onClick={handleRecenter}
             title="Auf Einheiten zentrieren"
-            className="rounded-full bg-card/70 backdrop-blur-sm"
+            className="rounded-full bg-card/70"
         >
             <Target className="h-5 w-5" />
         </Button>
@@ -630,7 +648,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
             size="icon"
             onClick={() => setShowMeshConnections(prev => !prev)}
             title="Mesh-Verbindungen umschalten"
-            className="rounded-full bg-card/70 backdrop-blur-sm"
+            className="rounded-full bg-card/70"
         >
             <Network className="h-5 w-5" />
         </Button>

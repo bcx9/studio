@@ -1,21 +1,21 @@
 
-import type { MeshUnit, Group, TypeMapping, StatusMapping, UnitType, ToastMessage, PatrolAssignment } from '@/types/mesh';
+import type { MeshUnit, Group, TypeMapping, StatusMapping, UnitType, ToastMessage, Assignment } from '@/types/mesh';
 import { DEFAULT_CODE_TO_UNIT_TYPE, DEFAULT_CODE_TO_UNIT_STATUS } from '@/types/mesh';
 import { calculateBearing, calculateDistance, createReverseMapping } from '@/lib/utils';
 
 const baseCoords = { lat: 53.19745, lng: 10.84507 };
 
 const initialUnits: MeshUnit[] = [
-  { id: 1, name: 'HLF-20', type: 'Vehicle', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 45, battery: 95, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -65, hopCount: 1, patrolTarget: null },
-  { id: 2, name: 'AT-1', type: 'Personnel', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 3, heading: 180, battery: 88, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 2, signalStrength: -82, hopCount: 2, patrolTarget: null },
-  { id: 3, name: 'ELW-1', type: 'Vehicle', status: 'Alarm', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 270, battery: 15, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -71, hopCount: 1, patrolTarget: null },
-  { id: 4, name: 'AT-2', type: 'Personnel', status: 'Offline', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 0, battery: 0, timestamp: Date.now() - 600000, sendInterval: 30, isActive: false, isExternallyPowered: false, lastMessage: null, groupId: 2, signalStrength: -120, hopCount: 0, patrolTarget: null },
-  { id: 5, name: 'DLK-23', type: 'Vehicle', status: 'Idle', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 90, battery: 100, timestamp: Date.now(), sendInterval: 8, isActive: true, isExternallyPowered: true, lastMessage: null, groupId: 1, signalStrength: -68, hopCount: 1, patrolTarget: null },
-  { id: 6, name: 'RTW', type: 'Vehicle', status: 'Moving', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 45, heading: 120, battery: 75, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 3, signalStrength: -75, hopCount: 1, patrolTarget: null },
-  { id: 7, name: 'NEF', type: 'Vehicle', status: 'Moving', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 70, heading: 110, battery: 80, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 3, signalStrength: -80, hopCount: 2, patrolTarget: null },
-  { id: 8, name: 'MTF', type: 'Vehicle', status: 'Idle', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 300, battery: 90, timestamp: Date.now(), sendInterval: 15, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -88, hopCount: 2, patrolTarget: null },
-  { id: 9, name: 'Wassertrupp', type: 'Support', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 2, heading: 210, battery: 92, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 2, signalStrength: -91, hopCount: 3, patrolTarget: null },
-  { id: 10, name: 'Einsatzleiter', type: 'Personnel', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 1, heading: 0, battery: 98, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -60, hopCount: 1, patrolTarget: null },
+  { id: 1, name: 'HLF-20', type: 'Vehicle', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 45, battery: 95, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -65, hopCount: 1, patrolTarget: null, patrolTargetIndex: null },
+  { id: 2, name: 'AT-1', type: 'Personnel', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 3, heading: 180, battery: 88, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 2, signalStrength: -82, hopCount: 2, patrolTarget: null, patrolTargetIndex: null },
+  { id: 3, name: 'ELW-1', type: 'Vehicle', status: 'Alarm', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 270, battery: 15, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -71, hopCount: 1, patrolTarget: null, patrolTargetIndex: null },
+  { id: 4, name: 'AT-2', type: 'Personnel', status: 'Offline', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 0, battery: 0, timestamp: Date.now() - 600000, sendInterval: 30, isActive: false, isExternallyPowered: false, lastMessage: null, groupId: 2, signalStrength: -120, hopCount: 0, patrolTarget: null, patrolTargetIndex: null },
+  { id: 5, name: 'DLK-23', type: 'Vehicle', status: 'Idle', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 90, battery: 100, timestamp: Date.now(), sendInterval: 8, isActive: true, isExternallyPowered: true, lastMessage: null, groupId: 1, signalStrength: -68, hopCount: 1, patrolTarget: null, patrolTargetIndex: null },
+  { id: 6, name: 'RTW', type: 'Vehicle', status: 'Moving', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 45, heading: 120, battery: 75, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 3, signalStrength: -75, hopCount: 1, patrolTarget: null, patrolTargetIndex: null },
+  { id: 7, name: 'NEF', type: 'Vehicle', status: 'Moving', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 70, heading: 110, battery: 80, timestamp: Date.now(), sendInterval: 5, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 3, signalStrength: -80, hopCount: 2, patrolTarget: null, patrolTargetIndex: null },
+  { id: 8, name: 'MTF', type: 'Vehicle', status: 'Idle', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: 300, battery: 90, timestamp: Date.now(), sendInterval: 15, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -88, hopCount: 2, patrolTarget: null, patrolTargetIndex: null },
+  { id: 9, name: 'Wassertrupp', type: 'Support', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 2, heading: 210, battery: 92, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 2, signalStrength: -91, hopCount: 3, patrolTarget: null, patrolTargetIndex: null },
+  { id: 10, name: 'Einsatzleiter', type: 'Personnel', status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 1, heading: 0, battery: 98, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: 1, signalStrength: -60, hopCount: 1, patrolTarget: null, patrolTargetIndex: null },
 ];
 
 const initialGroups: Group[] = [
@@ -29,7 +29,7 @@ interface ServerState {
     groups: Group[];
     typeMapping: TypeMapping;
     statusMapping: StatusMapping;
-    patrolAssignments: PatrolAssignment[];
+    assignments: Assignment[];
     simulationInterval: NodeJS.Timeout | null;
     isRallying: boolean;
     controlCenterPosition: { lat: number, lng: number } | null;
@@ -43,7 +43,7 @@ let state: ServerState = {
     groups: initialGroups,
     typeMapping: DEFAULT_CODE_TO_UNIT_TYPE,
     statusMapping: DEFAULT_CODE_TO_UNIT_STATUS,
-    patrolAssignments: [],
+    assignments: [],
     simulationInterval: null,
     isRallying: false,
     controlCenterPosition: { lat: 53.19745, lng: 10.84507 },
@@ -126,35 +126,51 @@ export function startSimulation() {
             
             let targetPosition: { lat: number; lng: number } | null = null;
             let targetSpeed = 0; // Default to stopping
+            let newPatrolTarget = unit.patrolTarget;
+            let newPatrolTargetIndex = unit.patrolTargetIndex;
 
             const responseTarget = responderTargetMap.get(unit.id);
             const groupCenter = unit.groupId ? groupCenterMap.get(unit.groupId) : null;
-            const patrolAssignment = state.patrolAssignments.find(p => p.groupId === unit.groupId);
+            const assignment = state.assignments.find(a => a.groupId === unit.groupId);
             
             // --- Movement Logic ---
-            // Priority: 1. Rallying, 2. Alarm Response, 3. Patrol, 4. Group Cohesion, 5. Default
+            // Priority: 1. Rallying, 2. Alarm Response, 3. Patrol/Pendulum, 4. Group Cohesion, 5. Default
             if (isRallyingMode && rallyPosition) {
                 targetPosition = rallyPosition;
-                unit.patrolTarget = null;
+                newPatrolTarget = null;
+                newPatrolTargetIndex = null;
             } else if (responseTarget) {
                 targetPosition = responseTarget.position;
-                unit.patrolTarget = null;
-            } else if (patrolAssignment) {
-                 if (!unit.patrolTarget || calculateDistance(lat, lng, unit.patrolTarget.lat, unit.patrolTarget.lng) < 0.2) {
-                    const { target, radius } = patrolAssignment;
-                    const randomAngle = Math.random() * 2 * Math.PI;
-                    const randomRadius = radius * Math.sqrt(Math.random());
-                    const earthRadiusKm = 6371;
+                newPatrolTarget = null;
+                newPatrolTargetIndex = null;
+            } else if (assignment) {
+                if(assignment.type === 'patrol') {
+                    if (!unit.patrolTarget || calculateDistance(lat, lng, unit.patrolTarget.lat, unit.patrolTarget.lng) < 0.2) {
+                        const { target, radius } = assignment;
+                        const randomAngle = Math.random() * 2 * Math.PI;
+                        const randomRadius = radius * Math.sqrt(Math.random());
+                        const earthRadiusKm = 6371;
 
-                    const latRad = target.lat * Math.PI / 180;
-                    const lonRad = target.lng * Math.PI / 180;
-                    
-                    const newLatRad = Math.asin(Math.sin(latRad) * Math.cos(randomRadius / earthRadiusKm) + Math.cos(latRad) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(randomAngle));
-                    const newLonRad = lonRad + Math.atan2(Math.sin(randomAngle) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(latRad), Math.cos(randomRadius / earthRadiusKm) - Math.sin(latRad) * Math.sin(newLatRad));
+                        const latRad = target.lat * Math.PI / 180;
+                        const lonRad = target.lng * Math.PI / 180;
+                        
+                        const newLatRad = Math.asin(Math.sin(latRad) * Math.cos(randomRadius / earthRadiusKm) + Math.cos(latRad) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(randomAngle));
+                        const newLonRad = lonRad + Math.atan2(Math.sin(randomAngle) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(latRad), Math.cos(randomRadius / earthRadiusKm) - Math.sin(latRad) * Math.sin(newLatRad));
 
-                    unit.patrolTarget = { lat: newLatRad * 180 / Math.PI, lng: newLonRad * 180 / Math.PI };
+                        newPatrolTarget = { lat: newLatRad * 180 / Math.PI, lng: newLonRad * 180 / Math.PI };
+                    }
+                    targetPosition = newPatrolTarget;
+                } else if (assignment.type === 'pendulum') {
+                    if (newPatrolTargetIndex === null || newPatrolTargetIndex >= assignment.points.length) {
+                        newPatrolTargetIndex = 0;
+                    }
+                    targetPosition = assignment.points[newPatrolTargetIndex];
+
+                    if (calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng) < 0.1) {
+                        newPatrolTargetIndex = (newPatrolTargetIndex + 1) % assignment.points.length;
+                        targetPosition = assignment.points[newPatrolTargetIndex];
+                    }
                 }
-                targetPosition = unit.patrolTarget;
             } else if (groupCenter) {
                 const distanceToGroupCenter = calculateDistance(lat, lng, groupCenter.lat, groupCenter.lng);
                 if (distanceToGroupCenter > 1.0) { // If unit is straying too far (> 1km), move back
@@ -233,7 +249,7 @@ export function startSimulation() {
                 state = { ...state, messages: [...state.messages, { unitName: unit.name, text: messageText }] };
             }
             
-            return { ...unit, position: { lat, lng }, speed: parseFloat(newSpeed.toFixed(1)), heading: parseInt(newHeading.toFixed(0)), battery: parseFloat(newBattery.toFixed(2)), status: newStatus, isActive: newBattery > 0 || unit.isExternallyPowered, timestamp: now, lastMessage: newLastMessage };
+            return { ...unit, position: { lat, lng }, speed: parseFloat(newSpeed.toFixed(1)), heading: parseInt(newHeading.toFixed(0)), battery: parseFloat(newBattery.toFixed(2)), status: newStatus, isActive: newBattery > 0 || unit.isExternallyPowered, timestamp: now, lastMessage: newLastMessage, patrolTarget: newPatrolTarget, patrolTargetIndex: newPatrolTargetIndex };
         });
         
         // Step 2: Simulate mesh network topology (hops and signal strength)
@@ -335,7 +351,7 @@ export function getSnapshot() {
         messages,
         typeMapping: state.typeMapping,
         statusMapping: state.statusMapping,
-        patrolAssignments: state.patrolAssignments,
+        assignments: state.assignments,
     };
 }
 
@@ -365,7 +381,7 @@ export function addUnit() {
     const type = availableTypes.length > 0 ? availableTypes[Math.floor(Math.random() * availableTypes.length)] : 'Support';
     
     const name = `${type}-${newId}`;
-    const newUnit: MeshUnit = { id: newId, name, type, status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: Math.floor(Math.random() * 360), battery: 100, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: null, signalStrength: -75, hopCount: 1, patrolTarget: null };
+    const newUnit: MeshUnit = { id: newId, name, type, status: 'Online', position: { lat: baseCoords.lat + (Math.random() - 0.5) * 0.02, lng: baseCoords.lng + (Math.random() - 0.5) * 0.02 }, speed: 0, heading: Math.floor(Math.random() * 360), battery: 100, timestamp: Date.now(), sendInterval: 10, isActive: true, isExternallyPowered: false, lastMessage: null, groupId: null, signalStrength: -75, hopCount: 1, patrolTarget: null, patrolTargetIndex: null };
     state = { ...state, units: [...state.units, newUnit] };
 }
 
@@ -438,8 +454,8 @@ export function removeGroup(groupId: number) {
     state = {
         ...state,
         groups: state.groups.filter(g => g.id !== groupId),
-        units: state.units.map(u => u.groupId === groupId ? { ...u, groupId: null, patrolTarget: null } : u),
-        patrolAssignments: state.patrolAssignments.filter(p => p.groupId !== groupId),
+        units: state.units.map(u => u.groupId === groupId ? { ...u, groupId: null, patrolTarget: null, patrolTargetIndex: null } : u),
+        assignments: state.assignments.filter(p => p.groupId !== groupId),
     };
 }
 
@@ -451,25 +467,30 @@ export function assignUnitToGroup(unitId: number, groupId: number | null) {
 }
 
 export function assignPatrolToGroup(groupId: number, target: { lat: number, lng: number }, radius: number) {
-    const existing = state.patrolAssignments.find(p => p.groupId === groupId);
-    if (existing) {
-        state = {
-            ...state,
-            patrolAssignments: state.patrolAssignments.map(p => p.groupId === groupId ? { ...p, target, radius } : p),
-        };
-    } else {
-        state = {
-            ...state,
-            patrolAssignments: [...state.patrolAssignments, { groupId, target, radius }],
-        };
-    }
+    const newAssignment: Assignment = { type: 'patrol', groupId, target, radius };
+    const otherAssignments = state.assignments.filter(p => p.groupId !== groupId);
+    state = {
+        ...state,
+        assignments: [...otherAssignments, newAssignment],
+    };
 }
 
-export function removePatrolFromGroup(groupId: number) {
+
+export function assignPendulumToGroup(groupId: number, points: { lat: number, lng: number }[]) {
+    const newAssignment: Assignment = { type: 'pendulum', groupId, points };
+    const otherAssignments = state.assignments.filter(p => p.groupId !== groupId);
+    state = {
+        ...state,
+        assignments: [...otherAssignments, newAssignment],
+        units: state.units.map(u => u.groupId === groupId ? { ...u, patrolTarget: null, patrolTargetIndex: 0 } : u),
+    };
+}
+
+export function removeAssignmentFromGroup(groupId: number) {
      state = {
         ...state,
-        patrolAssignments: state.patrolAssignments.filter(p => p.groupId !== groupId),
-        units: state.units.map(u => u.groupId === groupId ? { ...u, patrolTarget: null } : u),
+        assignments: state.assignments.filter(p => p.groupId !== groupId),
+        units: state.units.map(u => u.groupId === groupId ? { ...u, patrolTarget: null, patrolTargetIndex: null } : u),
     };
 }
 
@@ -516,7 +537,7 @@ export function removeStatusMapping(id: number) {
         throw new Error(`Der Status "${statusName}" wird noch von ${unitsUsingStatus.length} Einheit(en) verwendet und kann nicht gelöscht werden.`);
     }
     
-    const newMapping = { ...state.statusMapping };
+    const newMapping = { ...state.typeMapping };
     delete newMapping[id];
     state = { ...state, statusMapping: newMapping };
 }

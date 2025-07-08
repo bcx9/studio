@@ -31,6 +31,7 @@ export interface MeshUnit {
   signalStrength: number; // RSSI in dBm
   hopCount: number;
   patrolTarget: { lat: number; lng: number } | null;
+  patrolTargetIndex: number | null;
 }
 
 export interface Group {
@@ -40,9 +41,19 @@ export interface Group {
 
 export interface PatrolAssignment {
     groupId: number;
+    type: 'patrol';
     target: { lat: number; lng: number };
     radius: number; // in km
 }
+
+export interface PendulumAssignment {
+    groupId: number;
+    type: 'pendulum';
+    points: { lat: number; lng: number }[];
+}
+
+export type Assignment = PatrolAssignment | PendulumAssignment;
+
 
 export type TypeMapping = Record<number, string>;
 export type StatusMapping = Record<number, string>;
@@ -53,7 +64,7 @@ export interface NetworkSnapshot {
     messages: ToastMessage[];
     typeMapping: TypeMapping;
     statusMapping: StatusMapping;
-    patrolAssignments: PatrolAssignment[];
+    assignments: Assignment[];
 }
 
 // Default configurations, can be overridden by the user in the admin panel
