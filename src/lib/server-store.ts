@@ -214,17 +214,8 @@ export function startSimulation() {
                 }
             }
 
-            // Apply realistic, time-based acceleration/deceleration
-            const accelerationKmhS = (unit.type === 'Air' ? 40 : (unit.type === 'Personnel' || unit.type === 'Support' ? 2 : 15));
-            const decelerationKmhS = accelerationKmhS * 2; // Decelerate faster
-
-            if (newSpeed < targetSpeed) {
-                newSpeed += accelerationKmhS * timeSinceLastUpdate;
-                newSpeed = Math.min(newSpeed, targetSpeed);
-            } else if (newSpeed > targetSpeed) {
-                newSpeed -= decelerationKmhS * timeSinceLastUpdate;
-                newSpeed = Math.max(newSpeed, targetSpeed);
-            }
+            // Instantaneous speed change as requested
+            newSpeed = targetSpeed;
 
             // --- End of Movement Logic ---
 
@@ -335,7 +326,7 @@ export function startSimulation() {
         }
         
         state = { ...state, units: updatedUnits };
-    }, 1000);
+    }, 250);
 
     state = { ...state, simulationInterval: intervalId };
 }
