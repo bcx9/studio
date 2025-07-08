@@ -56,7 +56,33 @@ export function startSimulation() {
         const rallyPosition = state.controlCenterPosition;
         const now = Date.now();
         
+        // --- Pre-calculation for Alarm Response ---
         const alarmUnits = state.units.filter(u => u.status === 'Alarm' && u.isActive);
+        const otherUnits = state.units.filter(u => u.status !== 'Alarm' && u.isActive);
+        const responderTargetMap = new Map<number, MeshUnit>();
+
+        if (alarmUnits.length > 0 && otherUnits.length > 0) {
+            alarmUnits.forEach(alarmUnit => {
+                // Find the 3 closest units to this alarm
+                const unitsByDistance = otherUnits
+                    .map(otherUnit => ({
+                        unit: otherUnit,
+                        distance: calculateDistance(
+                            alarmUnit.position.lat, alarmUnit.position.lng,
+                            otherUnit.position.lat, otherUnit.position.lng
+                        ),
+                    }))
+                    .sort((a, b) => a.distance - b.distance);
+                
+                const responders = unitsByDistance.slice(0, 3);
+                
+                responders.forEach(responder => {
+                    responderTargetMap.set(responder.unit.id, alarmUnit);
+                });
+            });
+        }
+        // --- End of Pre-calculation ---
+
 
         // Step 1: Update individual unit properties (movement, battery, etc.)
         let updatedUnits = state.units.map(unit => {
@@ -86,6 +112,8 @@ export function startSimulation() {
             let newHeading = unit.heading;
             let newSpeed = unit.speed;
             
+            const responseTarget = responderTargetMap.get(unit.id);
+            
             // --- Movement Logic ---
             // Priority: 1. Rallying, 2. Alarm Response, 3. Default
             if (isRallyingMode && rallyPosition) {
@@ -114,40 +142,29 @@ export function startSimulation() {
                         newHeading = (headingUpdate % 360 + 360) % 360;
                     }
                 }
-            } else if (unit.status !== 'Alarm' && alarmUnits.length > 0) {
-                // If not rallying, check for nearby alarms
-                let closestAlarmUnit: MeshUnit | null = null;
-                let minDistance = 5; // Respond to alarms within 5km
+            } else if (responseTarget) {
+                 // This unit is a designated responder
+                 const distanceToTarget = calculateDistance(lat, lng, responseTarget.position.lat, responseTarget.position.lng);
 
-                alarmUnits.forEach(alarmUnit => {
-                    const distance = calculateDistance(lat, lng, alarmUnit.position.lat, alarmUnit.position.lng);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        closestAlarmUnit = alarmUnit;
-                    }
-                });
-                
-                if (closestAlarmUnit) {
-                    // Respond to alarm: move towards it at high speed
-                    newHeading = calculateBearing(lat, lng, closestAlarmUnit.position.lat, closestAlarmUnit.position.lng);
-                    switch(unit.type) {
-                        case 'Vehicle':
-                        case 'Military':
-                        case 'Police':
-                            newSpeed = Math.min(120, unit.speed + Math.random() * 10);
-                            break;
-                        case 'Air':
-                            newSpeed = Math.min(500, unit.speed + Math.random() * 30);
-                            break;
-                        case 'Personnel':
-                        case 'Support':
-                            newSpeed = Math.min(10, unit.speed + Math.random() * 1.5);
-                            break;
-                    }
-                } else {
-                     // Default movement if no nearby alarm
-                     newSpeed = Math.max(0, unit.speed + (Math.random() - 0.45) * 3);
-                }
+                 if (distanceToTarget > 0.1) { // Stop when it gets close
+                     newHeading = calculateBearing(lat, lng, responseTarget.position.lat, responseTarget.position.lng);
+                     switch(unit.type) {
+                         case 'Vehicle':
+                         case 'Military':
+                         case 'Police':
+                             newSpeed = Math.min(120, unit.speed + Math.random() * 10);
+                             break;
+                         case 'Air':
+                             newSpeed = Math.min(500, unit.speed + Math.random() * 30);
+                             break;
+                         case 'Personnel':
+                         case 'Support':
+                             newSpeed = Math.min(10, unit.speed + Math.random() * 1.5);
+                             break;
+                     }
+                 } else {
+                     newSpeed = 0; // Arrived at the scene
+                 }
             } else {
                 // Default random movement logic
                 switch(unit.type) {
