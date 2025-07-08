@@ -34,11 +34,11 @@ import { AiAssistantInput, aiAssistantFlow } from '@/ai/flows/ai-assistant-flow'
 
 
 export async function getNetworkSnapshot() {
-  return getSnapshot();
+  return await getSnapshot();
 }
 
 export async function getGatewayStatus() {
-    return { isConnected: isSimulationRunning() };
+    return { isConnected: await isSimulationRunning() };
 }
 
 export async function connectToGateway(settings: ConnectionSettings): Promise<{ success: boolean; message: string }> {
@@ -51,18 +51,18 @@ export async function connectToGateway(settings: ConnectionSettings): Promise<{ 
       return { success: false, message: `Fehler: Verbindung zu ${settings.ipAddress}:${settings.port} fehlgeschlagen. (Simuliert)` };
   }
 
-  startSimulation();
+  await startSimulation();
   return { success: true, message: 'Verbindung zum Gateway erfolgreich hergestellt. Sende Daten... (Simuliert)' };
 }
 
 export async function disconnectFromGateway(): Promise<{ success: boolean; message: string }> {
-    stopSimulation();
+    await stopSimulation();
     return { success: true, message: 'Verbindung zum Gateway getrennt.' };
 }
 
 export async function getNetworkAnalysis(): Promise<{ summary: string; details: string }> {
   try {
-    const { units, typeMapping, statusMapping } = getConfig();
+    const { units, typeMapping, statusMapping } = await getConfig();
 
     const UNIT_TYPE_TO_CODE = createReverseMapping(typeMapping);
     const UNIT_STATUS_TO_CODE = createReverseMapping(statusMapping);
@@ -102,83 +102,83 @@ export async function getNetworkAnalysis(): Promise<{ summary: string; details: 
 }
 
 export async function loadAdminSettings() {
-    const { typeMapping, statusMapping } = getConfig();
+    const { typeMapping, statusMapping } = await getConfig();
     return { typeMapping, statusMapping };
 }
 
 export async function saveAdminSettings(config: {typeMapping: TypeMapping, statusMapping: StatusMapping}) {
-    updateConfig(config);
+    await updateConfig(config);
     return { success: true };
 }
 
 export async function updateUnitOnBackend(unit: MeshUnit) {
-    updateUnit(unit);
+    await updateUnit(unit);
     return { success: true };
 }
 
 export async function addUnitOnBackend() {
-    addUnitInStore();
+    await addUnitInStore();
     return { success: true };
 }
 
 export async function removeUnitOnBackend(unitId: number) {
-    removeUnitInStore(unitId);
+    await removeUnitInStore(unitId);
     return { success: true };
 }
 
 export async function chargeUnitOnBackend(unitId: number) {
-    chargeUnitInStore(unitId);
+    await chargeUnitInStore(unitId);
     return { success: true };
 }
 
 export async function sendMessageOnBackend(message: string, target: 'all' | number) {
-    sendMessageInStore(message, target);
+    await sendMessageInStore(message, target);
     return { success: true };
 }
 
 export async function repositionAllUnitsOnBackend(radius: number) {
-    repositionAllUnitsInStore(radius);
+    await repositionAllUnitsInStore(radius);
     return { success: true };
 }
 
 export async function addGroupOnBackend(name: string) {
-    addGroupInStore(name);
+    await addGroupInStore(name);
     return { success: true };
 }
 
 export async function updateGroupOnBackend(group: Group) {
-    updateGroupInStore(group);
+    await updateGroupInStore(group);
     return { success: true };
 }
 
 export async function removeGroupOnBackend(groupId: number) {
-    removeGroupInStore(groupId);
+    await removeGroupInStore(groupId);
     return { success: true };
 }
 
 export async function assignUnitToGroupOnBackend(unitId: number, groupId: number | null) {
-    assignUnitToGroupInStore(unitId, groupId);
+    await assignUnitToGroupInStore(unitId, groupId);
     return { success: true };
 }
 
 export async function assignPatrolToGroupOnBackend(groupId: number, target: { lat: number; lng: number }, radius: number) {
-    assignPatrolToGroupInStore(groupId, target, radius);
+    await assignPatrolToGroupInStore(groupId, target, radius);
     return { success: true };
 }
 
 export async function assignPendulumToGroupOnBackend(groupId: number, points: { lat: number, lng: number }[]) {
-    assignPendulumToGroupInStore(groupId, points);
+    await assignPendulumToGroupInStore(groupId, points);
     return { success: true };
 }
 
 export async function removeAssignmentFromGroupOnBackend(groupId: number) {
-    removeAssignmentFromGroupInStore(groupId);
+    await removeAssignmentFromGroupInStore(groupId);
     return { success: true };
 }
 
 export async function addTypeMapping(id: number, name: string) {
     try {
-        addTypeMappingInStore(id, name);
+        await addTypeMappingInStore(id, name);
         return { success: true };
     } catch (e: any) {
         return { success: false, message: e.message };
@@ -186,7 +186,7 @@ export async function addTypeMapping(id: number, name: string) {
 }
 export async function removeTypeMapping(id: number) {
     try {
-        removeTypeMappingInStore(id);
+        await removeTypeMappingInStore(id);
         return { success: true };
     } catch (e: any) {
         return { success: false, message: e.message };
@@ -195,7 +195,7 @@ export async function removeTypeMapping(id: number) {
 
 export async function addStatusMapping(id: number, name: string) {
      try {
-        addStatusMappingInStore(id, name);
+        await addStatusMappingInStore(id, name);
         return { success: true };
     } catch (e: any) {
         return { success: false, message: e.message };
@@ -203,7 +203,7 @@ export async function addStatusMapping(id: number, name: string) {
 }
 export async function removeStatusMapping(id: number) {
     try {
-        removeStatusMappingInStore(id);
+        await removeStatusMappingInStore(id);
         return { success: true };
     } catch (e: any) {
         return { success: false, message: e.message };

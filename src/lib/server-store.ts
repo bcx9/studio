@@ -1,4 +1,6 @@
 
+'use server';
+
 import type { MeshUnit, Group, TypeMapping, StatusMapping, UnitType, ToastMessage, Assignment } from '@/types/mesh';
 import { DEFAULT_CODE_TO_UNIT_TYPE, DEFAULT_CODE_TO_UNIT_STATUS } from '@/types/mesh';
 import { calculateBearing, calculateDistance, createReverseMapping } from '@/lib/utils';
@@ -50,7 +52,7 @@ let state: ServerState = {
     messages: []
 };
 
-export function startSimulation() {
+export async function startSimulation() {
     if (state.simulationInterval) return;
 
     const intervalId = setInterval(() => {
@@ -99,7 +101,6 @@ export function startSimulation() {
         let updatedUnits = state.units.map(unit => {
             let newUnitState = { ...unit };
 
-            // Handle inactive units first
             if (!newUnitState.isActive) {
                 if (newUnitState.status !== 'Offline') {
                     newUnitState.status = 'Offline';
@@ -113,46 +114,57 @@ export function startSimulation() {
             let { lat, lng } = newUnitState.position;
             
             let targetPosition: { lat: number; lng: number } | null = null;
+            let targetSpeed: number = 0;
+            
+            // Determine max speed based on type
+            switch(newUnitState.type) {
+                case 'Vehicle': case 'Military': case 'Police': targetSpeed = 80; break;
+                case 'Air': targetSpeed = 300; break;
+                case 'Personnel': case 'Support': targetSpeed = 5; break;
+                default: targetSpeed = 5;
+            }
             
             const responseTarget = responderTargetMap.get(newUnitState.id);
             const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
             const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
             
+            // --- Determine Target Position based on priority ---
             if (isRallyingMode && rallyPosition) {
                 targetPosition = rallyPosition;
-                newUnitState.patrolTarget = null;
-                newUnitState.patrolTargetIndex = null;
             } else if (responseTarget) {
                 targetPosition = responseTarget.position;
-                newUnitState.patrolTarget = null;
-                newUnitState.patrolTargetIndex = null;
             } else if (assignment) {
                 if(assignment.type === 'patrol') {
-                    if (!newUnitState.patrolTarget || calculateDistance(lat, lng, newUnitState.patrolTarget.lat, newUnitState.patrolTarget.lng) < 0.2) {
-                        const { target, radius } = assignment;
-                        const randomAngle = Math.random() * 2 * Math.PI;
-                        const randomRadius = radius * Math.sqrt(Math.random());
-                        const earthRadiusKm = 6371;
+                    const { target: patrolCenter, radius } = assignment;
+                    const distanceToCenter = calculateDistance(lat, lng, patrolCenter.lat, patrolCenter.lng);
 
-                        const latRad = target.lat * Math.PI / 180;
-                        const lonRad = target.lng * Math.PI / 180;
-                        
-                        const newLatRad = Math.asin(Math.sin(latRad) * Math.cos(randomRadius / earthRadiusKm) + Math.cos(latRad) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(randomAngle));
-                        const newLonRad = lonRad + Math.atan2(Math.sin(randomAngle) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(latRad), Math.cos(randomRadius / earthRadiusKm) - Math.sin(latRad) * Math.sin(newLatRad));
-
-                        newUnitState.patrolTarget = { lat: newLatRad * 180 / Math.PI, lng: newLonRad * 180 / Math.PI };
+                    // If outside the patrol radius, move to the center first.
+                    if (distanceToCenter > radius) {
+                        targetPosition = patrolCenter;
+                    } else {
+                        // If inside, find a new random point or continue to the current one.
+                        if (!newUnitState.patrolTarget || calculateDistance(lat, lng, newUnitState.patrolTarget.lat, newUnitState.patrolTarget.lng) < 0.2) {
+                            const randomAngle = Math.random() * 2 * Math.PI;
+                            const randomRadius = radius * Math.sqrt(Math.random());
+                            const earthRadiusKm = 6371;
+                            const latRad = patrolCenter.lat * Math.PI / 180;
+                            const lonRad = patrolCenter.lng * Math.PI / 180;
+                            const newLatRad = Math.asin(Math.sin(latRad) * Math.cos(randomRadius / earthRadiusKm) + Math.cos(latRad) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(randomAngle));
+                            const newLonRad = lonRad + Math.atan2(Math.sin(randomAngle) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(latRad), Math.cos(randomRadius / earthRadiusKm) - Math.sin(latRad) * Math.sin(newLatRad));
+                            newUnitState.patrolTarget = { lat: newLatRad * 180 / Math.PI, lng: newLonRad * 180 / Math.PI };
+                        }
+                        targetPosition = newUnitState.patrolTarget;
                     }
-                    targetPosition = newUnitState.patrolTarget;
                 } else if (assignment.type === 'pendulum') {
                     if (newUnitState.patrolTargetIndex === null || newUnitState.patrolTargetIndex >= assignment.points.length) {
                         newUnitState.patrolTargetIndex = 0;
                     }
-                    targetPosition = assignment.points[newUnitState.patrolTargetIndex];
-
-                    if (calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng) < 0.1) {
+                    let currentPendulumTarget = assignment.points[newUnitState.patrolTargetIndex];
+                    if (calculateDistance(lat, lng, currentPendulumTarget.lat, currentPendulumTarget.lng) < 0.1) {
                         newUnitState.patrolTargetIndex = (newUnitState.patrolTargetIndex + 1) % assignment.points.length;
-                        targetPosition = assignment.points[newUnitState.patrolTargetIndex];
+                        currentPendulumTarget = assignment.points[newUnitState.patrolTargetIndex];
                     }
+                    targetPosition = currentPendulumTarget;
                 }
             } else if (groupCenter) {
                 const distanceToGroupCenter = calculateDistance(lat, lng, groupCenter.lat, groupCenter.lng);
@@ -161,40 +173,34 @@ export function startSimulation() {
                 }
             }
             
+            // --- Update Position and Speed based on Target ---
             if (targetPosition) {
                 const distanceToTarget = calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng);
                 const stopDistance = (targetPosition === rallyPosition) ? 0.5 : 0.1;
 
                 if (distanceToTarget > stopDistance) {
                     newUnitState.heading = calculateBearing(lat, lng, targetPosition.lat, targetPosition.lng);
-                    switch(newUnitState.type) {
-                        case 'Vehicle': case 'Military': case 'Police': newUnitState.speed = 80; break;
-                        case 'Air': newUnitState.speed = 300; break;
-                        case 'Personnel': case 'Support': newUnitState.speed = 5; break;
-                        default: newUnitState.speed = 5;
-                    }
+                    newUnitState.speed = targetSpeed;
                 } else {
-                    newUnitState.speed = 0;
+                    newUnitState.speed = 0; // Arrived at target
                 }
-                
-                const distanceMoved = (newUnitState.speed / 3600) * timeDelta;
-                if (distanceMoved > 0) {
-                     const angleRad = (newUnitState.heading * Math.PI) / 180;
-                    const cosLat = Math.cos(lat * Math.PI / 180);
-                    
-                    if (Math.abs(cosLat) > 1e-9) {
-                        lat += (distanceMoved * Math.cos(angleRad)) / 111.32;
-                        lng += (distanceMoved * Math.sin(angleRad)) / (111.32 * cosLat);
-                    }
-
-                    lat = Math.max(-90, Math.min(90, lat));
-                    lng = (lng + 540) % 360 - 180;
-
-                    newUnitState.position = { lat, lng };
-                }
-
             } else {
                 newUnitState.speed = 0;
+            }
+
+            const distanceMoved = (newUnitState.speed / 3600) * timeDelta;
+            if (distanceMoved > 0) {
+                    const angleRad = (newUnitState.heading * Math.PI) / 180;
+                const cosLat = Math.cos(lat * Math.PI / 180);
+                
+                if (Math.abs(cosLat) > 1e-9) {
+                    lat += (distanceMoved * Math.cos(angleRad)) / 111.32;
+                    lng += (distanceMoved * Math.sin(angleRad)) / (111.32 * cosLat);
+                }
+
+                lat = Math.max(-90, Math.min(90, lat));
+                lng = (lng + 540) % 360 - 180;
+                newUnitState.position = { lat, lng };
             }
 
 
@@ -204,15 +210,13 @@ export function startSimulation() {
 
             if (timeSinceLastUpdate >= effectiveSendInterval) {
                 newUnitState.timestamp = now;
-
                 if (newUnitState.isExternallyPowered) {
-                    newUnitState.battery = Math.min(100, newUnitState.battery + 2 * (timeSinceLastUpdate / 5)); // Faster charging
+                    newUnitState.battery = Math.min(100, newUnitState.battery + 2 * (timeSinceLastUpdate / 5));
                 } else {
                     const batteryDrain = newUnitState.battery > 0 ? 0.05 * (timeSinceLastUpdate / 5) : 0;
                     newUnitState.battery = Math.max(0, newUnitState.battery - batteryDrain);
                 }
-                
-                if (Math.random() < 0.02) { // Slightly increased chance
+                if (Math.random() < 0.02) {
                     const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
                     const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
                     newUnitState.lastMessage = { text: messageText, timestamp: now, source: 'unit' };
@@ -326,14 +330,14 @@ export function startSimulation() {
     state = { ...state, simulationInterval: intervalId };
 }
 
-export function stopSimulation() {
+export async function stopSimulation() {
     if (state.simulationInterval) {
         clearInterval(state.simulationInterval);
         state = { ...state, simulationInterval: null };
     }
 }
 
-export function getSnapshot() {
+export async function getSnapshot() {
     const messages = [...state.messages];
     state = { ...state, messages: [] };
     return { 
@@ -346,7 +350,7 @@ export function getSnapshot() {
     };
 }
 
-export function getConfig() {
+export async function getConfig() {
     return {
         units: state.units,
         groups: state.groups,
@@ -355,18 +359,18 @@ export function getConfig() {
     }
 }
 
-export function updateConfig({ typeMapping, statusMapping }: { typeMapping: TypeMapping, statusMapping: StatusMapping }) {
+export async function updateConfig({ typeMapping, statusMapping }: { typeMapping: TypeMapping, statusMapping: StatusMapping }) {
     state = { ...state, typeMapping, statusMapping };
 }
 
-export function updateUnit(updatedUnit: MeshUnit) {
+export async function updateUnit(updatedUnit: MeshUnit) {
     state = {
         ...state,
         units: state.units.map(u => u.id === updatedUnit.id ? updatedUnit : u),
     };
 }
 
-export function addUnit() {
+export async function addUnit() {
     const newId = state.units.length > 0 ? Math.max(...state.units.map(u => u.id)) + 1 : 1;
     const availableTypes = Object.values(state.typeMapping) as UnitType[];
     const type = availableTypes.length > 0 ? availableTypes[Math.floor(Math.random() * availableTypes.length)] : 'Support';
@@ -376,21 +380,21 @@ export function addUnit() {
     state = { ...state, units: [...state.units, newUnit] };
 }
 
-export function removeUnit(unitId: number) {
+export async function removeUnit(unitId: number) {
     state = {
         ...state,
         units: state.units.filter(u => u.id !== unitId),
     };
 }
 
-export function chargeUnit(unitId: number) {
+export async function chargeUnit(unitId: number) {
     state = {
         ...state,
         units: state.units.map(u => u.id === unitId ? { ...u, battery: 100, status: u.status === 'Offline' ? 'Online' : u.status, isActive: true } : u),
     };
 }
 
-export function sendMessage(message: string, target: 'all' | number) {
+export async function sendMessage(message: string, target: 'all' | number) {
     state = {
         ...state,
         units: state.units.map(unit => {
@@ -403,7 +407,7 @@ export function sendMessage(message: string, target: 'all' | number) {
     };
 }
 
-export function repositionAllUnits(radiusKm: number) {
+export async function repositionAllUnits(radiusKm: number) {
     if (!state.controlCenterPosition) return;
     const { lat: centerLat, lng: centerLng } = state.controlCenterPosition;
     const earthRadiusKm = 6371;
@@ -429,19 +433,19 @@ export function repositionAllUnits(radiusKm: number) {
     state = { ...state, units: newUnits };
 }
 
-export function addGroup(name: string) {
+export async function addGroup(name: string) {
     const newGroup = { id: Date.now(), name };
     state = { ...state, groups: [...state.groups, newGroup] };
 }
 
-export function updateGroup(updatedGroup: Group) {
+export async function updateGroup(updatedGroup: Group) {
     state = {
         ...state,
         groups: state.groups.map(g => g.id === updatedGroup.id ? updatedGroup : g),
     };
 }
 
-export function removeGroup(groupId: number) {
+export async function removeGroup(groupId: number) {
     state = {
         ...state,
         groups: state.groups.filter(g => g.id !== groupId),
@@ -450,14 +454,14 @@ export function removeGroup(groupId: number) {
     };
 }
 
-export function assignUnitToGroup(unitId: number, groupId: number | null) {
+export async function assignUnitToGroup(unitId: number, groupId: number | null) {
     state = {
         ...state,
         units: state.units.map(u => u.id === unitId ? { ...u, groupId } : u),
     };
 }
 
-export function assignPatrolToGroup(groupId: number, target: { lat: number, lng: number }, radius: number) {
+export async function assignPatrolToGroup(groupId: number, target: { lat: number, lng: number }, radius: number) {
     const newAssignment: Assignment = { type: 'patrol', groupId, target, radius };
     const otherAssignments = state.assignments.filter(p => p.groupId !== groupId);
     state = {
@@ -468,7 +472,7 @@ export function assignPatrolToGroup(groupId: number, target: { lat: number, lng:
 }
 
 
-export function assignPendulumToGroup(groupId: number, points: { lat: number, lng: number }[]) {
+export async function assignPendulumToGroup(groupId: number, points: { lat: number, lng: number }[]) {
     const newAssignment: Assignment = { type: 'pendulum', groupId, points };
     const otherAssignments = state.assignments.filter(p => p.groupId !== groupId);
     state = {
@@ -478,7 +482,7 @@ export function assignPendulumToGroup(groupId: number, points: { lat: number, ln
     };
 }
 
-export function removeAssignmentFromGroup(groupId: number) {
+export async function removeAssignmentFromGroup(groupId: number) {
      state = {
         ...state,
         assignments: state.assignments.filter(p => p.groupId !== groupId),
@@ -486,18 +490,18 @@ export function removeAssignmentFromGroup(groupId: number) {
     };
 }
 
-export function isSimulationRunning(): boolean {
+export async function isSimulationRunning(): Promise<boolean> {
     return state.simulationInterval !== null;
 }
 
-export function addTypeMapping(id: number, name: string) {
+export async function addTypeMapping(id: number, name: string) {
     if (state.typeMapping[id]) {
         throw new Error(`Die Typ-ID ${id} existiert bereits.`);
     }
     state = { ...state, typeMapping: { ...state.typeMapping, [id]: name } };
 }
 
-export function removeTypeMapping(id: number) {
+export async function removeTypeMapping(id: number) {
     const typeName = state.typeMapping[id];
     if (!typeName) return;
 
@@ -512,14 +516,14 @@ export function removeTypeMapping(id: number) {
     state = { ...state, typeMapping: newMapping };
 }
 
-export function addStatusMapping(id: number, name: string) {
+export async function addStatusMapping(id: number, name: string) {
     if (state.statusMapping[id]) {
         throw new Error(`Die Status-ID ${id} existiert bereits.`);
     }
     state = { ...state, statusMapping: { ...state.statusMapping, [id]: name } };
 }
 
-export function removeStatusMapping(id: number) {
+export async function removeStatusMapping(id: number) {
     const statusName = state.statusMapping[id];
     if (!statusName) return;
     
