@@ -145,7 +145,7 @@ export function startSimulation() {
                 newPatrolTargetIndex = null;
             } else if (assignment) {
                 if(assignment.type === 'patrol') {
-                    if (!unit.patrolTarget || calculateDistance(lat, lng, unit.patrolTarget.lat, unit.patrolTarget.lng) < 0.2) {
+                    if (!newPatrolTarget || calculateDistance(lat, lng, newPatrolTarget.lat, newPatrolTarget.lng) < 0.2) {
                         const { target, radius } = assignment;
                         const randomAngle = Math.random() * 2 * Math.PI;
                         const randomRadius = radius * Math.sqrt(Math.random());
@@ -214,13 +214,18 @@ export function startSimulation() {
                 }
             }
 
-            // Apply acceleration/deceleration
-            const accelerationRate = (unit.type === 'Air' ? 20 : (unit.type === 'Personnel' || unit.type === 'Support' ? 1 : 5));
+            // Apply realistic, time-based acceleration/deceleration
+            const accelerationKmhS = (unit.type === 'Air' ? 40 : (unit.type === 'Personnel' || unit.type === 'Support' ? 2 : 15));
+            const decelerationKmhS = accelerationKmhS * 2; // Decelerate faster
+
             if (newSpeed < targetSpeed) {
-                newSpeed = Math.min(targetSpeed, newSpeed + accelerationRate);
+                newSpeed += accelerationKmhS * timeSinceLastUpdate;
+                newSpeed = Math.min(newSpeed, targetSpeed);
             } else if (newSpeed > targetSpeed) {
-                newSpeed = Math.max(targetSpeed, newSpeed - accelerationRate * 1.5); // Decelerate faster
+                newSpeed -= decelerationKmhS * timeSinceLastUpdate;
+                newSpeed = Math.max(newSpeed, targetSpeed);
             }
+
             // --- End of Movement Logic ---
 
             if (newSpeed > 0.1) {
