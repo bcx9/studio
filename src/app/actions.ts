@@ -27,6 +27,8 @@ import {
   assignPatrolToGroup as assignPatrolToGroupInStore,
   assignPendulumToGroup as assignPendulumToGroupInStore,
   removeAssignmentFromGroup as removeAssignmentFromGroupInStore,
+  setControlCenterPosition as setControlCenterPositionInStore,
+  setRallying as setRallyingInStore,
 } from '@/lib/server-store';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
 import { createReverseMapping } from '@/lib/utils';
@@ -227,4 +229,14 @@ export async function invokeAiAssistant(
   unitNames: AiAssistantInput['unitNames']
 ) {
   return await aiAssistantFlow({ query, units, groups, unitNames });
+}
+
+export async function setRallyingOnBackend(isRallying: boolean) {
+    await setRallyingInStore(isRallying);
+    return { success: true };
+}
+
+export async function setControlCenterPositionOnBackend(position: { lat: number; lng: number } | null) {
+    await setControlCenterPositionInStore(position);
+    return { success: true };
 }

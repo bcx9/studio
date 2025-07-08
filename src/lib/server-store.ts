@@ -59,9 +59,6 @@ export async function startSimulation() {
         const now = Date.now();
         const timeDelta = 0.25; // Simulation runs every 250ms
         
-        const isRallyingMode = state.isRallying && state.controlCenterPosition;
-        const rallyPosition = state.controlCenterPosition;
-        
         // --- Pre-calculation for Group Cohesion & Alarm Response ---
         const alarmUnits = state.units.filter(u => u.status === 'Alarm' && u.isActive);
         const otherUnits = state.units.filter(u => u.status !== 'Alarm' && u.isActive);
@@ -114,35 +111,38 @@ export async function startSimulation() {
             let { lat, lng } = newUnitState.position;
             
             let targetPosition: { lat: number; lng: number } | null = null;
-            let targetSpeed: number = 0;
             
-            // Determine max speed based on type
-            switch(newUnitState.type) {
-                case 'Vehicle': case 'Military': case 'Police': targetSpeed = 80; break;
-                case 'Air': targetSpeed = 300; break;
-                case 'Personnel': case 'Support': targetSpeed = 5; break;
-                default: targetSpeed = 5;
-            }
+            const maxSpeed = (() => {
+                switch(newUnitState.type) {
+                    case 'Vehicle': case 'Military': case 'Police': return 80;
+                    case 'Air': return 300;
+                    case 'Personnel': case 'Support': return 5;
+                    default: return 5;
+                }
+            })();
             
-            const responseTarget = responderTargetMap.get(newUnitState.id);
-            const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
+            // Determine Target Position based on a clear priority
+            const alarmResponseTarget = responderTargetMap.get(newUnitState.id);
             const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
-            
-            // --- Determine Target Position based on priority ---
-            if (isRallyingMode && rallyPosition) {
-                targetPosition = rallyPosition;
-            } else if (responseTarget) {
-                targetPosition = responseTarget.position;
-            } else if (assignment) {
-                if(assignment.type === 'patrol') {
+            const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
+
+            // Priority 1: Respond to Alarm
+            if (alarmResponseTarget) {
+                targetPosition = alarmResponseTarget.position;
+            }
+            // Priority 2: Rally to Control Center
+            else if (state.isRallying && state.controlCenterPosition) {
+                targetPosition = state.controlCenterPosition;
+            }
+            // Priority 3: Follow Assignment (Patrol/Pendulum)
+            else if (assignment) {
+                if (assignment.type === 'patrol') {
                     const { target: patrolCenter, radius } = assignment;
                     const distanceToCenter = calculateDistance(lat, lng, patrolCenter.lat, patrolCenter.lng);
 
-                    // If outside the patrol radius, move to the center first.
                     if (distanceToCenter > radius) {
                         targetPosition = patrolCenter;
                     } else {
-                        // If inside, find a new random point or continue to the current one.
                         if (!newUnitState.patrolTarget || calculateDistance(lat, lng, newUnitState.patrolTarget.lat, newUnitState.patrolTarget.lng) < 0.2) {
                             const randomAngle = Math.random() * 2 * Math.PI;
                             const randomRadius = radius * Math.sqrt(Math.random());
@@ -162,11 +162,12 @@ export async function startSimulation() {
                     let currentPendulumTarget = assignment.points[newUnitState.patrolTargetIndex];
                     if (calculateDistance(lat, lng, currentPendulumTarget.lat, currentPendulumTarget.lng) < 0.1) {
                         newUnitState.patrolTargetIndex = (newUnitState.patrolTargetIndex + 1) % assignment.points.length;
-                        currentPendulumTarget = assignment.points[newUnitState.patrolTargetIndex];
                     }
-                    targetPosition = currentPendulumTarget;
+                    targetPosition = assignment.points[newUnitState.patrolTargetIndex];
                 }
-            } else if (groupCenter) {
+            }
+            // Priority 4: Group Cohesion
+            else if (groupCenter) {
                 const distanceToGroupCenter = calculateDistance(lat, lng, groupCenter.lat, groupCenter.lng);
                 if (distanceToGroupCenter > 1.0) {
                     targetPosition = groupCenter;
@@ -176,13 +177,13 @@ export async function startSimulation() {
             // --- Update Position and Speed based on Target ---
             if (targetPosition) {
                 const distanceToTarget = calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng);
-                const stopDistance = (targetPosition === rallyPosition) ? 0.5 : 0.1;
+                const stopDistance = (targetPosition === state.controlCenterPosition) ? 0.5 : 0.1;
 
                 if (distanceToTarget > stopDistance) {
                     newUnitState.heading = calculateBearing(lat, lng, targetPosition.lat, targetPosition.lng);
-                    newUnitState.speed = targetSpeed;
+                    newUnitState.speed = maxSpeed;
                 } else {
-                    newUnitState.speed = 0; // Arrived at target
+                    newUnitState.speed = 0;
                 }
             } else {
                 newUnitState.speed = 0;
@@ -190,7 +191,7 @@ export async function startSimulation() {
 
             const distanceMoved = (newUnitState.speed / 3600) * timeDelta;
             if (distanceMoved > 0) {
-                    const angleRad = (newUnitState.heading * Math.PI) / 180;
+                const angleRad = (newUnitState.heading * Math.PI) / 180;
                 const cosLat = Math.cos(lat * Math.PI / 180);
                 
                 if (Math.abs(cosLat) > 1e-9) {
@@ -536,4 +537,12 @@ export async function removeStatusMapping(id: number) {
     const newMapping = { ...state.statusMapping };
     delete newMapping[id];
     state = { ...state, statusMapping: newMapping };
+}
+
+export async function setRallying(isRallying: boolean) {
+    state = { ...state, isRallying };
+}
+
+export async function setControlCenterPosition(position: { lat: number; lng: number } | null) {
+    state = { ...state, controlCenterPosition: position };
 }

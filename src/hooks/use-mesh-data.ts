@@ -27,28 +27,15 @@ interface ToastMessage {
 
 interface UseMeshDataProps {
   onUnitMessage: (unitName: string, message: string) => void;
-  isRallying: boolean;
-  controlCenterPosition: { lat: number; lng: number } | null;
 }
 
-export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }: UseMeshDataProps) {
+export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
   const [units, setUnits] = useState<MeshUnit[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [typeMapping, setTypeMapping] = useState<TypeMapping>({});
   const [statusMapping, setStatusMapping] = useState<StatusMapping>({});
-
-  const isRallyingRef = useRef(isRallying);
-  const controlCenterPositionRef = useRef(controlCenterPosition);
-
-  useEffect(() => {
-    isRallyingRef.current = isRallying;
-  }, [isRallying]);
-
-  useEffect(() => {
-    controlCenterPositionRef.current = controlCenterPosition;
-  }, [controlCenterPosition]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -107,10 +94,6 @@ export function useMeshData({ onUnitMessage, isRallying, controlCenterPosition }
   }, []);
 
   const repositionAllUnits = useCallback(async (radiusKm: number) => {
-    if (!controlCenterPositionRef.current) {
-      console.warn("Cannot reposition units without a control center position.");
-      return;
-    }
     await repositionAllUnitsOnBackend(radiusKm);
   }, []);
 

@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
 import GroupManagement from '@/components/group-management';
+import { setControlCenterPositionOnBackend, setRallyingOnBackend } from './actions';
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -97,8 +98,6 @@ export default function Home() {
       removeAssignmentFromGroup,
    } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
-    isRallying,
-    controlCenterPosition,
    });
 
   const handleDeleteUnit = (unitId: number) => {
@@ -136,6 +135,7 @@ export default function Home() {
       }
     } else if (isPositioningMode) {
       setControlCenterPosition(position);
+      setControlCenterPositionOnBackend(position);
       toast({
           title: 'Leitstelle positioniert',
           description: `Die Position wurde auf der Karte festgelegt.`,
@@ -206,6 +206,7 @@ export default function Home() {
     }
     const newRallyState = !isRallying;
     setIsRallying(newRallyState);
+    setRallyingOnBackend(newRallyState);
     toast({
         title: `Sammelbefehl ${newRallyState ? 'aktiviert' : 'deaktiviert'}`,
         description: newRallyState 
