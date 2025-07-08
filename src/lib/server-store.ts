@@ -111,28 +111,24 @@ export function startSimulation() {
 
             // --- MOVEMENT LOGIC (runs every tick) ---
             let { lat, lng } = newUnitState.position;
-            let newHeading = newUnitState.heading;
-            let newSpeed = 0; // Default to stopping
             
             let targetPosition: { lat: number; lng: number } | null = null;
-            let newPatrolTarget = newUnitState.patrolTarget;
-            let newPatrolTargetIndex = newUnitState.patrolTargetIndex;
-
+            
             const responseTarget = responderTargetMap.get(newUnitState.id);
             const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
             const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
             
             if (isRallyingMode && rallyPosition) {
                 targetPosition = rallyPosition;
-                newPatrolTarget = null;
-                newPatrolTargetIndex = null;
+                newUnitState.patrolTarget = null;
+                newUnitState.patrolTargetIndex = null;
             } else if (responseTarget) {
                 targetPosition = responseTarget.position;
-                newPatrolTarget = null;
-                newPatrolTargetIndex = null;
+                newUnitState.patrolTarget = null;
+                newUnitState.patrolTargetIndex = null;
             } else if (assignment) {
                 if(assignment.type === 'patrol') {
-                    if (!newPatrolTarget || calculateDistance(lat, lng, newPatrolTarget.lat, newPatrolTarget.lng) < 0.2) {
+                    if (!newUnitState.patrolTarget || calculateDistance(lat, lng, newUnitState.patrolTarget.lat, newUnitState.patrolTarget.lng) < 0.2) {
                         const { target, radius } = assignment;
                         const randomAngle = Math.random() * 2 * Math.PI;
                         const randomRadius = radius * Math.sqrt(Math.random());
@@ -144,18 +140,18 @@ export function startSimulation() {
                         const newLatRad = Math.asin(Math.sin(latRad) * Math.cos(randomRadius / earthRadiusKm) + Math.cos(latRad) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(randomAngle));
                         const newLonRad = lonRad + Math.atan2(Math.sin(randomAngle) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(latRad), Math.cos(randomRadius / earthRadiusKm) - Math.sin(latRad) * Math.sin(newLatRad));
 
-                        newPatrolTarget = { lat: newLatRad * 180 / Math.PI, lng: newLonRad * 180 / Math.PI };
+                        newUnitState.patrolTarget = { lat: newLatRad * 180 / Math.PI, lng: newLonRad * 180 / Math.PI };
                     }
-                    targetPosition = newPatrolTarget;
+                    targetPosition = newUnitState.patrolTarget;
                 } else if (assignment.type === 'pendulum') {
-                    if (newPatrolTargetIndex === null || newPatrolTargetIndex >= assignment.points.length) {
-                        newPatrolTargetIndex = 0;
+                    if (newUnitState.patrolTargetIndex === null || newUnitState.patrolTargetIndex >= assignment.points.length) {
+                        newUnitState.patrolTargetIndex = 0;
                     }
-                    targetPosition = assignment.points[newPatrolTargetIndex];
+                    targetPosition = assignment.points[newUnitState.patrolTargetIndex];
 
                     if (calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng) < 0.1) {
-                        newPatrolTargetIndex = (newPatrolTargetIndex + 1) % assignment.points.length;
-                        targetPosition = assignment.points[newPatrolTargetIndex];
+                        newUnitState.patrolTargetIndex = (newUnitState.patrolTargetIndex + 1) % assignment.points.length;
+                        targetPosition = assignment.points[newUnitState.patrolTargetIndex];
                     }
                 }
             } else if (groupCenter) {
@@ -170,41 +166,36 @@ export function startSimulation() {
                 const stopDistance = (targetPosition === rallyPosition) ? 0.5 : 0.1;
 
                 if (distanceToTarget > stopDistance) {
-                    newHeading = calculateBearing(lat, lng, targetPosition.lat, targetPosition.lng);
+                    newUnitState.heading = calculateBearing(lat, lng, targetPosition.lat, targetPosition.lng);
                     switch(newUnitState.type) {
-                        case 'Vehicle': case 'Military': case 'Police': newSpeed = 80; break;
-                        case 'Air': newSpeed = 300; break;
-                        case 'Personnel': case 'Support': newSpeed = 5; break;
+                        case 'Vehicle': case 'Military': case 'Police': newUnitState.speed = 80; break;
+                        case 'Air': newUnitState.speed = 300; break;
+                        case 'Personnel': case 'Support': newUnitState.speed = 5; break;
+                        default: newUnitState.speed = 5;
                     }
                 } else {
-                    newSpeed = 0;
-                    if (targetPosition === rallyPosition && isRallyingMode) {
-                        const headingUpdate = newUnitState.heading + (Math.random() - 0.5) * 45;
-                        newHeading = (headingUpdate % 360 + 360) % 360;
-                        newSpeed = 5;
-                    }
+                    newUnitState.speed = 0;
                 }
-            }
-            
-            if (newSpeed > 0.1) {
-                const distanceMoved = (newSpeed / 3600) * timeDelta;
-                const angleRad = (newHeading * Math.PI) / 180;
-                const cosLat = Math.cos(lat * Math.PI / 180);
                 
-                if (Math.abs(cosLat) > 1e-9) {
-                    lat += (distanceMoved * Math.cos(angleRad)) / 111.32;
-                    lng += (distanceMoved * Math.sin(angleRad)) / (111.32 * cosLat);
+                const distanceMoved = (newUnitState.speed / 3600) * timeDelta;
+                if (distanceMoved > 0) {
+                     const angleRad = (newUnitState.heading * Math.PI) / 180;
+                    const cosLat = Math.cos(lat * Math.PI / 180);
+                    
+                    if (Math.abs(cosLat) > 1e-9) {
+                        lat += (distanceMoved * Math.cos(angleRad)) / 111.32;
+                        lng += (distanceMoved * Math.sin(angleRad)) / (111.32 * cosLat);
+                    }
+
+                    lat = Math.max(-90, Math.min(90, lat));
+                    lng = (lng + 540) % 360 - 180;
+
+                    newUnitState.position = { lat, lng };
                 }
 
-                lat = Math.max(-90, Math.min(90, lat));
-                lng = (lng + 540) % 360 - 180;
+            } else {
+                newUnitState.speed = 0;
             }
-            
-            newUnitState.position = { lat, lng };
-            newUnitState.speed = parseFloat(newSpeed.toFixed(1));
-            newUnitState.heading = parseInt(newHeading.toFixed(0));
-            newUnitState.patrolTarget = newPatrolTarget;
-            newUnitState.patrolTargetIndex = newPatrolTargetIndex;
 
 
             // --- INFREQUENT UPDATES (runs based on sendInterval) ---
@@ -472,6 +463,7 @@ export function assignPatrolToGroup(groupId: number, target: { lat: number, lng:
     state = {
         ...state,
         assignments: [...otherAssignments, newAssignment],
+        units: state.units.map(u => u.groupId === groupId ? { ...u, patrolTarget: null, patrolTargetIndex: null } : u),
     };
 }
 
