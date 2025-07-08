@@ -52,6 +52,96 @@ let state: ServerState = {
     messages: []
 };
 
+
+function getUnitMaxSpeed(unit: MeshUnit): number {
+    switch(unit.type) {
+        case 'Vehicle': case 'Military': case 'Police': return 80;
+        case 'Air': return 300;
+        case 'Personnel': case 'Support': return 5;
+        default: return 5;
+    }
+}
+
+
+function determineTarget(unit: MeshUnit, allUnits: MeshUnit[], groups: Group[], assignments: Assignment[], controlCenterPosition: {lat: number, lng: number} | null, isRallying: boolean): {lat: number, lng: number} | null {
+    // 1. Alarm Response
+    const alarmUnits = allUnits.filter(u => u.status === 'Alarm' && u.isActive && u.id !== unit.id);
+    if (alarmUnits.length > 0) {
+        const otherUnits = allUnits.filter(ou => ou.status !== 'Alarm' && ou.isActive && ou.id !== unit.id);
+        const responders = new Map<number, MeshUnit>(); // Map<responderId, alarmUnitToRespondTo>
+        
+        alarmUnits.forEach(alarmUnit => {
+            const potentialResponders = otherUnits
+                .filter(ou => !responders.has(ou.id)) // Unit is not already responding
+                .map(otherUnit => ({
+                    unit: otherUnit,
+                    distance: calculateDistance(alarmUnit.position.lat, alarmUnit.position.lng, otherUnit.position.lat, otherUnit.position.lng)
+                }))
+                .sort((a, b) => a.distance - b.distance);
+            
+            potentialResponders.slice(0, 3).forEach(p => responders.set(p.unit.id, alarmUnit));
+        });
+
+        if (responders.has(unit.id)) {
+            return responders.get(unit.id)!.position;
+        }
+    }
+
+    // 2. Rally Point
+    if (isRallying && controlCenterPosition) {
+        if (calculateDistance(unit.position.lat, unit.position.lng, controlCenterPosition.lat, controlCenterPosition.lng) > 0.5) {
+            return controlCenterPosition;
+        }
+    }
+
+    // 3. Assignment (Patrol/Pendulum)
+    const assignment = assignments.find(a => a.groupId === unit.groupId);
+    if (assignment) {
+        if (assignment.type === 'patrol') {
+            const { target: patrolCenter, radius } = assignment;
+             // If outside the patrol radius, the target is the center of the zone.
+            if (calculateDistance(unit.position.lat, unit.position.lng, patrolCenter.lat, patrolCenter.lng) > radius) {
+                return patrolCenter;
+            } else {
+                // If inside the radius, find a new random point or move towards the existing one.
+                if (!unit.patrolTarget || calculateDistance(unit.position.lat, unit.position.lng, unit.patrolTarget.lat, unit.patrolTarget.lng) < 0.2) {
+                    const randomAngle = Math.random() * 2 * Math.PI;
+                    const randomRadius = radius * Math.sqrt(Math.random());
+                    const latOffset = (randomRadius * Math.cos(randomAngle)) / 111.32;
+                    const lngOffset = (randomRadius * Math.sin(randomAngle)) / (111.32 * Math.cos(patrolCenter.lat * Math.PI / 180));
+                    unit.patrolTarget = { lat: patrolCenter.lat + latOffset, lng: patrolCenter.lng + lngOffset };
+                }
+                return unit.patrolTarget;
+            }
+        } else if (assignment.type === 'pendulum') {
+             if (unit.patrolTargetIndex === null || unit.patrolTargetIndex >= assignment.points.length) {
+                unit.patrolTargetIndex = 0;
+            }
+            const currentPendulumTarget = assignment.points[unit.patrolTargetIndex];
+            if (calculateDistance(unit.position.lat, unit.position.lng, currentPendulumTarget.lat, currentPendulumTarget.lng) < 0.1) {
+                unit.patrolTargetIndex = (unit.patrolTargetIndex + 1) % assignment.points.length;
+            }
+            return assignment.points[unit.patrolTargetIndex];
+        }
+    }
+
+    // 4. Group Cohesion
+    if (unit.groupId) {
+        const unitsInGroup = allUnits.filter(u => u.groupId === unit.groupId && u.isActive);
+        if (unitsInGroup.length > 1) {
+            const totalLat = unitsInGroup.reduce((sum, u) => sum + u.position.lat, 0);
+            const totalLng = unitsInGroup.reduce((sum, u) => sum + u.position.lng, 0);
+            const groupCenter = { lat: totalLat / unitsInGroup.length, lng: totalLng / unitsInGroup.length };
+            if (calculateDistance(unit.position.lat, unit.position.lng, groupCenter.lat, groupCenter.lng) > 1.0) {
+                 return groupCenter;
+            }
+        }
+    }
+    
+    // 5. No task, idle
+    return null;
+}
+
 export async function startSimulation() {
     if (state.simulationInterval) return;
 
@@ -59,116 +149,18 @@ export async function startSimulation() {
         const now = Date.now();
         const timeDelta = 0.25; // Simulation runs every 250ms
         
-        // --- Pre-calculation for Group Cohesion & Alarm Response ---
-        const alarmUnits = state.units.filter(u => u.status === 'Alarm' && u.isActive);
-        const otherUnits = state.units.filter(u => u.status !== 'Alarm' && u.isActive);
-        const responderTargetMap = new Map<number, MeshUnit>();
-        const groupCenterMap = new Map<number, { lat: number, lng: number }>();
-
-        if (alarmUnits.length > 0 && otherUnits.length > 0) {
-            alarmUnits.forEach(alarmUnit => {
-                const unitsByDistance = otherUnits
-                    .filter(ou => !responderTargetMap.has(ou.id))
-                    .map(otherUnit => ({
-                        unit: otherUnit,
-                        distance: calculateDistance(
-                            alarmUnit.position.lat, alarmUnit.position.lng,
-                            otherUnit.position.lat, otherUnit.position.lng
-                        ),
-                    }))
-                    .sort((a, b) => a.distance - b.distance);
-                
-                const responders = unitsByDistance.slice(0, 3);
-                responders.forEach(responder => {
-                    responderTargetMap.set(responder.unit.id, alarmUnit);
-                });
-            });
-        }
-        
-        state.groups.forEach(group => {
-            const unitsInGroup = state.units.filter(u => u.groupId === group.id && u.isActive);
-            if (unitsInGroup.length > 1) {
-                const totalLat = unitsInGroup.reduce((sum, u) => sum + u.position.lat, 0);
-                const totalLng = unitsInGroup.reduce((sum, u) => sum + u.position.lng, 0);
-                groupCenterMap.set(group.id, { lat: totalLat / unitsInGroup.length, lng: totalLng / unitsInGroup.length });
-            }
-        });
-
-        // --- Unit Update Loop ---
         let updatedUnits = state.units.map(unit => {
             let newUnitState = { ...unit };
 
             if (!newUnitState.isActive) {
-                if (newUnitState.status !== 'Offline') {
-                    newUnitState.status = 'Offline';
-                }
+                if (newUnitState.status !== 'Offline') newUnitState.status = 'Offline';
                 return newUnitState;
             }
 
-            // --- MOVEMENT LOGIC (runs every tick) ---
-            let targetPosition: { lat: number; lng: number } | null = null;
-            
-            // Priority 1: Respond to Alarm
-            const alarmResponseTarget = responderTargetMap.get(newUnitState.id);
-            if (alarmResponseTarget) {
-                targetPosition = alarmResponseTarget.position;
-            }
-            
-            // Priority 2: Rally to Control Center
-            if (!targetPosition && state.isRallying && state.controlCenterPosition) {
-                const distToCenter = calculateDistance(newUnitState.position.lat, newUnitState.position.lng, state.controlCenterPosition.lat, state.controlCenterPosition.lng);
-                 if (distToCenter > 0.5) { // Stop if within 500m
-                     targetPosition = state.controlCenterPosition;
-                }
-            }
-            
-            // Priority 3: Follow Assignment
-            const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
-            if (!targetPosition && assignment) {
-                if (assignment.type === 'patrol') {
-                    const { target: patrolCenter, radius } = assignment;
-                    if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, patrolCenter.lat, patrolCenter.lng) > radius) {
-                        targetPosition = patrolCenter;
-                    } else {
-                        if (!newUnitState.patrolTarget || calculateDistance(newUnitState.position.lat, newUnitState.position.lng, newUnitState.patrolTarget.lat, newUnitState.patrolTarget.lng) < 0.2) {
-                            const randomAngle = Math.random() * 2 * Math.PI;
-                            const randomRadius = radius * Math.sqrt(Math.random());
-                            const latOffset = (randomRadius * Math.cos(randomAngle)) / 111.32;
-                            const lngOffset = (randomRadius * Math.sin(randomAngle)) / (111.32 * Math.cos(patrolCenter.lat * Math.PI / 180));
-                            newUnitState.patrolTarget = { lat: patrolCenter.lat + latOffset, lng: patrolCenter.lng + lngOffset };
-                        }
-                        targetPosition = newUnitState.patrolTarget;
-                    }
-                } else if (assignment.type === 'pendulum') {
-                    if (newUnitState.patrolTargetIndex === null || newUnitState.patrolTargetIndex >= assignment.points.length) {
-                        newUnitState.patrolTargetIndex = 0;
-                    }
-                    const currentPendulumTarget = assignment.points[newUnitState.patrolTargetIndex];
-                    if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, currentPendulumTarget.lat, currentPendulumTarget.lng) < 0.1) {
-                        newUnitState.patrolTargetIndex = (newUnitState.patrolTargetIndex + 1) % assignment.points.length;
-                    }
-                    targetPosition = assignment.points[newUnitState.patrolTargetIndex];
-                }
-            }
+            const targetPosition = determineTarget(newUnitState, state.units, state.groups, state.assignments, state.controlCenterPosition, state.isRallying);
 
-            // Priority 4: Group Cohesion
-            const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
-            if (!targetPosition && groupCenter) {
-                if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, groupCenter.lat, groupCenter.lng) > 1.0) {
-                    targetPosition = groupCenter;
-                }
-            }
-            
-            // --- Update Speed and Position based on final target ---
             if (targetPosition) {
-                 newUnitState.speed = (() => {
-                    switch(newUnitState.type) {
-                        case 'Vehicle': case 'Military': case 'Police': return 80;
-                        case 'Air': return 300;
-                        case 'Personnel': case 'Support': return 5;
-                        default: return 5;
-                    }
-                })();
+                newUnitState.speed = getUnitMaxSpeed(newUnitState);
                 newUnitState.heading = calculateBearing(newUnitState.position.lat, newUnitState.position.lng, targetPosition.lat, targetPosition.lng);
             } else {
                 newUnitState.speed = 0;
@@ -183,13 +175,11 @@ export async function startSimulation() {
                 if (Math.abs(cosLat) > 1e-9) {
                     lat += (distanceMoved * Math.cos(angleRad)) / 111.32;
                     lng += (distanceMoved * Math.sin(angleRad)) / (111.32 * cosLat);
+                    newUnitState.position = { lat, lng };
                 }
-
-                newUnitState.position = { lat, lng };
             }
 
-
-            // --- INFREQUENT UPDATES (runs based on sendInterval) ---
+            // Infrequent updates
             const timeSinceLastUpdate = (now - newUnitState.timestamp) / 1000;
             const effectiveSendInterval = newUnitState.isExternallyPowered ? 2 : newUnitState.sendInterval;
 
@@ -209,93 +199,73 @@ export async function startSimulation() {
                 }
             }
 
-            // --- STATUS UPDATE (runs every tick) ---
+            // Status update
             if (newUnitState.battery <= 0 && !newUnitState.isExternallyPowered) {
                 newUnitState.status = 'Offline';
                 newUnitState.isActive = false;
             } else if (newUnitState.status !== 'Alarm' && newUnitState.status !== 'Maintenance') {
-                newUnitState.status = newUnitState.speed > 1 ? 'Moving' : 'Idle';
+                 newUnitState.status = newUnitState.speed > 1 ? 'Moving' : 'Idle';
             }
             newUnitState.battery = parseFloat(newUnitState.battery.toFixed(2));
             
             return newUnitState;
         });
         
-        // Step 2: Simulate mesh network topology (hops and signal strength)
+        // Simulate mesh network topology
         if (state.controlCenterPosition) {
             const gatewayPos = state.controlCenterPosition;
             const MAX_RANGE_KM = 3; 
 
-            updatedUnits.forEach(unit => {
-                if (unit.isActive) {
-                    unit.hopCount = Infinity;
-                    unit.signalStrength = -120;
-                } else {
-                    unit.hopCount = 0;
-                    unit.signalStrength = -120;
-                    unit.status = 'Offline';
+            updatedUnits.forEach(u => {
+                u.hopCount = u.isActive ? Infinity : 0;
+                u.signalStrength = -120;
+                 if (!u.isActive) u.status = 'Offline';
+            });
+            
+            updatedUnits.forEach(u => {
+                if (u.isActive && calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng) <= MAX_RANGE_KM) {
+                    u.hopCount = 1;
                 }
             });
 
-            updatedUnits.forEach(unit => {
-                if (unit.isActive) {
-                    const distToGateway = calculateDistance(unit.position.lat, unit.position.lng, gatewayPos.lat, gatewayPos.lng);
-                    if (distToGateway <= MAX_RANGE_KM) {
-                        unit.hopCount = 1;
-                        unit.signalStrength = Math.round(Math.max(-120, -50 - (distToGateway * 20))); 
-                    }
-                }
-            });
-
-            let connectionsMadeInLastPass = true;
-            while (connectionsMadeInLastPass) {
-                connectionsMadeInLastPass = false;
-                updatedUnits.forEach(childUnit => {
-                    if (!childUnit.isActive || childUnit.hopCount !== Infinity) {
-                        return;
-                    }
-
-                    let bestParent: MeshUnit | null = null;
-                    let minHops = Infinity;
-                    let bestSignal = -Infinity;
-
-                    updatedUnits.forEach(potentialParent => {
-                        if (potentialParent.isActive && potentialParent.hopCount !== Infinity && potentialParent.id !== childUnit.id) {
-                             const distance = calculateDistance(
-                                childUnit.position.lat, childUnit.position.lng,
-                                potentialParent.position.lat, potentialParent.position.lng
-                            );
-
-                            if (distance < MAX_RANGE_KM) {
-                                if (potentialParent.hopCount < minHops) {
-                                    minHops = potentialParent.hopCount;
-                                    bestSignal = potentialParent.signalStrength;
-                                    bestParent = potentialParent;
-                                } else if (potentialParent.hopCount === minHops) {
-                                    if(potentialParent.signalStrength > bestSignal) {
-                                         bestSignal = potentialParent.signalStrength;
-                                         bestParent = potentialParent;
+            let connectionsMade;
+            do {
+                connectionsMade = false;
+                updatedUnits.forEach(child => {
+                    if (child.isActive && child.hopCount === Infinity) {
+                        let bestParent: MeshUnit | null = null;
+                        let minHops = Infinity;
+                        
+                        updatedUnits.forEach(parent => {
+                            if (parent.isActive && parent.hopCount !== Infinity && parent.id !== child.id) {
+                                if (calculateDistance(child.position.lat, child.position.lng, parent.position.lat, parent.position.lng) < MAX_RANGE_KM) {
+                                    if (parent.hopCount < minHops) {
+                                        minHops = parent.hopCount;
+                                        bestParent = parent;
                                     }
                                 }
                             }
-                        }
-                    });
+                        });
 
-                    if (bestParent) {
-                        const distanceToParent = calculateDistance(childUnit.position.lat, childUnit.position.lng, bestParent.position.lat, bestParent.position.lng);
-                        childUnit.hopCount = bestParent.hopCount + 1;
-                        childUnit.signalStrength = Math.round(Math.max(-120, -50 - (distanceToParent * 20)));
-                        connectionsMadeInLastPass = true;
+                        if (bestParent) {
+                            child.hopCount = bestParent.hopCount + 1;
+                            connectionsMade = true;
+                        }
                     }
                 });
-            }
+            } while (connectionsMade);
 
-            updatedUnits.forEach(unit => {
-                if (unit.hopCount === Infinity) {
-                    unit.hopCount = 0;
-                    unit.status = 'Offline';
-                    unit.isActive = false;
-                }
+            updatedUnits.forEach(u => {
+                 if (u.isActive) {
+                     if (u.hopCount === Infinity) {
+                         u.hopCount = 0;
+                         u.isActive = false;
+                         u.status = 'Offline';
+                     } else {
+                         const distToGateway = calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng);
+                         u.signalStrength = Math.round(Math.max(-120, -50 - (distToGateway * (u.hopCount * 5))));
+                     }
+                 }
             });
         }
         
@@ -313,6 +283,11 @@ export async function stopSimulation() {
 }
 
 export async function getSnapshot() {
+    // If the simulation isn't running, start it automatically.
+    // This ensures the app works immediately on load without needing to visit the admin page.
+    if (state.simulationInterval === null) {
+        startSimulation();
+    }
     const messages = [...state.messages];
     state = { ...state, messages: [] };
     return { 
@@ -520,4 +495,3 @@ export async function setRallying(isRallying: boolean) {
 export async function setControlCenterPosition(position: { lat: number; lng: number } | null) {
     state = { ...state, controlCenterPosition: position };
 }
-
