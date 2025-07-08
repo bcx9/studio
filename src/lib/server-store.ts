@@ -68,7 +68,7 @@ export async function startSimulation() {
         if (alarmUnits.length > 0 && otherUnits.length > 0) {
             alarmUnits.forEach(alarmUnit => {
                 const unitsByDistance = otherUnits
-                    .filter(ou => !responderTargetMap.has(ou.id)) // Ensure a unit only responds to one alarm
+                    .filter(ou => !responderTargetMap.has(ou.id))
                     .map(otherUnit => ({
                         unit: otherUnit,
                         distance: calculateDistance(
@@ -108,50 +108,37 @@ export async function startSimulation() {
             }
 
             // --- MOVEMENT LOGIC (runs every tick) ---
-            let { lat, lng } = newUnitState.position;
-            
             let targetPosition: { lat: number; lng: number } | null = null;
-            
-            const maxSpeed = (() => {
-                switch(newUnitState.type) {
-                    case 'Vehicle': case 'Military': case 'Police': return 80;
-                    case 'Air': return 300;
-                    case 'Personnel': case 'Support': return 5;
-                    default: return 5;
-                }
-            })();
-            
-            // Determine Target Position based on a clear priority
-            const alarmResponseTarget = responderTargetMap.get(newUnitState.id);
-            const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
-            const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
+            let unitAction = 'idle';
 
             // Priority 1: Respond to Alarm
+            const alarmResponseTarget = responderTargetMap.get(newUnitState.id);
             if (alarmResponseTarget) {
                 targetPosition = alarmResponseTarget.position;
+                unitAction = 'responding_to_alarm';
             }
+
             // Priority 2: Rally to Control Center
-            else if (state.isRallying && state.controlCenterPosition) {
+            if (!targetPosition && state.isRallying && state.controlCenterPosition) {
                 targetPosition = state.controlCenterPosition;
+                unitAction = 'rallying';
             }
-            // Priority 3: Follow Assignment (Patrol/Pendulum)
-            else if (assignment) {
+            
+            // Priority 3: Follow Assignment
+            const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
+            if (!targetPosition && assignment) {
+                unitAction = assignment.type;
                 if (assignment.type === 'patrol') {
                     const { target: patrolCenter, radius } = assignment;
-                    const distanceToCenter = calculateDistance(lat, lng, patrolCenter.lat, patrolCenter.lng);
-
-                    if (distanceToCenter > radius) {
+                    if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, patrolCenter.lat, patrolCenter.lng) > radius) {
                         targetPosition = patrolCenter;
                     } else {
-                        if (!newUnitState.patrolTarget || calculateDistance(lat, lng, newUnitState.patrolTarget.lat, newUnitState.patrolTarget.lng) < 0.2) {
+                        if (!newUnitState.patrolTarget || calculateDistance(newUnitState.position.lat, newUnitState.position.lng, newUnitState.patrolTarget.lat, newUnitState.patrolTarget.lng) < 0.2) {
                             const randomAngle = Math.random() * 2 * Math.PI;
                             const randomRadius = radius * Math.sqrt(Math.random());
-                            const earthRadiusKm = 6371;
-                            const latRad = patrolCenter.lat * Math.PI / 180;
-                            const lonRad = patrolCenter.lng * Math.PI / 180;
-                            const newLatRad = Math.asin(Math.sin(latRad) * Math.cos(randomRadius / earthRadiusKm) + Math.cos(latRad) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(randomAngle));
-                            const newLonRad = lonRad + Math.atan2(Math.sin(randomAngle) * Math.sin(randomRadius / earthRadiusKm) * Math.cos(latRad), Math.cos(randomRadius / earthRadiusKm) - Math.sin(latRad) * Math.sin(newLatRad));
-                            newUnitState.patrolTarget = { lat: newLatRad * 180 / Math.PI, lng: newLonRad * 180 / Math.PI };
+                            const latOffset = (randomRadius * Math.cos(randomAngle)) / 111.32;
+                            const lngOffset = (randomRadius * Math.sin(randomAngle)) / (111.32 * Math.cos(patrolCenter.lat * Math.PI / 180));
+                            newUnitState.patrolTarget = { lat: patrolCenter.lat + latOffset, lng: patrolCenter.lng + lngOffset };
                         }
                         targetPosition = newUnitState.patrolTarget;
                     }
@@ -159,29 +146,39 @@ export async function startSimulation() {
                     if (newUnitState.patrolTargetIndex === null || newUnitState.patrolTargetIndex >= assignment.points.length) {
                         newUnitState.patrolTargetIndex = 0;
                     }
-                    let currentPendulumTarget = assignment.points[newUnitState.patrolTargetIndex];
-                    if (calculateDistance(lat, lng, currentPendulumTarget.lat, currentPendulumTarget.lng) < 0.1) {
+                    const currentPendulumTarget = assignment.points[newUnitState.patrolTargetIndex];
+                    if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, currentPendulumTarget.lat, currentPendulumTarget.lng) < 0.1) {
                         newUnitState.patrolTargetIndex = (newUnitState.patrolTargetIndex + 1) % assignment.points.length;
                     }
                     targetPosition = assignment.points[newUnitState.patrolTargetIndex];
                 }
             }
+
             // Priority 4: Group Cohesion
-            else if (groupCenter) {
-                const distanceToGroupCenter = calculateDistance(lat, lng, groupCenter.lat, groupCenter.lng);
-                if (distanceToGroupCenter > 1.0) {
+            const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
+            if (!targetPosition && groupCenter) {
+                if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, groupCenter.lat, groupCenter.lng) > 1.0) {
                     targetPosition = groupCenter;
+                    unitAction = 'group_cohesion';
                 }
             }
             
-            // --- Update Position and Speed based on Target ---
+            // --- Update Speed and Position based on final target ---
             if (targetPosition) {
-                const distanceToTarget = calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng);
-                const stopDistance = (targetPosition === state.controlCenterPosition) ? 0.5 : 0.1;
+                const distanceToTarget = calculateDistance(newUnitState.position.lat, newUnitState.position.lng, targetPosition.lat, targetPosition.lng);
+                const stopDistance = (unitAction === 'rallying') ? 0.5 : 0.1;
 
                 if (distanceToTarget > stopDistance) {
-                    newUnitState.heading = calculateBearing(lat, lng, targetPosition.lat, targetPosition.lng);
+                    const maxSpeed = (() => {
+                        switch(newUnitState.type) {
+                            case 'Vehicle': case 'Military': case 'Police': return 80;
+                            case 'Air': return 300;
+                            case 'Personnel': case 'Support': return 5;
+                            default: return 5;
+                        }
+                    })();
                     newUnitState.speed = maxSpeed;
+                    newUnitState.heading = calculateBearing(newUnitState.position.lat, newUnitState.position.lng, targetPosition.lat, targetPosition.lng);
                 } else {
                     newUnitState.speed = 0;
                 }
@@ -191,6 +188,7 @@ export async function startSimulation() {
 
             const distanceMoved = (newUnitState.speed / 3600) * timeDelta;
             if (distanceMoved > 0) {
+                let { lat, lng } = newUnitState.position;
                 const angleRad = (newUnitState.heading * Math.PI) / 180;
                 const cosLat = Math.cos(lat * Math.PI / 180);
                 
@@ -240,9 +238,8 @@ export async function startSimulation() {
         // Step 2: Simulate mesh network topology (hops and signal strength)
         if (state.controlCenterPosition) {
             const gatewayPos = state.controlCenterPosition;
-            const MAX_RANGE_KM = 3; // Max range between any two nodes or node-to-gateway
+            const MAX_RANGE_KM = 3; 
 
-            // Initialize all active units for topology calculation
             updatedUnits.forEach(unit => {
                 if (unit.isActive) {
                     unit.hopCount = Infinity;
@@ -254,24 +251,20 @@ export async function startSimulation() {
                 }
             });
 
-            // Pass 1: Connect units directly to the gateway
             updatedUnits.forEach(unit => {
                 if (unit.isActive) {
                     const distToGateway = calculateDistance(unit.position.lat, unit.position.lng, gatewayPos.lat, gatewayPos.lng);
                     if (distToGateway <= MAX_RANGE_KM) {
                         unit.hopCount = 1;
-                        // Signal strength degrades with distance. -50 is excellent, -110 is poor.
                         unit.signalStrength = Math.round(Math.max(-120, -50 - (distToGateway * 20))); 
                     }
                 }
             });
 
-            // Iteratively connect remaining units to the mesh
             let connectionsMadeInLastPass = true;
             while (connectionsMadeInLastPass) {
                 connectionsMadeInLastPass = false;
                 updatedUnits.forEach(childUnit => {
-                    // If this unit is already connected or inactive, skip it
                     if (!childUnit.isActive || childUnit.hopCount !== Infinity) {
                         return;
                     }
@@ -280,9 +273,7 @@ export async function startSimulation() {
                     let minHops = Infinity;
                     let bestSignal = -Infinity;
 
-                    // Find the best potential parent
                     updatedUnits.forEach(potentialParent => {
-                        // A valid parent must be active and already part of the mesh
                         if (potentialParent.isActive && potentialParent.hopCount !== Infinity && potentialParent.id !== childUnit.id) {
                              const distance = calculateDistance(
                                 childUnit.position.lat, childUnit.position.lng,
@@ -290,7 +281,6 @@ export async function startSimulation() {
                             );
 
                             if (distance < MAX_RANGE_KM) {
-                                // Prefer parent with fewer hops, then better signal
                                 if (potentialParent.hopCount < minHops) {
                                     minHops = potentialParent.hopCount;
                                     bestSignal = potentialParent.signalStrength;
@@ -305,7 +295,6 @@ export async function startSimulation() {
                         }
                     });
 
-                    // If a suitable parent was found, connect the child
                     if (bestParent) {
                         const distanceToParent = calculateDistance(childUnit.position.lat, childUnit.position.lng, bestParent.position.lat, bestParent.position.lng);
                         childUnit.hopCount = bestParent.hopCount + 1;
@@ -315,7 +304,6 @@ export async function startSimulation() {
                 });
             }
 
-            // Final cleanup: Any unit that couldn't connect is now offline
             updatedUnits.forEach(unit => {
                 if (unit.hopCount === Infinity) {
                     unit.hopCount = 0;
