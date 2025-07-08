@@ -562,11 +562,14 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && selectedUnit) {
-      const currentZoom = map.getZoom();
-      map.flyTo([selectedUnit.position.lat, selectedUnit.position.lng], Math.max(currentZoom, 16), {
-        animate: true,
-        duration: 0.5,
-      });
+      const { lat, lng } = selectedUnit.position;
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        const currentZoom = map.getZoom();
+        map.flyTo([lat, lng], Math.max(currentZoom, 16), {
+          animate: true,
+          duration: 0.5,
+        });
+      }
     }
   }, [selectedUnit]);
 
