@@ -2,27 +2,41 @@
 'use client';
 
 import * as React from 'react';
-import type { Group } from '@/types/mesh';
+import type { Group, PatrolAssignment } from '@/types/mesh';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Users, PlusCircle, Save, Trash2, Edit, X, Move } from 'lucide-react';
+import { Users, PlusCircle, Save, Trash2, Edit, X, Move, MapPin, PinOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 interface GroupManagementProps {
   groups: Group[];
+  patrolAssignments: PatrolAssignment[];
   onAddGroup: (name: string) => void;
   onUpdateGroup: (group: Group) => void;
   onRemoveGroup: (groupId: number) => void;
   onRepositionAllUnits: (radius: number) => void;
+  onAssignPatrol: (groupId: number, groupName: string) => void;
+  onRemovePatrol: (groupId: number) => void;
   isRepositionPossible: boolean;
 }
 
-export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onRemoveGroup, onRepositionAllUnits, isRepositionPossible }: GroupManagementProps) {
+export default function GroupManagement({ 
+    groups, 
+    patrolAssignments,
+    onAddGroup, 
+    onUpdateGroup, 
+    onRemoveGroup, 
+    onRepositionAllUnits, 
+    onAssignPatrol,
+    onRemovePatrol,
+    isRepositionPossible 
+}: GroupManagementProps) {
     const [newGroupName, setNewGroupName] = React.useState('');
     const [editingGroup, setEditingGroup] = React.useState<Group | null>(null);
     const [editingName, setEditingName] = React.useState('');
@@ -66,9 +80,9 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                     <div className='flex items-center gap-3'>
                         <Users className="h-6 w-6 text-primary" />
                         <div>
-                            <CardTitle className="text-xl">Gruppenverwaltung</CardTitle>
+                            <CardTitle className="text-xl">Gruppenverwaltung & Befehle</CardTitle>
                             <CardDescription>
-                                Erstellen und bearbeiten Sie Einheiten-Gruppen.
+                                Erstellen, bearbeiten und kommandieren Sie Einheiten-Gruppen.
                             </CardDescription>
                         </div>
                     </div>
@@ -92,11 +106,13 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                             <TableHeader>
                                 <TableRow className="border-b-0">
                                     <TableHead>Gruppenname</TableHead>
-                                    <TableHead className="w-[180px] text-right">Aktionen</TableHead>
+                                    <TableHead className="w-[220px] text-right">Aktionen</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {groups.map(group => (
+                                {groups.map(group => {
+                                    const assignment = patrolAssignments.find(p => p.groupId === group.id);
+                                    return (
                                     <TableRow key={group.id} className="border-b-0">
                                         <TableCell>
                                             {editingGroup?.id === group.id ? (
@@ -107,10 +123,14 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                                                     className="h-9"
                                                 />
                                             ) : (
-                                                group.name
+                                                <div className="flex items-center gap-2">
+                                                    <span>{group.name}</span>
+                                                    {assignment && <MapPin className="h-4 w-4 text-accent" />}
+                                                </div>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
+                                            <TooltipProvider delayDuration={200}>
                                             {editingGroup?.id === group.id ? (
                                                 <>
                                                     <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full' onClick={handleSaveEditing}><Save className="h-4 w-4" /></Button>
@@ -118,7 +138,27 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full' onClick={() => handleStartEditing(group)}><Edit className="h-4 w-4" /></Button>
+                                                    {assignment ? (
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full text-destructive/70 hover:text-destructive' onClick={() => onRemovePatrol(group.id)}><PinOff className="h-4 w-4" /></Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent><p>Patrouille entfernen</p></TooltipContent>
+                                                        </Tooltip>
+                                                    ) : (
+                                                         <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full' onClick={() => onAssignPatrol(group.id, group.name)}><MapPin className="h-4 w-4" /></Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent><p>Patrouillenzone zuweisen</p></TooltipContent>
+                                                        </Tooltip>
+                                                    )}
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full' onClick={() => handleStartEditing(group)}><Edit className="h-4 w-4" /></Button>
+                                                        </TooltipTrigger>
+                                                         <TooltipContent><p>Gruppe umbenennen</p></TooltipContent>
+                                                    </Tooltip>
                                                      <AlertDialog>
                                                         <AlertDialogTrigger asChild>
                                                             <Button size="icon" variant="ghost" className='h-8 w-8 rounded-full text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
@@ -138,9 +178,11 @@ export default function GroupManagement({ groups, onAddGroup, onUpdateGroup, onR
                                                     </AlertDialog>
                                                 </>
                                             )}
+                                            </TooltipProvider>
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                    )
+                                })}
                                 {groups.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={2} className="text-center text-muted-foreground h-24">

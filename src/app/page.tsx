@@ -42,6 +42,7 @@ export default function Home() {
   const [controlCenterPosition, setControlCenterPosition] = React.useState<{ lat: number; lng: number } | null>({ lat: 53.19745, lng: 10.84507 });
   const [isRallying, setIsRallying] = React.useState(false);
   const [isPositioningMode, setIsPositioningMode] = React.useState(false);
+  const [patrolAssignmentState, setPatrolAssignmentState] = React.useState<{ groupId: number; groupName: string } | null>(null);
 
   const { toast } = useToast();
 
@@ -82,6 +83,9 @@ export default function Home() {
       repositionAllUnits,
       typeMapping,
       statusMapping,
+      patrolAssignments,
+      assignPatrolToGroup,
+      removePatrolFromGroup,
    } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
     isRallying,
@@ -96,7 +100,14 @@ export default function Home() {
   }
   
   const handleMapClick = React.useCallback((position: { lat: number; lng: number }) => {
-    if (isPositioningMode) {
+    if (patrolAssignmentState) {
+        assignPatrolToGroup(patrolAssignmentState.groupId, position, 1.5); // Default 1.5km radius
+        toast({
+            title: 'Patrouille zugewiesen',
+            description: `Gruppe "${patrolAssignmentState.groupName}" patrouilliert nun um die neue Position.`,
+        });
+        setPatrolAssignmentState(null);
+    } else if (isPositioningMode) {
       setControlCenterPosition(position);
       toast({
           title: 'Leitstelle positioniert',
@@ -104,8 +115,8 @@ export default function Home() {
       });
       setIsPositioningMode(false); // Deactivate after setting
     }
-  }, [isPositioningMode, toast]);
-  
+  }, [isPositioningMode, toast, patrolAssignmentState, assignPatrolToGroup]);
+
   const handleTogglePositioningMode = () => {
     const nextState = !isPositioningMode;
     setIsPositioningMode(nextState);
@@ -115,6 +126,22 @@ export default function Home() {
             description: 'Klicken Sie auf die Karte, um die Position der Leitstelle festzulegen.',
         });
     }
+  };
+  
+  const handleAssignPatrol = (groupId: number, groupName: string) => {
+    setPatrolAssignmentState({ groupId, groupName });
+    toast({
+      title: `Befehlsmodus: Patrouille für ${groupName}`,
+      description: 'Klicken Sie auf die Karte, um das Zentrum der Patrouillenzone festzulegen.',
+    });
+  };
+
+  const handleRemovePatrol = (groupId: number) => {
+    removePatrolFromGroup(groupId);
+    toast({
+      title: 'Patrouillenbefehl aufgehoben',
+      description: 'Die Gruppe hat ihre Patrouille beendet.',
+    });
   };
 
   const handleMapUnitClick = (unitId: number) => {
@@ -226,7 +253,8 @@ export default function Home() {
                         controlCenterPosition={controlCenterPosition}
                         drawnItems={drawnItems}
                         onShapesChange={handleShapesChange}
-                        isPositioningMode={isPositioningMode}
+                        isPositioningMode={isPositioningMode || !!patrolAssignmentState}
+                        patrolAssignments={patrolAssignments}
                       />
                     ) : (
                       <div className="relative w-full h-full bg-background flex items-center justify-center">
@@ -260,6 +288,9 @@ export default function Home() {
                         onRemoveGroup={removeGroup}
                         onRepositionAllUnits={handleRepositionAllUnits}
                         isRepositionPossible={!!controlCenterPosition}
+                        patrolAssignments={patrolAssignments}
+                        onAssignPatrol={handleAssignPatrol}
+                        onRemovePatrol={handleRemovePatrol}
                     />
                   </div>
                 </TabsContent>
