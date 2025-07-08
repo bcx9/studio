@@ -27,6 +27,7 @@ import {
 } from '@/lib/server-store';
 import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
 import { createReverseMapping } from '@/lib/utils';
+import { AiAssistantInput, aiAssistantFlow } from '@/ai/flows/ai-assistant-flow';
 
 
 export async function getNetworkSnapshot() {
@@ -198,4 +199,14 @@ export async function verifyAdminPassword(password: string): Promise<{ success: 
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
   
   return { success: password === adminPassword };
+}
+
+
+export async function invokeAiAssistant(
+  query: string,
+  units: AiAssistantInput['units'],
+  groups: AiAssistantInput['groups'],
+  unitNames: AiAssistantInput['unitNames']
+) {
+  return await aiAssistantFlow({ query, units, groups, unitNames });
 }

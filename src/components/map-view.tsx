@@ -480,19 +480,6 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
         }
 
         if (parentPosition) {
-             const line = L.polyline(
-                [
-                    [unit.position.lat, unit.position.lng],
-                    [parentPosition.lat, parentPosition.lng]
-                ],
-                {
-                    color: 'hsl(var(--accent))',
-                    weight: 1.5,
-                    opacity: 0.6,
-                    dashArray: '5, 10',
-                }
-            ).addTo(meshLinesLayer);
-
             // Add a glow effect using a second, thicker, more transparent line
             L.polyline(
                 [
@@ -503,6 +490,19 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                     color: 'hsl(var(--accent))',
                     weight: 5,
                     opacity: 0.1,
+                }
+            ).addTo(meshLinesLayer);
+
+             const line = L.polyline(
+                [
+                    [unit.position.lat, unit.position.lng],
+                    [parentPosition.lat, parentPosition.lng]
+                ],
+                {
+                    color: 'hsl(var(--accent))',
+                    weight: 1.5,
+                    opacity: 0.6,
+                    dashArray: '5, 10',
                 }
             ).addTo(meshLinesLayer);
         }
@@ -538,7 +538,6 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
           border: 1px solid hsl(var(--border));
           color: hsl(var(--popover-foreground));
           border-radius: var(--radius);
-          backdrop-filter: blur(8px);
           box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
         }
         .leaflet-tooltip-top.glass-tooltip::before,

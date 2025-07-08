@@ -56,6 +56,8 @@ export function startSimulation() {
         const rallyPosition = state.controlCenterPosition;
         const now = Date.now();
         
+        const alarmUnits = state.units.filter(u => u.status === 'Alarm' && u.isActive);
+
         // Step 1: Update individual unit properties (movement, battery, etc.)
         let updatedUnits = state.units.map(unit => {
             if (!unit.isActive) {
@@ -84,10 +86,12 @@ export function startSimulation() {
             let newHeading = unit.heading;
             let newSpeed = unit.speed;
             
+            // --- Movement Logic ---
+            // Priority: 1. Rallying, 2. Alarm Response, 3. Default
             if (isRallyingMode && rallyPosition) {
                 const distanceToCenter = calculateDistance(lat, lng, rallyPosition.lat, rallyPosition.lng);
                 
-                if (distanceToCenter > 0.5) {
+                if (distanceToCenter > 0.5) { // If far from rally point, move towards it
                     newHeading = calculateBearing(lat, lng, rallyPosition.lat, rallyPosition.lng);
                      switch(unit.type) {
                         case 'Vehicle':
@@ -103,26 +107,61 @@ export function startSimulation() {
                             newSpeed = Math.max(3, Math.min(8, unit.speed + (Math.random() - 0.5) * 2));
                             break;
                     }
-                } else { 
+                } else { // If close to rally point, slow down and circle
                     newSpeed = Math.max(0, unit.speed + (Math.random() - 0.6) * 4);
                     if (newSpeed > 1) {
                         const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
                         newHeading = (headingUpdate % 360 + 360) % 360;
                     }
                 }
+            } else if (unit.status !== 'Alarm' && alarmUnits.length > 0) {
+                // If not rallying, check for nearby alarms
+                let closestAlarmUnit: MeshUnit | null = null;
+                let minDistance = 5; // Respond to alarms within 5km
+
+                alarmUnits.forEach(alarmUnit => {
+                    const distance = calculateDistance(lat, lng, alarmUnit.position.lat, alarmUnit.position.lng);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestAlarmUnit = alarmUnit;
+                    }
+                });
+                
+                if (closestAlarmUnit) {
+                    // Respond to alarm: move towards it at high speed
+                    newHeading = calculateBearing(lat, lng, closestAlarmUnit.position.lat, closestAlarmUnit.position.lng);
+                    switch(unit.type) {
+                        case 'Vehicle':
+                        case 'Military':
+                        case 'Police':
+                            newSpeed = Math.min(120, unit.speed + Math.random() * 10);
+                            break;
+                        case 'Air':
+                            newSpeed = Math.min(500, unit.speed + Math.random() * 30);
+                            break;
+                        case 'Personnel':
+                        case 'Support':
+                            newSpeed = Math.min(10, unit.speed + Math.random() * 1.5);
+                            break;
+                    }
+                } else {
+                     // Default movement if no nearby alarm
+                     newSpeed = Math.max(0, unit.speed + (Math.random() - 0.45) * 3);
+                }
             } else {
+                // Default random movement logic
                 switch(unit.type) {
                     case 'Vehicle':
                     case 'Military':
                     case 'Police':
-                        newSpeed = Math.max(0, Math.min(70, unit.speed + (Math.random() - 0.45) * 5)); 
+                        newSpeed = Math.max(0, Math.min(120, unit.speed + (Math.random() - 0.45) * 5)); 
                         if (newSpeed > 1) {
                              const headingUpdate = unit.heading + (Math.random() - 0.5) * 15;
                              newHeading = (headingUpdate % 360 + 360) % 360;
                         }
                         break;
                     case 'Personnel':
-                        newSpeed = Math.max(0, Math.min(7, unit.speed + (Math.random() - 0.5) * 2));
+                        newSpeed = Math.max(0, Math.min(10, unit.speed + (Math.random() - 0.5) * 2));
                         if (newSpeed > 0.5) {
                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
                             newHeading = (headingUpdate % 360 + 360) % 360;
@@ -136,7 +175,7 @@ export function startSimulation() {
                         }
                         break;
                     case 'Air':
-                        newSpeed = Math.max(0, Math.min(400, unit.speed + (Math.random() - 0.4) * 25));
+                        newSpeed = Math.max(0, Math.min(500, unit.speed + (Math.random() - 0.4) * 25));
                         if (newSpeed > 50) {
                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 10;
                             newHeading = (headingUpdate % 360 + 360) % 360;
@@ -144,6 +183,7 @@ export function startSimulation() {
                         break;
                 }
             }
+            // --- End of Movement Logic ---
 
             if (newSpeed > 1) {
                 const distance = (newSpeed / 3600) * timeSinceLastUpdate;
