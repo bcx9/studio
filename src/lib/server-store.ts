@@ -101,33 +101,30 @@ export async function startSimulation() {
             if (!newUnitState.isActive) {
                 if (newUnitState.status !== 'Offline') {
                     newUnitState.status = 'Offline';
-                    newUnitState.signalStrength = -120;
-                    newUnitState.hopCount = 0;
                 }
                 return newUnitState;
             }
 
             // --- MOVEMENT LOGIC (runs every tick) ---
             let targetPosition: { lat: number; lng: number } | null = null;
-            let unitAction = 'idle';
-
+            
             // Priority 1: Respond to Alarm
             const alarmResponseTarget = responderTargetMap.get(newUnitState.id);
             if (alarmResponseTarget) {
                 targetPosition = alarmResponseTarget.position;
-                unitAction = 'responding_to_alarm';
             }
-
+            
             // Priority 2: Rally to Control Center
             if (!targetPosition && state.isRallying && state.controlCenterPosition) {
-                targetPosition = state.controlCenterPosition;
-                unitAction = 'rallying';
+                const distToCenter = calculateDistance(newUnitState.position.lat, newUnitState.position.lng, state.controlCenterPosition.lat, state.controlCenterPosition.lng);
+                 if (distToCenter > 0.5) { // Stop if within 500m
+                     targetPosition = state.controlCenterPosition;
+                }
             }
             
             // Priority 3: Follow Assignment
             const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
             if (!targetPosition && assignment) {
-                unitAction = assignment.type;
                 if (assignment.type === 'patrol') {
                     const { target: patrolCenter, radius } = assignment;
                     if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, patrolCenter.lat, patrolCenter.lng) > radius) {
@@ -159,29 +156,20 @@ export async function startSimulation() {
             if (!targetPosition && groupCenter) {
                 if (calculateDistance(newUnitState.position.lat, newUnitState.position.lng, groupCenter.lat, groupCenter.lng) > 1.0) {
                     targetPosition = groupCenter;
-                    unitAction = 'group_cohesion';
                 }
             }
             
             // --- Update Speed and Position based on final target ---
             if (targetPosition) {
-                const distanceToTarget = calculateDistance(newUnitState.position.lat, newUnitState.position.lng, targetPosition.lat, targetPosition.lng);
-                const stopDistance = (unitAction === 'rallying') ? 0.5 : 0.1;
-
-                if (distanceToTarget > stopDistance) {
-                    const maxSpeed = (() => {
-                        switch(newUnitState.type) {
-                            case 'Vehicle': case 'Military': case 'Police': return 80;
-                            case 'Air': return 300;
-                            case 'Personnel': case 'Support': return 5;
-                            default: return 5;
-                        }
-                    })();
-                    newUnitState.speed = maxSpeed;
-                    newUnitState.heading = calculateBearing(newUnitState.position.lat, newUnitState.position.lng, targetPosition.lat, targetPosition.lng);
-                } else {
-                    newUnitState.speed = 0;
-                }
+                 newUnitState.speed = (() => {
+                    switch(newUnitState.type) {
+                        case 'Vehicle': case 'Military': case 'Police': return 80;
+                        case 'Air': return 300;
+                        case 'Personnel': case 'Support': return 5;
+                        default: return 5;
+                    }
+                })();
+                newUnitState.heading = calculateBearing(newUnitState.position.lat, newUnitState.position.lng, targetPosition.lat, targetPosition.lng);
             } else {
                 newUnitState.speed = 0;
             }
@@ -197,8 +185,6 @@ export async function startSimulation() {
                     lng += (distanceMoved * Math.sin(angleRad)) / (111.32 * cosLat);
                 }
 
-                lat = Math.max(-90, Math.min(90, lat));
-                lng = (lng + 540) % 360 - 180;
                 newUnitState.position = { lat, lng };
             }
 
@@ -534,3 +520,4 @@ export async function setRallying(isRallying: boolean) {
 export async function setControlCenterPosition(position: { lat: number; lng: number } | null) {
     state = { ...state, controlCenterPosition: position };
 }
+
