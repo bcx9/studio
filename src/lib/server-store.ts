@@ -56,14 +56,15 @@ export function startSimulation() {
         const rallyPosition = state.controlCenterPosition;
         const now = Date.now();
         
-        // --- Pre-calculation for Alarm Response ---
+        // --- Pre-calculation for Group Cohesion & Alarm Response ---
         const alarmUnits = state.units.filter(u => u.status === 'Alarm' && u.isActive);
         const otherUnits = state.units.filter(u => u.status !== 'Alarm' && u.isActive);
         const responderTargetMap = new Map<number, MeshUnit>();
+        const groupCenterMap = new Map<number, { lat: number, lng: number }>();
 
+        // Find responders for alarms
         if (alarmUnits.length > 0 && otherUnits.length > 0) {
             alarmUnits.forEach(alarmUnit => {
-                // Find the 3 closest units to this alarm
                 const unitsByDistance = otherUnits
                     .map(otherUnit => ({
                         unit: otherUnit,
@@ -75,12 +76,21 @@ export function startSimulation() {
                     .sort((a, b) => a.distance - b.distance);
                 
                 const responders = unitsByDistance.slice(0, 3);
-                
                 responders.forEach(responder => {
                     responderTargetMap.set(responder.unit.id, alarmUnit);
                 });
             });
         }
+        
+        // Calculate group centers for cohesion
+        state.groups.forEach(group => {
+            const unitsInGroup = state.units.filter(u => u.groupId === group.id && u.isActive);
+            if (unitsInGroup.length > 1) {
+                const totalLat = unitsInGroup.reduce((sum, u) => sum + u.position.lat, 0);
+                const totalLng = unitsInGroup.reduce((sum, u) => sum + u.position.lng, 0);
+                groupCenterMap.set(group.id, { lat: totalLat / unitsInGroup.length, lng: totalLng / unitsInGroup.length });
+            }
+        });
         // --- End of Pre-calculation ---
 
 
@@ -112,97 +122,72 @@ export function startSimulation() {
             let newHeading = unit.heading;
             let newSpeed = unit.speed;
             
+            let targetPosition: { lat: number; lng: number } | null = null;
+            let targetSpeed = 0; // Default to stopping
+
             const responseTarget = responderTargetMap.get(unit.id);
+            const groupCenter = unit.groupId ? groupCenterMap.get(unit.groupId) : null;
             
             // --- Movement Logic ---
-            // Priority: 1. Rallying, 2. Alarm Response, 3. Default
+            // Priority: 1. Rallying, 2. Alarm Response, 3. Group Cohesion, 4. Default
             if (isRallyingMode && rallyPosition) {
-                const distanceToCenter = calculateDistance(lat, lng, rallyPosition.lat, rallyPosition.lng);
-                
-                if (distanceToCenter > 0.5) { // If far from rally point, move towards it
-                    newHeading = calculateBearing(lat, lng, rallyPosition.lat, rallyPosition.lng);
-                     switch(unit.type) {
-                        case 'Vehicle':
-                        case 'Military':
-                        case 'Police':
-                            newSpeed = Math.max(20, Math.min(80, unit.speed + (Math.random() - 0.4) * 5));
-                            break;
-                        case 'Air':
-                             newSpeed = Math.max(100, Math.min(300, unit.speed + (Math.random() - 0.4) * 20));
-                            break;
-                        case 'Personnel':
-                        case 'Support':
-                            newSpeed = Math.max(3, Math.min(8, unit.speed + (Math.random() - 0.5) * 2));
-                            break;
+                targetPosition = rallyPosition;
+            } else if (responseTarget) {
+                targetPosition = responseTarget.position;
+            } else if (groupCenter) {
+                const distanceToGroupCenter = calculateDistance(lat, lng, groupCenter.lat, groupCenter.lng);
+                // If unit is straying too far from its group (e.g., > 1km), move back
+                if (distanceToGroupCenter > 1.0) {
+                    targetPosition = groupCenter;
+                }
+            }
+
+            // --- Task-based movement and acceleration ---
+            if (targetPosition) {
+                const distanceToTarget = calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng);
+                const stopDistance = (targetPosition === rallyPosition) ? 0.5 : 0.1;
+
+                if (distanceToTarget > stopDistance) {
+                    newHeading = calculateBearing(lat, lng, targetPosition.lat, targetPosition.lng);
+                    switch(unit.type) {
+                        case 'Vehicle': case 'Military': case 'Police': targetSpeed = 80; break;
+                        case 'Air': targetSpeed = 300; break;
+                        case 'Personnel': case 'Support': targetSpeed = 5; break;
                     }
-                } else { // If close to rally point, slow down and circle
-                    newSpeed = Math.max(0, unit.speed + (Math.random() - 0.6) * 4);
-                    if (newSpeed > 1) {
+                } else {
+                    targetSpeed = 0;
+                    if (targetPosition === rallyPosition && newSpeed > 1) { // circling rally point
                         const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
+                        newHeading = (headingUpdate % 360 + 360) % 360;
+                        targetSpeed = 5;
+                    }
+                }
+            } else {
+                // Default random movement (if no other task)
+                if (unit.status === 'Idle' && Math.random() > 0.1) { // 90% chance to stay idle
+                    targetSpeed = 0;
+                } else { // 10% chance to start moving, or continue moving
+                    targetSpeed = (unit.type === 'Personnel' || unit.type === 'Support') ? 4 : 50;
+                    if (newSpeed < 1) { // If just starting to move, pick a new direction
+                        const headingUpdate = unit.heading + (Math.random() - 0.5) * 60;
+                        newHeading = (headingUpdate % 360 + 360) % 360;
+                    } else { // If already moving, slightly adjust course
+                        const headingUpdate = unit.heading + (Math.random() - 0.5) * 15;
                         newHeading = (headingUpdate % 360 + 360) % 360;
                     }
                 }
-            } else if (responseTarget) {
-                 // This unit is a designated responder
-                 const distanceToTarget = calculateDistance(lat, lng, responseTarget.position.lat, responseTarget.position.lng);
+            }
 
-                 if (distanceToTarget > 0.1) { // Stop when it gets close
-                     newHeading = calculateBearing(lat, lng, responseTarget.position.lat, responseTarget.position.lng);
-                     switch(unit.type) {
-                         case 'Vehicle':
-                         case 'Military':
-                         case 'Police':
-                             newSpeed = Math.min(120, unit.speed + Math.random() * 10);
-                             break;
-                         case 'Air':
-                             newSpeed = Math.min(500, unit.speed + Math.random() * 30);
-                             break;
-                         case 'Personnel':
-                         case 'Support':
-                             newSpeed = Math.min(10, unit.speed + Math.random() * 1.5);
-                             break;
-                     }
-                 } else {
-                     newSpeed = 0; // Arrived at the scene
-                 }
-            } else {
-                // Default random movement logic
-                switch(unit.type) {
-                    case 'Vehicle':
-                    case 'Military':
-                    case 'Police':
-                        newSpeed = Math.max(0, Math.min(120, unit.speed + (Math.random() - 0.45) * 5)); 
-                        if (newSpeed > 1) {
-                             const headingUpdate = unit.heading + (Math.random() - 0.5) * 15;
-                             newHeading = (headingUpdate % 360 + 360) % 360;
-                        }
-                        break;
-                    case 'Personnel':
-                        newSpeed = Math.max(0, Math.min(10, unit.speed + (Math.random() - 0.5) * 2));
-                        if (newSpeed > 0.5) {
-                            const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
-                            newHeading = (headingUpdate % 360 + 360) % 360;
-                        }
-                        break;
-                    case 'Support':
-                        newSpeed = Math.max(0, Math.min(5, unit.speed + (Math.random() - 0.6) * 1));
-                        if (newSpeed > 0.5) {
-                            const headingUpdate = unit.heading + (Math.random() - 0.5) * 30;
-                            newHeading = (headingUpdate % 360 + 360) % 360;
-                        }
-                        break;
-                    case 'Air':
-                        newSpeed = Math.max(0, Math.min(500, unit.speed + (Math.random() - 0.4) * 25));
-                        if (newSpeed > 50) {
-                            const headingUpdate = unit.heading + (Math.random() - 0.5) * 10;
-                            newHeading = (headingUpdate % 360 + 360) % 360;
-                        }
-                        break;
-                }
+            // Apply acceleration/deceleration
+            const accelerationRate = (unit.type === 'Air' ? 20 : (unit.type === 'Personnel' || unit.type === 'Support' ? 1 : 5));
+            if (newSpeed < targetSpeed) {
+                newSpeed = Math.min(targetSpeed, newSpeed + accelerationRate);
+            } else if (newSpeed > targetSpeed) {
+                newSpeed = Math.max(targetSpeed, newSpeed - accelerationRate * 1.5); // Decelerate faster
             }
             // --- End of Movement Logic ---
 
-            if (newSpeed > 1) {
+            if (newSpeed > 0.1) {
                 const distance = (newSpeed / 3600) * timeSinceLastUpdate;
                 const angleRad = (newHeading * Math.PI) / 180;
                 const cosLat = Math.cos(lat * Math.PI / 180);
