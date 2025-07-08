@@ -54,9 +54,11 @@ export function startSimulation() {
     if (state.simulationInterval) return;
 
     const intervalId = setInterval(() => {
+        const now = Date.now();
+        const timeDelta = 0.25; // Simulation runs every 250ms
+        
         const isRallyingMode = state.isRallying && state.controlCenterPosition;
         const rallyPosition = state.controlCenterPosition;
-        const now = Date.now();
         
         // --- Pre-calculation for Group Cohesion & Alarm Response ---
         const alarmUnits = state.units.filter(u => u.status === 'Alarm' && u.isActive);
@@ -64,10 +66,10 @@ export function startSimulation() {
         const responderTargetMap = new Map<number, MeshUnit>();
         const groupCenterMap = new Map<number, { lat: number, lng: number }>();
 
-        // Find responders for alarms
         if (alarmUnits.length > 0 && otherUnits.length > 0) {
             alarmUnits.forEach(alarmUnit => {
                 const unitsByDistance = otherUnits
+                    .filter(ou => !responderTargetMap.has(ou.id)) // Ensure a unit only responds to one alarm
                     .map(otherUnit => ({
                         unit: otherUnit,
                         distance: calculateDistance(
@@ -84,7 +86,6 @@ export function startSimulation() {
             });
         }
         
-        // Calculate group centers for cohesion
         state.groups.forEach(group => {
             const unitsInGroup = state.units.filter(u => u.groupId === group.id && u.isActive);
             if (unitsInGroup.length > 1) {
@@ -93,48 +94,34 @@ export function startSimulation() {
                 groupCenterMap.set(group.id, { lat: totalLat / unitsInGroup.length, lng: totalLng / unitsInGroup.length });
             }
         });
-        // --- End of Pre-calculation ---
 
-
-        // Step 1: Update individual unit properties (movement, battery, etc.)
+        // --- Unit Update Loop ---
         let updatedUnits = state.units.map(unit => {
-            if (!unit.isActive) {
-                if (unit.status !== 'Offline') {
-                    return { ...unit, status: 'Offline', signalStrength: -120, hopCount: 0 };
+            let newUnitState = { ...unit };
+
+            // Handle inactive units first
+            if (!newUnitState.isActive) {
+                if (newUnitState.status !== 'Offline') {
+                    newUnitState.status = 'Offline';
+                    newUnitState.signalStrength = -120;
+                    newUnitState.hopCount = 0;
                 }
-                return unit;
+                return newUnitState;
             }
 
-            const effectiveSendInterval = unit.isExternallyPowered ? 2 : unit.sendInterval;
-            const timeSinceLastUpdate = (now - unit.timestamp) / 1000;
-
-            if (timeSinceLastUpdate < effectiveSendInterval) {
-                return unit; // Not time to update this unit yet
-            }
-            
-            let newBattery = unit.battery;
-            if (unit.isExternallyPowered) {
-                newBattery = Math.min(100, unit.battery + 0.5 * (timeSinceLastUpdate / 5));
-            } else {
-                const batteryDrain = unit.battery > 0 ? 0.05 * (timeSinceLastUpdate / 5) : 0;
-                newBattery = Math.max(0, unit.battery - batteryDrain);
-            }
-
-            let { lat, lng } = unit.position;
-            let newHeading = unit.heading;
-            let newSpeed = unit.speed;
+            // --- MOVEMENT LOGIC (runs every tick) ---
+            let { lat, lng } = newUnitState.position;
+            let newHeading = newUnitState.heading;
+            let newSpeed = 0; // Default to stopping
             
             let targetPosition: { lat: number; lng: number } | null = null;
-            let targetSpeed = 0; // Default to stopping
-            let newPatrolTarget = unit.patrolTarget;
-            let newPatrolTargetIndex = unit.patrolTargetIndex;
+            let newPatrolTarget = newUnitState.patrolTarget;
+            let newPatrolTargetIndex = newUnitState.patrolTargetIndex;
 
-            const responseTarget = responderTargetMap.get(unit.id);
-            const groupCenter = unit.groupId ? groupCenterMap.get(unit.groupId) : null;
-            const assignment = state.assignments.find(a => a.groupId === unit.groupId);
+            const responseTarget = responderTargetMap.get(newUnitState.id);
+            const groupCenter = newUnitState.groupId ? groupCenterMap.get(newUnitState.groupId) : null;
+            const assignment = state.assignments.find(a => a.groupId === newUnitState.groupId);
             
-            // --- Movement Logic ---
-            // Priority: 1. Rallying, 2. Alarm Response, 3. Patrol/Pendulum, 4. Group Cohesion, 5. Default
             if (isRallyingMode && rallyPosition) {
                 targetPosition = rallyPosition;
                 newPatrolTarget = null;
@@ -173,79 +160,85 @@ export function startSimulation() {
                 }
             } else if (groupCenter) {
                 const distanceToGroupCenter = calculateDistance(lat, lng, groupCenter.lat, groupCenter.lng);
-                if (distanceToGroupCenter > 1.0) { // If unit is straying too far (> 1km), move back
+                if (distanceToGroupCenter > 1.0) {
                     targetPosition = groupCenter;
                 }
             }
-
-            // --- Task-based movement and acceleration ---
+            
             if (targetPosition) {
                 const distanceToTarget = calculateDistance(lat, lng, targetPosition.lat, targetPosition.lng);
                 const stopDistance = (targetPosition === rallyPosition) ? 0.5 : 0.1;
 
                 if (distanceToTarget > stopDistance) {
                     newHeading = calculateBearing(lat, lng, targetPosition.lat, targetPosition.lng);
-                    switch(unit.type) {
-                        case 'Vehicle': case 'Military': case 'Police': targetSpeed = 80; break;
-                        case 'Air': targetSpeed = 300; break;
-                        case 'Personnel': case 'Support': targetSpeed = 5; break;
+                    switch(newUnitState.type) {
+                        case 'Vehicle': case 'Military': case 'Police': newSpeed = 80; break;
+                        case 'Air': newSpeed = 300; break;
+                        case 'Personnel': case 'Support': newSpeed = 5; break;
                     }
                 } else {
-                    targetSpeed = 0;
-                    if (targetPosition === rallyPosition && newSpeed > 1) { // circling rally point
-                        const headingUpdate = unit.heading + (Math.random() - 0.5) * 45;
+                    newSpeed = 0;
+                    if (targetPosition === rallyPosition && isRallyingMode) {
+                        const headingUpdate = newUnitState.heading + (Math.random() - 0.5) * 45;
                         newHeading = (headingUpdate % 360 + 360) % 360;
-                        targetSpeed = 5;
-                    }
-                }
-            } else {
-                // Default random movement (if no other task)
-                if (unit.status === 'Idle' && Math.random() > 0.1) { // 90% chance to stay idle
-                    targetSpeed = 0;
-                } else { // 10% chance to start moving, or continue moving
-                    targetSpeed = (unit.type === 'Personnel' || unit.type === 'Support') ? 4 : 50;
-                    if (newSpeed < 1) { // If just starting to move, pick a new direction
-                        const headingUpdate = unit.heading + (Math.random() - 0.5) * 60;
-                        newHeading = (headingUpdate % 360 + 360) % 360;
-                    } else { // If already moving, slightly adjust course
-                        const headingUpdate = unit.heading + (Math.random() - 0.5) * 15;
-                        newHeading = (headingUpdate % 360 + 360) % 360;
+                        newSpeed = 5;
                     }
                 }
             }
-
-            // Instantaneous speed change as requested
-            newSpeed = targetSpeed;
-
-            // --- End of Movement Logic ---
-
+            
             if (newSpeed > 0.1) {
-                const distance = (newSpeed / 3600) * timeSinceLastUpdate;
+                const distanceMoved = (newSpeed / 3600) * timeDelta;
                 const angleRad = (newHeading * Math.PI) / 180;
                 const cosLat = Math.cos(lat * Math.PI / 180);
                 
                 if (Math.abs(cosLat) > 1e-9) {
-                    lat += (distance * Math.cos(angleRad)) / 111.32;
-                    lng += (distance * Math.sin(angleRad)) / (111.32 * cosLat);
+                    lat += (distanceMoved * Math.cos(angleRad)) / 111.32;
+                    lng += (distanceMoved * Math.sin(angleRad)) / (111.32 * cosLat);
                 }
 
                 lat = Math.max(-90, Math.min(90, lat));
                 lng = (lng + 540) % 360 - 180;
             }
+            
+            newUnitState.position = { lat, lng };
+            newUnitState.speed = parseFloat(newSpeed.toFixed(1));
+            newUnitState.heading = parseInt(newHeading.toFixed(0));
+            newUnitState.patrolTarget = newPatrolTarget;
+            newUnitState.patrolTargetIndex = newPatrolTargetIndex;
 
-            let newStatus = unit.status;
-            if (newBattery === 0 && !unit.isExternallyPowered) newStatus = 'Offline';
-            else if (newStatus !== 'Alarm' && newStatus !== 'Maintenance') newStatus = newSpeed > 1 ? 'Moving' : 'Idle';
-            
-            let newLastMessage = unit.lastMessage;
-            if (Math.random() < 0.005 && newStatus !== 'Offline') {
-                const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
-                const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
-                newLastMessage = { text: messageText, timestamp: now, source: 'unit' };
-                state = { ...state, messages: [...state.messages, { unitName: unit.name, text: messageText }] };
+
+            // --- INFREQUENT UPDATES (runs based on sendInterval) ---
+            const timeSinceLastUpdate = (now - newUnitState.timestamp) / 1000;
+            const effectiveSendInterval = newUnitState.isExternallyPowered ? 2 : newUnitState.sendInterval;
+
+            if (timeSinceLastUpdate >= effectiveSendInterval) {
+                newUnitState.timestamp = now;
+
+                if (newUnitState.isExternallyPowered) {
+                    newUnitState.battery = Math.min(100, newUnitState.battery + 2 * (timeSinceLastUpdate / 5)); // Faster charging
+                } else {
+                    const batteryDrain = newUnitState.battery > 0 ? 0.05 * (timeSinceLastUpdate / 5) : 0;
+                    newUnitState.battery = Math.max(0, newUnitState.battery - batteryDrain);
+                }
+                
+                if (Math.random() < 0.02) { // Slightly increased chance
+                    const randomMessages = ["Alles in Ordnung.", "Benötige Status-Update.", "Position bestätigt.", "Verstanden."];
+                    const messageText = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+                    newUnitState.lastMessage = { text: messageText, timestamp: now, source: 'unit' };
+                    state.messages.push({ unitName: newUnitState.name, text: messageText });
+                }
             }
+
+            // --- STATUS UPDATE (runs every tick) ---
+            if (newUnitState.battery <= 0 && !newUnitState.isExternallyPowered) {
+                newUnitState.status = 'Offline';
+                newUnitState.isActive = false;
+            } else if (newUnitState.status !== 'Alarm' && newUnitState.status !== 'Maintenance') {
+                newUnitState.status = newUnitState.speed > 1 ? 'Moving' : 'Idle';
+            }
+            newUnitState.battery = parseFloat(newUnitState.battery.toFixed(2));
             
-            return { ...unit, position: { lat, lng }, speed: parseFloat(newSpeed.toFixed(1)), heading: parseInt(newHeading.toFixed(0)), battery: parseFloat(newBattery.toFixed(2)), status: newStatus, isActive: newBattery > 0 || unit.isExternallyPowered, timestamp: now, lastMessage: newLastMessage, patrolTarget: newPatrolTarget, patrolTargetIndex: newPatrolTargetIndex };
+            return newUnitState;
         });
         
         // Step 2: Simulate mesh network topology (hops and signal strength)
@@ -288,28 +281,39 @@ export function startSimulation() {
                     }
 
                     let bestParent: MeshUnit | null = null;
-                    let minDistance = MAX_RANGE_KM;
+                    let minHops = Infinity;
+                    let bestSignal = -Infinity;
 
-                    // Find the closest already-connected unit to be its parent
+                    // Find the best potential parent
                     updatedUnits.forEach(potentialParent => {
                         // A valid parent must be active and already part of the mesh
                         if (potentialParent.isActive && potentialParent.hopCount !== Infinity && potentialParent.id !== childUnit.id) {
-                            const distance = calculateDistance(
+                             const distance = calculateDistance(
                                 childUnit.position.lat, childUnit.position.lng,
                                 potentialParent.position.lat, potentialParent.position.lng
                             );
 
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                bestParent = potentialParent;
+                            if (distance < MAX_RANGE_KM) {
+                                // Prefer parent with fewer hops, then better signal
+                                if (potentialParent.hopCount < minHops) {
+                                    minHops = potentialParent.hopCount;
+                                    bestSignal = potentialParent.signalStrength;
+                                    bestParent = potentialParent;
+                                } else if (potentialParent.hopCount === minHops) {
+                                    if(potentialParent.signalStrength > bestSignal) {
+                                         bestSignal = potentialParent.signalStrength;
+                                         bestParent = potentialParent;
+                                    }
+                                }
                             }
                         }
                     });
 
                     // If a suitable parent was found, connect the child
                     if (bestParent) {
+                        const distanceToParent = calculateDistance(childUnit.position.lat, childUnit.position.lng, bestParent.position.lat, bestParent.position.lng);
                         childUnit.hopCount = bestParent.hopCount + 1;
-                        childUnit.signalStrength = Math.round(Math.max(-120, -50 - (minDistance * 20)));
+                        childUnit.signalStrength = Math.round(Math.max(-120, -50 - (distanceToParent * 20)));
                         connectionsMadeInLastPass = true;
                     }
                 });
@@ -533,7 +537,7 @@ export function removeStatusMapping(id: number) {
         throw new Error(`Der Status "${statusName}" wird noch von ${unitsUsingStatus.length} Einheit(en) verwendet und kann nicht gelöscht werden.`);
     }
     
-    const newMapping = { ...state.typeMapping };
+    const newMapping = { ...state.statusMapping };
     delete newMapping[id];
     state = { ...state, statusMapping: newMapping };
 }
