@@ -105,11 +105,11 @@ export async function getNetworkAnalysis(): Promise<{ summary: string; details: 
 }
 
 export async function loadAdminSettings() {
-    const { typeMapping, statusMapping } = await getConfig();
-    return { typeMapping, statusMapping };
+    const { typeMapping, statusMapping, maxRangeKm } = await getConfig();
+    return { typeMapping, statusMapping, maxRangeKm };
 }
 
-export async function saveAdminSettings(config: {typeMapping: TypeMapping, statusMapping: StatusMapping}) {
+export async function saveAdminSettings(config: {typeMapping: TypeMapping, statusMapping: StatusMapping, maxRangeKm: number}) {
     await updateConfig(config);
     return { success: true };
 }

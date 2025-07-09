@@ -36,6 +36,7 @@ interface ServerState {
     isRallying: boolean;
     controlCenterPosition: { lat: number, lng: number } | null;
     messages: ToastMessage[];
+    maxRangeKm: number;
 }
 
 // This is our in-memory "database" on the server.
@@ -49,7 +50,8 @@ let state: ServerState = {
     simulationInterval: null,
     isRallying: false,
     controlCenterPosition: { lat: 53.19745, lng: 10.84507 },
-    messages: []
+    messages: [],
+    maxRangeKm: 3,
 };
 
 
@@ -152,9 +154,11 @@ export async function startSimulation() {
         let updatedUnits = state.units.map(unit => {
             let newUnitState = { ...unit };
 
-            if (!newUnitState.isActive) {
-                if (newUnitState.isExternallyPowered) {
-                    newUnitState.battery = Math.min(100, newUnitState.battery + 2 * (timeDelta / 5));
+            // Units that have battery can always potentially be activated
+            if (!newUnitState.isExternallyPowered && newUnitState.battery <= 0) {
+                if (newUnitState.isActive) {
+                    newUnitState.isActive = false;
+                    newUnitState.status = 'Offline';
                 }
                 return newUnitState;
             }
@@ -199,33 +203,43 @@ export async function startSimulation() {
                     state.messages.push({ unitName: newUnitState.name, text: messageText });
                 }
             }
-
-            if (newUnitState.battery <= 0 && !newUnitState.isExternallyPowered) {
-                newUnitState.status = 'Offline';
-                newUnitState.isActive = false;
-            } else if (newUnitState.status !== 'Alarm' && newUnitState.status !== 'Maintenance') {
-                 newUnitState.status = newUnitState.speed > 1 ? 'Moving' : 'Idle';
+            
+            // Only update status for active units
+            if (newUnitState.isActive) {
+                if (newUnitState.status !== 'Alarm' && newUnitState.status !== 'Maintenance') {
+                     newUnitState.status = newUnitState.speed > 1 ? 'Moving' : 'Idle';
+                }
             }
+
             newUnitState.battery = parseFloat(newUnitState.battery.toFixed(2));
             
             return newUnitState;
         });
         
+        // Simulate mesh network topology
         if (state.controlCenterPosition) {
             const gatewayPos = state.controlCenterPosition;
-            const MAX_RANGE_KM = 3;
-
+            
+            // Reset hop counts for all units with battery
             updatedUnits.forEach(u => {
-                u.hopCount = u.battery > 0 ? Infinity : 0;
-                u.signalStrength = -120;
+                if (u.battery > 0) {
+                    u.hopCount = Infinity;
+                    u.signalStrength = -120;
+                } else {
+                    u.hopCount = 0;
+                    u.isActive = false;
+                    u.status = 'Offline';
+                }
             });
-
+            
+            // Step 1: Units in direct range of gateway
             updatedUnits.forEach(u => {
-                if (u.hopCount === Infinity && calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng) <= MAX_RANGE_KM) {
+                if (u.hopCount === Infinity && calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng) <= state.maxRangeKm) {
                     u.hopCount = 1;
                 }
             });
 
+            // Step 2: Propagate connections through the mesh
             let connectionsMade;
             do {
                 connectionsMade = false;
@@ -236,7 +250,7 @@ export async function startSimulation() {
                         
                         updatedUnits.forEach(parent => {
                             if (parent.id !== child.id && parent.hopCount > 0 && parent.hopCount !== Infinity) {
-                                if (calculateDistance(child.position.lat, child.position.lng, parent.position.lat, parent.position.lng) < MAX_RANGE_KM) {
+                                if (calculateDistance(child.position.lat, child.position.lng, parent.position.lat, parent.position.lng) < state.maxRangeKm) {
                                     if (parent.hopCount < minHops) {
                                         minHops = parent.hopCount;
                                         bestParent = parent;
@@ -253,6 +267,7 @@ export async function startSimulation() {
                 });
             } while (connectionsMade);
 
+            // Step 3: Finalize status based on connectivity
             updatedUnits.forEach(u => {
                  if (u.battery > 0) {
                      if (u.hopCount === Infinity) {
@@ -261,16 +276,13 @@ export async function startSimulation() {
                          u.status = 'Offline';
                      } else {
                          u.isActive = true;
+                         // If it was offline but now has connection, set it to online
                          if (u.status === 'Offline') {
                              u.status = 'Online';
                          }
                          const distToGateway = calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng);
                          u.signalStrength = Math.round(Math.max(-120, -50 - (distToGateway * (u.hopCount * 5))));
                      }
-                 } else {
-                    u.hopCount = 0;
-                    u.isActive = false;
-                    u.status = 'Offline';
                  }
             });
         }
@@ -301,6 +313,7 @@ export async function getSnapshot() {
         typeMapping: state.typeMapping,
         statusMapping: state.statusMapping,
         assignments: state.assignments,
+        maxRangeKm: state.maxRangeKm,
     };
 }
 
@@ -309,12 +322,13 @@ export async function getConfig() {
         units: state.units,
         groups: state.groups,
         typeMapping: state.typeMapping,
-        statusMapping: state.statusMapping
+        statusMapping: state.statusMapping,
+        maxRangeKm: state.maxRangeKm,
     }
 }
 
-export async function updateConfig({ typeMapping, statusMapping }: { typeMapping: TypeMapping, statusMapping: StatusMapping }) {
-    state = { ...state, typeMapping, statusMapping };
+export async function updateConfig({ typeMapping, statusMapping, maxRangeKm }: { typeMapping: TypeMapping, statusMapping: StatusMapping, maxRangeKm?: number }) {
+    state = { ...state, typeMapping, statusMapping, maxRangeKm: maxRangeKm ?? state.maxRangeKm };
 }
 
 export async function updateUnit(updatedUnit: MeshUnit) {

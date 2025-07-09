@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Settings, Save, X, Edit, Loader2, Trash2, PlusCircle, BatteryCharging, Zap } from 'lucide-react';
+import { Settings, Save, X, Edit, Loader2, Trash2, PlusCircle, BatteryCharging, Zap, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -12,10 +12,13 @@ import type { TypeMapping, StatusMapping } from '@/types/mesh';
 import { loadAdminSettings, saveAdminSettings, addTypeMapping, removeTypeMapping, addStatusMapping, removeStatusMapping, chargeAllUnitsOnBackend } from '@/app/actions';
 import { Skeleton } from './ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Label } from './ui/label';
 
 export default function AdminSettings() {
   const [typeMapping, setTypeMapping] = React.useState<TypeMapping | null>(null);
   const [statusMapping, setStatusMapping] = React.useState<StatusMapping | null>(null);
+  const [maxRangeKm, setMaxRangeKm] = React.useState<number | null>(null);
+  
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isAdding, setIsAdding] = React.useState<'type' | 'status' | null>(null);
@@ -37,6 +40,7 @@ export default function AdminSettings() {
         const settings = await loadAdminSettings();
         setTypeMapping(settings.typeMapping);
         setStatusMapping(settings.statusMapping);
+        setMaxRangeKm(settings.maxRangeKm);
     } catch (error) {
         console.error("Failed to load admin settings", error);
         toast({ variant: 'destructive', title: 'Fehler beim Laden', description: 'Die Konfiguration konnte nicht vom Server geladen werden.' });
@@ -50,11 +54,11 @@ export default function AdminSettings() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveEdits = async () => {
-    if (!typeMapping || !statusMapping) return;
+    if (!typeMapping || !statusMapping || maxRangeKm === null) return;
     try {
         setIsSaving(true);
-        await saveAdminSettings({ typeMapping, statusMapping });
-        toast({ title: 'Konfiguration gespeichert', description: 'Alle Änderungen an bestehenden Einträgen wurden gespeichert.' });
+        await saveAdminSettings({ typeMapping, statusMapping, maxRangeKm });
+        toast({ title: 'Konfiguration gespeichert', description: 'Alle Änderungen wurden serverseitig gespeichert.' });
     } catch (error) {
         console.error("Failed to save config", error);
         toast({ variant: 'destructive', title: 'Fehler beim Speichern', description: 'Die Konfiguration konnte nicht gespeichert werden.' });
@@ -170,7 +174,7 @@ export default function AdminSettings() {
                 <div>
                 <CardTitle className="text-2xl">System-Administration</CardTitle>
                 <CardDescription>
-                    Übersicht der systemweiten ID-Konfigurationen. Änderungen werden serverseitig gespeichert.
+                    Übersicht der systemweiten Konfigurationen.
                 </CardDescription>
                 </div>
             </div>
@@ -180,7 +184,7 @@ export default function AdminSettings() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-6 pt-6">
+        <CardContent className="space-y-8 pt-6">
           {isLoading ? (
             <>
               {renderTableSkeleton()}
@@ -188,143 +192,163 @@ export default function AdminSettings() {
             </>
           ) : (
             <>
-            {typeMapping && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Einheitentyp-IDs</h3>
-              <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead className="w-[80px]">ID</TableHead>
-                              <TableHead>Typ-Bezeichnung</TableHead>
-                              <TableHead className="w-[140px] text-right">Aktion</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {Object.entries(typeMapping).map(([id, name]) => (
-                              <TableRow key={`type-${id}`}>
-                                  <TableCell className="font-mono">{id}</TableCell>
-                                  <TableCell>
-                                    {editingId === `type-${id}` ? (
-                                      <Input value={editingValue} onChange={(e) => setEditingValue(e.target.value)} className="h-8" />
-                                    ) : (
-                                      name
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right space-x-0.5">
-                                     {editingId === `type-${id}` ? (
-                                      <>
-                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleConfirmEdit}><Save className="h-4 w-4" /></Button>
-                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
-                                      </>
-                                     ) : (
-                                      <>
-                                        <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('type', id)}><Edit className="h-4 w-4" /></Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button size="icon" variant="ghost" className='h-8 w-8 text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
-                                                    <AlertDialogDescription>Möchten Sie den Typ "{name}" (ID: {id}) wirklich löschen? Dies kann nicht rückgängig gemacht werden.</AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleRemove('type', Number(id))} className="bg-destructive hover:bg-destructive/90">Löschen</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                      </>
-                                     )}
-                                  </TableCell>
-                              </TableRow>
-                          ))}
-                      </TableBody>
-                      <TableFooter>
-                          <TableRow>
-                              <TableCell><Input type="number" placeholder="ID" className="h-9" value={newTypeId} onChange={e => setNewTypeId(e.target.value)} /></TableCell>
-                              <TableCell><Input placeholder="Bezeichnung" className="h-9" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} /></TableCell>
-                              <TableCell className="text-right">
-                                  <Button size="sm" onClick={() => handleAdd('type')} disabled={isAdding === 'type'}>
-                                      {isAdding === 'type' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} Hinzufügen
-                                  </Button>
-                              </TableCell>
-                          </TableRow>
-                      </TableFooter>
-                  </Table>
-              </div>
-            </div>
-            )}
+            <div className="grid md:grid-cols-2 gap-8">
+                {typeMapping && (
+                <div>
+                <h3 className="text-lg font-semibold mb-2">Einheitentyp-IDs</h3>
+                <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[80px]">ID</TableHead>
+                                <TableHead>Typ-Bezeichnung</TableHead>
+                                <TableHead className="w-[140px] text-right">Aktion</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Object.entries(typeMapping).map(([id, name]) => (
+                                <TableRow key={`type-${id}`}>
+                                    <TableCell className="font-mono">{id}</TableCell>
+                                    <TableCell>
+                                        {editingId === `type-${id}` ? (
+                                        <Input value={editingValue} onChange={(e) => setEditingValue(e.target.value)} className="h-8" />
+                                        ) : (
+                                        name
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right space-x-0.5">
+                                        {editingId === `type-${id}` ? (
+                                        <>
+                                            <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleConfirmEdit}><Save className="h-4 w-4" /></Button>
+                                            <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
+                                        </>
+                                        ) : (
+                                        <>
+                                            <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('type', id)}><Edit className="h-4 w-4" /></Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button size="icon" variant="ghost" className='h-8 w-8 text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
+                                                        <AlertDialogDescription>Möchten Sie den Typ "{name}" (ID: {id}) wirklich löschen? Dies kann nicht rückgängig gemacht werden.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleRemove('type', Number(id))} className="bg-destructive hover:bg-destructive/90">Löschen</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell><Input type="number" placeholder="ID" className="h-9" value={newTypeId} onChange={e => setNewTypeId(e.target.value)} /></TableCell>
+                                <TableCell><Input placeholder="Bezeichnung" className="h-9" value={newTypeName} onChange={e => setNewTypeName(e.target.value)} /></TableCell>
+                                <TableCell className="text-right">
+                                    <Button size="sm" onClick={() => handleAdd('type')} disabled={isAdding === 'type'}>
+                                        {isAdding === 'type' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} Hinzufügen
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+                </div>
+                </div>
+                )}
 
-            {statusMapping && (
-             <div>
-              <h3 className="text-lg font-semibold mb-2">Status-IDs</h3>
-              <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead className="w-[80px]">ID</TableHead>
-                              <TableHead>Status-Bezeichnung</TableHead>
-                               <TableHead className="w-[140px] text-right">Aktion</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                           {Object.entries(statusMapping).map(([id, name]) => (
-                              <TableRow key={`status-${id}`}>
-                                  <TableCell className="font-mono">{id}</TableCell>
-                                  <TableCell>
-                                    {editingId === `status-${id}` ? (
-                                      <Input value={editingValue} onChange={(e) => setEditingValue(e.target.value)} className="h-8" />
-                                    ) : (
-                                      name
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right space-x-0.5">
-                                     {editingId === `status-${id}` ? (
-                                      <>
-                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleConfirmEdit}><Save className="h-4 w-4" /></Button>
-                                          <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
-                                      </>
-                                     ) : (
-                                      <>
-                                        <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('status', id)}><Edit className="h-4 w-4" /></Button>
-                                         <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button size="icon" variant="ghost" className='h-8 w-8 text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
-                                                    <AlertDialogDescription>Möchten Sie den Status "{name}" (ID: {id}) wirklich löschen? Dies kann nicht rückgängig gemacht werden.</AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleRemove('status', Number(id))} className="bg-destructive hover:bg-destructive/90">Löschen</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                      </>
-                                     )}
-                                  </TableCell>
-                              </TableRow>
-                          ))}
-                      </TableBody>
-                      <TableFooter>
-                          <TableRow>
-                              <TableCell><Input type="number" placeholder="ID" className="h-9" value={newStatusId} onChange={e => setNewStatusId(e.target.value)} /></TableCell>
-                              <TableCell><Input placeholder="Bezeichnung" className="h-9" value={newStatusName} onChange={e => setNewStatusName(e.target.value)} /></TableCell>
-                              <TableCell className="text-right">
-                                  <Button size="sm" onClick={() => handleAdd('status')} disabled={isAdding === 'status'}>
-                                     {isAdding === 'status' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} Hinzufügen
-                                  </Button>
-                              </TableCell>
-                          </TableRow>
-                      </TableFooter>
-                  </Table>
-              </div>
+                {statusMapping && (
+                <div>
+                <h3 className="text-lg font-semibold mb-2">Status-IDs</h3>
+                <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[80px]">ID</TableHead>
+                                <TableHead>Status-Bezeichnung</TableHead>
+                                <TableHead className="w-[140px] text-right">Aktion</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {Object.entries(statusMapping).map(([id, name]) => (
+                                <TableRow key={`status-${id}`}>
+                                    <TableCell className="font-mono">{id}</TableCell>
+                                    <TableCell>
+                                        {editingId === `status-${id}` ? (
+                                        <Input value={editingValue} onChange={(e) => setEditingValue(e.target.value)} className="h-8" />
+                                        ) : (
+                                        name
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right space-x-0.5">
+                                        {editingId === `status-${id}` ? (
+                                        <>
+                                            <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleConfirmEdit}><Save className="h-4 w-4" /></Button>
+                                            <Button size="icon" variant="ghost" className='h-8 w-8' onClick={handleCancelEditing}><X className="h-4 w-4" /></Button>
+                                        </>
+                                        ) : (
+                                        <>
+                                            <Button size="icon" variant="ghost" className='h-8 w-8' onClick={() => handleStartEditing('status', id)}><Edit className="h-4 w-4" /></Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button size="icon" variant="ghost" className='h-8 w-8 text-destructive/70 hover:text-destructive'><Trash2 className="h-4 w-4" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
+                                                        <AlertDialogDescription>Möchten Sie den Status "{name}" (ID: {id}) wirklich löschen? Dies kann nicht rückgängig gemacht werden.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleRemove('status', Number(id))} className="bg-destructive hover:bg-destructive/90">Löschen</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                        <TableFooter>
+                            <TableRow>
+                                <TableCell><Input type="number" placeholder="ID" className="h-9" value={newStatusId} onChange={e => setNewStatusId(e.target.value)} /></TableCell>
+                                <TableCell><Input placeholder="Bezeichnung" className="h-9" value={newStatusName} onChange={e => setNewStatusName(e.target.value)} /></TableCell>
+                                <TableCell className="text-right">
+                                    <Button size="sm" onClick={() => handleAdd('status')} disabled={isAdding === 'status'}>
+                                        {isAdding === 'status' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />} Hinzufügen
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        </TableFooter>
+                    </Table>
+                </div>
+                </div>
+                )}
             </div>
-            )}
+            <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Netzwerkparameter</h3>
+                <div className="max-w-xs space-y-2">
+                    <Label htmlFor="max-range">Maximale Reichweite (km)</Label>
+                    <Input
+                        id="max-range"
+                        type="number"
+                        value={maxRangeKm ?? ''}
+                        onChange={(e) => setMaxRangeKm(Number(e.target.value))}
+                        min="0.1"
+                        step="0.1"
+                        disabled={isLoading}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        Die maximale Distanz, die eine Node Signale senden/empfangen kann.
+                    </p>
+                </div>
+            </div>
           </>
           )}
         </CardContent>

@@ -65,6 +65,7 @@ export interface NetworkSnapshot {
     typeMapping: TypeMapping;
     statusMapping: StatusMapping;
     assignments: Assignment[];
+    maxRangeKm: number;
 }
 
 // Default configurations, can be overridden by the user in the admin panel
