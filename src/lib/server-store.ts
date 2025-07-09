@@ -153,7 +153,9 @@ export async function startSimulation() {
             let newUnitState = { ...unit };
 
             if (!newUnitState.isActive) {
-                if (newUnitState.status !== 'Offline') newUnitState.status = 'Offline';
+                if (newUnitState.isExternallyPowered) {
+                    newUnitState.battery = Math.min(100, newUnitState.battery + 2 * (timeDelta / 5));
+                }
                 return newUnitState;
             }
 
@@ -179,7 +181,6 @@ export async function startSimulation() {
                 }
             }
 
-            // Infrequent updates
             const timeSinceLastUpdate = (now - newUnitState.timestamp) / 1000;
             const effectiveSendInterval = newUnitState.isExternallyPowered ? 2 : newUnitState.sendInterval;
 
@@ -199,7 +200,6 @@ export async function startSimulation() {
                 }
             }
 
-            // Status update
             if (newUnitState.battery <= 0 && !newUnitState.isExternallyPowered) {
                 newUnitState.status = 'Offline';
                 newUnitState.isActive = false;
@@ -211,19 +211,17 @@ export async function startSimulation() {
             return newUnitState;
         });
         
-        // Simulate mesh network topology
         if (state.controlCenterPosition) {
             const gatewayPos = state.controlCenterPosition;
-            const MAX_RANGE_KM = 3; 
+            const MAX_RANGE_KM = 3;
 
             updatedUnits.forEach(u => {
-                u.hopCount = u.isActive ? Infinity : 0;
+                u.hopCount = u.battery > 0 ? Infinity : 0;
                 u.signalStrength = -120;
-                 if (!u.isActive) u.status = 'Offline';
             });
-            
+
             updatedUnits.forEach(u => {
-                if (u.isActive && calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng) <= MAX_RANGE_KM) {
+                if (u.hopCount === Infinity && calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng) <= MAX_RANGE_KM) {
                     u.hopCount = 1;
                 }
             });
@@ -232,12 +230,12 @@ export async function startSimulation() {
             do {
                 connectionsMade = false;
                 updatedUnits.forEach(child => {
-                    if (child.isActive && child.hopCount === Infinity) {
+                    if (child.hopCount === Infinity) {
                         let bestParent: MeshUnit | null = null;
                         let minHops = Infinity;
                         
                         updatedUnits.forEach(parent => {
-                            if (parent.isActive && parent.hopCount !== Infinity && parent.id !== child.id) {
+                            if (parent.id !== child.id && parent.hopCount > 0 && parent.hopCount !== Infinity) {
                                 if (calculateDistance(child.position.lat, child.position.lng, parent.position.lat, parent.position.lng) < MAX_RANGE_KM) {
                                     if (parent.hopCount < minHops) {
                                         minHops = parent.hopCount;
@@ -256,15 +254,23 @@ export async function startSimulation() {
             } while (connectionsMade);
 
             updatedUnits.forEach(u => {
-                 if (u.isActive) {
+                 if (u.battery > 0) {
                      if (u.hopCount === Infinity) {
                          u.hopCount = 0;
                          u.isActive = false;
                          u.status = 'Offline';
                      } else {
+                         u.isActive = true;
+                         if (u.status === 'Offline') {
+                             u.status = 'Online';
+                         }
                          const distToGateway = calculateDistance(u.position.lat, u.position.lng, gatewayPos.lat, gatewayPos.lng);
                          u.signalStrength = Math.round(Math.max(-120, -50 - (distToGateway * (u.hopCount * 5))));
                      }
+                 } else {
+                    u.hopCount = 0;
+                    u.isActive = false;
+                    u.status = 'Offline';
                  }
             });
         }
@@ -283,8 +289,6 @@ export async function stopSimulation() {
 }
 
 export async function getSnapshot() {
-    // If the simulation isn't running, start it automatically.
-    // This ensures the app works immediately on load without needing to visit the admin page.
     if (state.simulationInterval === null) {
         await startSimulation();
     }
@@ -385,7 +389,17 @@ export async function repositionAllUnits(radiusKm: number) {
             newLonRad = lon1Rad + Math.atan2(Math.sin(randomAngle) * Math.sin(angularDistance) * Math.cos(lat1Rad), Math.cos(angularDistance) - Math.sin(lat1Rad) * Math.sin(newLatRad));
         }
 
-        return { ...unit, position: { lat: toDegrees(newLatRad), lng: toDegrees(newLonRad) }, speed: 0, heading: Math.floor(Math.random() * 360), status: 'Online', timestamp: Date.now() };
+        const shouldBeActive = unit.battery > 0;
+
+        return { 
+            ...unit, 
+            position: { lat: toDegrees(newLatRad), lng: toDegrees(newLonRad) }, 
+            speed: 0, 
+            heading: Math.floor(Math.random() * 360), 
+            status: shouldBeActive ? 'Online' : 'Offline', 
+            isActive: shouldBeActive,
+            timestamp: Date.now() 
+        };
     });
     state = { ...state, units: newUnits };
 }
