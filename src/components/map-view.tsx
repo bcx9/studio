@@ -491,7 +491,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                 ],
                 {
                     color: 'hsl(var(--accent))',
-                    weight: 5,
+                    weight: 7,
                     opacity: 0.1,
                 }
             ).addTo(meshLinesLayer);
@@ -503,7 +503,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                 ],
                 {
                     color: 'hsl(var(--accent))',
-                    weight: 1.5,
+                    weight: 3.5,
                     opacity: 0.6,
                     dashArray: '5, 10',
                 }
