@@ -490,8 +490,8 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                     [parentPosition.lat, parentPosition.lng]
                 ],
                 {
-                    color: 'hsl(var(--accent))',
-                    weight: 7,
+                    color: 'hsl(var(--primary))',
+                    weight: 9,
                     opacity: 0.1,
                 }
             ).addTo(meshLinesLayer);
@@ -502,8 +502,8 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                     [parentPosition.lat, parentPosition.lng]
                 ],
                 {
-                    color: 'hsl(var(--accent))',
-                    weight: 3.5,
+                    color: 'hsl(var(--primary))',
+                    weight: 5.5,
                     opacity: 0.6,
                     dashArray: '5, 10',
                 }
@@ -523,16 +523,16 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
         if (assignment.type === 'patrol') {
             L.circle(assignment.target, {
                 radius: assignment.radius * 1000, // km to meters
-                color: 'hsl(var(--accent))',
+                color: 'hsl(var(--primary))',
                 weight: 2,
                 opacity: 0.8,
                 dashArray: '5, 10',
-                fillColor: 'hsl(var(--accent))',
+                fillColor: 'hsl(var(--primary))',
                 fillOpacity: 0.1,
             }).addTo(layer);
         } else if (assignment.type === 'pendulum') {
             L.polyline(assignment.points, {
-                color: 'hsl(var(--accent))',
+                color: 'hsl(var(--primary))',
                 weight: 3,
                 opacity: 0.8,
                 dashArray: '10, 10',
@@ -540,7 +540,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
             assignment.points.forEach(point => {
                 L.circleMarker(point, {
                     radius: 5,
-                    color: 'hsl(var(--accent))',
+                    color: 'hsl(var(--primary))',
                     weight: 2,
                     fillColor: 'hsl(var(--background))',
                     fillOpacity: 1,
@@ -562,10 +562,9 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
   React.useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && selectedUnit) {
-      const { lat, lng } = selectedUnit.position;
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      if (Number.isFinite(selectedUnit.position.lat) && Number.isFinite(selectedUnit.position.lng)) {
         const currentZoom = map.getZoom();
-        map.flyTo([lat, lng], Math.max(currentZoom, 16), {
+        map.flyTo([selectedUnit.position.lat, selectedUnit.position.lng], Math.max(currentZoom, 16), {
           animate: true,
           duration: 0.5,
         });
