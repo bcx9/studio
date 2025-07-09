@@ -42,6 +42,7 @@ export default function GroupManagement({
     const [editingGroup, setEditingGroup] = React.useState<Group | null>(null);
     const [editingName, setEditingName] = React.useState('');
     const [assignmentRadius, setAssignmentRadius] = React.useState(1.5);
+    const [repositionRadius, setRepositionRadius] = React.useState(20);
     const { toast } = useToast();
 
     const handleAddGroup = () => {
@@ -71,7 +72,7 @@ export default function GroupManagement({
     };
 
     const handleRepositionClick = () => {
-        onRepositionAllUnits(20); // Hardcoded radius for now
+        onRepositionAllUnits(repositionRadius);
     }
     
     const handleStartPatrol = (groupId: number, groupName: string) => {
@@ -225,26 +226,44 @@ export default function GroupManagement({
                         </div>
                     </div>
                 </CardHeader>
-                 <CardContent className="space-y-4">
-                    <div>
-                        <Label htmlFor="radius" className="text-sm font-medium">Patrouillenradius</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Input
-                                id="radius"
-                                type="number"
-                                value={assignmentRadius}
-                                onChange={(e) => setAssignmentRadius(Math.max(0.1, Number(e.target.value)))}
-                                className="w-24 h-9"
-                            />
-                            <span className="text-sm text-muted-foreground">km</span>
+                 <CardContent className="space-y-6">
+                    <div className="grid grid-cols-2 gap-x-6">
+                        <div>
+                            <Label htmlFor="radius" className="text-sm font-medium">Patrouillenradius</Label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Input
+                                    id="radius"
+                                    type="number"
+                                    value={assignmentRadius}
+                                    onChange={(e) => setAssignmentRadius(Math.max(0.1, Number(e.target.value)))}
+                                    className="w-24 h-9"
+                                />
+                                <span className="text-sm text-muted-foreground">km</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Radius für den "Patrouille" Befehl.
+                            </p>
                         </div>
-                         <p className="text-xs text-muted-foreground mt-1">
-                            Radius für den nächsten "Patrouille zuweisen" Befehl.
-                        </p>
+                         <div>
+                            <Label htmlFor="reposition-radius" className="text-sm font-medium">Neu-Positionierungsradius</Label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Input
+                                    id="reposition-radius"
+                                    type="number"
+                                    value={repositionRadius}
+                                    onChange={(e) => setRepositionRadius(Math.max(1, Number(e.target.value)))}
+                                    className="w-24 h-9"
+                                />
+                                <span className="text-sm text-muted-foreground">km</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Radius für "Alle neu positionieren".
+                            </p>
+                        </div>
                     </div>
                      <div className="border-t pt-4">
                         <p className="text-sm text-muted-foreground mb-2">
-                            Positioniert alle Einheiten zufällig in einem 20km-Radius um die Leitstelle.
+                            Positioniert alle Einheiten zufällig im definierten Radius um die Leitstelle.
                         </p>
                         <Button onClick={handleRepositionClick} disabled={!isRepositionPossible}>
                                 <Move className="mr-2" />
@@ -261,3 +280,4 @@ export default function GroupManagement({
         </div>
     );
 }
+
