@@ -286,7 +286,7 @@ export async function getSnapshot() {
     // If the simulation isn't running, start it automatically.
     // This ensures the app works immediately on load without needing to visit the admin page.
     if (state.simulationInterval === null) {
-        startSimulation();
+        await startSimulation();
     }
     const messages = [...state.messages];
     state = { ...state, messages: [] };
@@ -341,6 +341,13 @@ export async function chargeUnit(unitId: number) {
     state = {
         ...state,
         units: state.units.map(u => u.id === unitId ? { ...u, battery: 100, status: u.status === 'Offline' ? 'Online' : u.status, isActive: true } : u),
+    };
+}
+
+export async function chargeAllUnits() {
+    state = {
+        ...state,
+        units: state.units.map(u => ({ ...u, battery: 100, status: u.status === 'Offline' ? 'Online' : u.status, isActive: true })),
     };
 }
 

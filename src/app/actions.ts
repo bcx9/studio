@@ -11,6 +11,7 @@ import {
   addUnit as addUnitInStore,
   removeUnit as removeUnitInStore,
   chargeUnit as chargeUnitInStore,
+  chargeAllUnits as chargeAllUnitsInStore,
   sendMessage as sendMessageInStore,
   repositionAllUnits as repositionAllUnitsInStore,
   addGroup as addGroupInStore,
@@ -130,6 +131,11 @@ export async function removeUnitOnBackend(unitId: number) {
 
 export async function chargeUnitOnBackend(unitId: number) {
     await chargeUnitInStore(unitId);
+    return { success: true };
+}
+
+export async function chargeAllUnitsOnBackend() {
+    await chargeAllUnitsInStore();
     return { success: true };
 }
 

@@ -1,14 +1,15 @@
+
 'use client';
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Settings, Save, X, Edit, Loader2, Trash2, PlusCircle } from 'lucide-react';
+import { Settings, Save, X, Edit, Loader2, Trash2, PlusCircle, BatteryCharging, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { TypeMapping, StatusMapping } from '@/types/mesh';
-import { loadAdminSettings, saveAdminSettings, addTypeMapping, removeTypeMapping, addStatusMapping, removeStatusMapping } from '@/app/actions';
+import { loadAdminSettings, saveAdminSettings, addTypeMapping, removeTypeMapping, addStatusMapping, removeStatusMapping, chargeAllUnitsOnBackend } from '@/app/actions';
 import { Skeleton } from './ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -18,6 +19,7 @@ export default function AdminSettings() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isAdding, setIsAdding] = React.useState<'type' | 'status' | null>(null);
+  const [isChargingAll, setIsChargingAll] = React.useState(false);
 
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editingValue, setEditingValue] = React.useState('');
@@ -128,6 +130,22 @@ export default function AdminSettings() {
       } else {
           toast({ variant: 'destructive', title: 'Fehler beim Entfernen', description: result.message });
       }
+  };
+
+  const handleChargeAll = async () => {
+    setIsChargingAll(true);
+    try {
+        await chargeAllUnitsOnBackend();
+        toast({
+            title: 'Aktion Erfolgreich',
+            description: 'Alle Einheiten werden aufgeladen.',
+        });
+    } catch (error) {
+        console.error("Failed to charge all units", error);
+        toast({ variant: 'destructive', title: 'Fehler', description: 'Einheiten konnten nicht geladen werden.' });
+    } finally {
+        setIsChargingAll(false);
+    }
   };
 
   
@@ -309,6 +327,31 @@ export default function AdminSettings() {
             )}
           </>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Zap className="h-8 w-8 text-primary" />
+            <div>
+              <CardTitle className="text-2xl">Globale Aktionen</CardTitle>
+              <CardDescription>
+                Globale Befehle, die die gesamte Simulation beeinflussen.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Button onClick={handleChargeAll} disabled={isChargingAll}>
+              {isChargingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BatteryCharging className="mr-2 h-4 w-4" />}
+              Alle Einheiten Aufladen
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Setzt den Akkustand aller Einheiten auf 100% und reaktiviert sie.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
