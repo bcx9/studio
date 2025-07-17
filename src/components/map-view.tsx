@@ -9,7 +9,7 @@ import L, { type Map } from 'leaflet';
 import 'leaflet-draw';
 
 import type { MeshUnit, UnitStatus, UnitType, Assignment } from '@/types/mesh';
-import { Globe, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind, Network } from 'lucide-react';
+import { Globe, Target, Flame, Droplets, Star, ParkingCircle, TriangleAlert, Wind, Network, BatteryCharging, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MapViewProps {
@@ -19,8 +19,10 @@ interface MapViewProps {
   controlCenterPosition: { lat: number; lng: number } | null;
   drawnItems: any[];
   assignments: Assignment[];
-  onMapClick: (position: { lat: number; lng: number }) => void;
+  onMapClick: (position: { lat: number; lng: number } | null) => void;
   onUnitClick?: (unitId: number) => void;
+  onUnitCharge: (unitId: number) => void;
+  onUnitDelete: (unitId: number) => void;
   onShapesChange: (featureGroup: L.FeatureGroup) => void;
   isPositioningMode: boolean;
 }
@@ -84,7 +86,7 @@ const createSymbolIcon = (symbolKey: string) => {
 
 
 const STATUS_COLORS: Record<string, string> = {
-  Online: 'hsl(var(--accent))',
+  Online: 'hsl(var(--primary))',
   Moving: 'hsl(142 71% 45%)', // green-500
   Idle: 'hsl(215 91% 60%)', // blue-500
   Alarm: 'hsl(0 84% 60%)', // red-500
@@ -165,7 +167,7 @@ const TacticalToolbar = ({ onSelect, selectedSymbol }: { onSelect: (key: string 
 );
 
 
-export default function MapView({ units, highlightedUnitId, selectedUnit, controlCenterPosition, drawnItems, assignments, onMapClick, onUnitClick, onShapesChange, isPositioningMode }: MapViewProps) {
+export default function MapView({ units, highlightedUnitId, selectedUnit, controlCenterPosition, drawnItems, assignments, onMapClick, onUnitClick, onUnitCharge, onUnitDelete, onShapesChange, isPositioningMode }: MapViewProps) {
   const mapContainerRef = React.useRef<HTMLDivElement>(null);
   const mapInstanceRef = React.useRef<Map | null>(null);
   const tileLayerRef = React.useRef<L.TileLayer | null>(null);
@@ -175,6 +177,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
   const markersRef = React.useRef<Record<number, L.Marker>>({});
   const controlCenterMarkerRef = React.useRef<L.Marker | null>(null);
   const isInitiallyCenteredRef = React.useRef(false);
+  const popupRef = React.useRef<L.Popup | null>(null);
   
   const [mapStyle, setMapStyle] = React.useState<MapStyle>('dark');
   const [selectedSymbol, setSelectedSymbol] = React.useState<string | null>(null);
@@ -226,6 +229,14 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
       editableLayersRef.current = new L.FeatureGroup().addTo(map);
       meshLinesLayerRef.current = new L.FeatureGroup().addTo(map);
       assignmentZonesLayerRef.current = new L.FeatureGroup().addTo(map);
+      
+      // Global click handler to close context menu
+      map.on('click', () => {
+        if (popupRef.current) {
+          map.closePopup(popupRef.current);
+          popupRef.current = null;
+        }
+      });
 
       setTimeout(() => map.invalidateSize(), 100);
     }
@@ -315,11 +326,20 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
              onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
         }
     };
+    // Use 'preclick' to ensure our logic runs before other click handlers if needed
+    map.on('preclick', (e) => {
+        if (Object.values(markersRef.current).some(marker => marker.getLatLng().equals(e.latlng))) {
+            return; // Don't fire map click if a marker is clicked
+        }
+        onMapClick(null);
+    });
+
     map.on('click', handleClick);
 
     // Cleanup function for this effect
     return () => {
         map.off('click', handleClick);
+        map.off('preclick');
         map.off(L.Draw.Event.CREATED);
         map.off(L.Draw.Event.EDITED);
         map.off(L.Draw.Event.DELETED);
@@ -406,6 +426,35 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                 onUnitClick(unit.id);
             });
         }
+        
+        // --- Context Menu (Right Click) ---
+        marker.on('contextmenu', (e) => {
+            L.DomEvent.stopPropagation(e);
+            
+            const popupContent = document.createElement('div');
+            popupContent.className = 'flex flex-col gap-1';
+            
+            const chargeButton = document.createElement('button');
+            chargeButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"/><line x1="23" x2="1" y1="12" y2="12"/><polyline points="11 17 6 12 11 7"/></svg> <span>Aufladen</span>`;
+            chargeButton.className = 'flex items-center gap-2 text-left p-2 rounded-md hover:bg-secondary w-full text-sm';
+            chargeButton.onclick = () => onUnitCharge(unit.id);
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5.923a2 2 0 0 0-2.171-1.923H6.17a2 2 0 0 0-2.17 1.923L4 18h16Z"/><path d="M8 10h8"/><path d="M9 14h6"/><path d="M4 18h16"/><path d="M12 22V18"/></svg> <span>Löschen</span>`;
+            deleteButton.className = 'flex items-center gap-2 text-left p-2 rounded-md hover:bg-destructive/20 text-destructive w-full text-sm';
+            deleteButton.onclick = () => onUnitDelete(unit.id);
+            
+            popupContent.appendChild(chargeButton);
+            popupContent.appendChild(deleteButton);
+            
+            popupRef.current = L.popup({
+                closeButton: false,
+                className: 'context-menu-popup',
+            })
+            .setLatLng(e.latlng)
+            .setContent(popupContent)
+            .openOn(map);
+        });
 
         markersRef.current[unit.id] = marker;
     });
@@ -422,7 +471,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
 
         controlCenterMarkerRef.current = marker;
     }
-  }, [units, highlightedUnitId, controlCenterPosition, onUnitClick]);
+  }, [units, highlightedUnitId, controlCenterPosition, onUnitClick, onUnitCharge, onUnitDelete]);
 
   // Draw mesh connection lines
   React.useEffect(() => {
@@ -491,7 +540,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                 ],
                 {
                     color: 'hsl(var(--primary))',
-                    weight: 9,
+                    weight: 11.5,
                     opacity: 0.1,
                 }
             ).addTo(meshLinesLayer);
@@ -503,7 +552,7 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
                 ],
                 {
                     color: 'hsl(var(--primary))',
-                    weight: 5.5,
+                    weight: 7.5,
                     opacity: 0.6,
                     dashArray: '5, 10',
                 }
@@ -605,6 +654,22 @@ export default function MapView({ units, highlightedUnitId, selectedUnit, contro
         }
          .leaflet-draw-actions a {
             color: hsl(var(--foreground));
+        }
+        .context-menu-popup .leaflet-popup-content-wrapper {
+            background-color: hsl(var(--popover) / 0.8);
+            backdrop-filter: blur(8px);
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid hsl(var(--border));
+        }
+        .context-menu-popup .leaflet-popup-content {
+            margin: 0;
+            font-family: inherit;
+            color: hsl(var(--popover-foreground));
+        }
+        .context-menu-popup .leaflet-popup-tip-container {
+            display: none;
         }
       `}</style>
       

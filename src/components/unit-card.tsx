@@ -38,7 +38,7 @@ interface UnitCardProps {
   unit: MeshUnit;
   onDelete: (id: number) => void;
   onCharge: (id: number) => void;
-  onSelect: (unit: MeshUnit) => void;
+  onSelect: (unit: MeshUnit | null) => void;
   isSelected: boolean;
   controlCenterPosition: { lat: number; lng: number } | null;
 }

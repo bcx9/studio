@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
 import GroupManagement from '@/components/group-management';
 import { setControlCenterPositionOnBackend, setRallyingOnBackend } from './actions';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -52,6 +53,7 @@ export default function Home() {
   const [isRallying, setIsRallying] = React.useState(false);
   const [isPositioningMode, setIsPositioningMode] = React.useState(false);
   const [assignmentState, setAssignmentState] = React.useState<AssignmentState | null>(null);
+  const [unitToDelete, setUnitToDelete] = React.useState<MeshUnit | null>(null);
 
   const { toast } = useToast();
 
@@ -100,14 +102,42 @@ export default function Home() {
     onUnitMessage: handleUnitMessage,
    });
 
-  const handleDeleteUnit = (unitId: number) => {
-    removeUnit(unitId);
-    if(selectedUnit?.id === unitId) {
-      setSelectedUnit(null);
+  const handleDeleteRequest = (unitId: number) => {
+    const unit = units.find(u => u.id === unitId);
+    if(unit) setUnitToDelete(unit);
+  }
+
+  const confirmDeleteUnit = () => {
+    if (unitToDelete) {
+      removeUnit(unitToDelete.id);
+      toast({
+          title: 'Einheit gelöscht',
+          description: `Die Einheit ${unitToDelete.name} wurde entfernt.`
+      })
+      if (selectedUnit?.id === unitToDelete.id) {
+        setSelectedUnit(null);
+      }
+      setUnitToDelete(null);
     }
   }
+
+  const handleChargeUnit = (unitId: number) => {
+    chargeUnit(unitId);
+    const unit = units.find(u => u.id === unitId);
+    if (unit) {
+        toast({
+            title: 'Einheit wird geladen',
+            description: `Der Akku von ${unit.name} wird auf 100% gesetzt.`
+        });
+    }
+  };
   
-  const handleMapClick = React.useCallback((position: { lat: number; lng: number }) => {
+  const handleMapClick = React.useCallback((position: { lat: number; lng: number } | null) => {
+    if (!position) {
+        setSelectedUnit(null);
+        return;
+    }
+    
     if (assignmentState) {
       if (assignmentState.type === 'patrol') {
         assignPatrolToGroup(assignmentState.groupId, position, assignmentState.radius);
@@ -250,8 +280,8 @@ export default function Home() {
             units={units}
             groups={groups}
             onCreateUnit={addUnit}
-            onDeleteUnit={handleDeleteUnit}
-            onChargeUnit={chargeUnit}
+            onDeleteUnit={handleDeleteRequest}
+            onChargeUnit={handleChargeUnit}
             onUnitHover={setHighlightedUnitId}
             selectedUnitId={selectedUnit?.id}
             onSelectUnit={setSelectedUnit}
@@ -286,6 +316,8 @@ export default function Home() {
                         selectedUnit={selectedUnit}
                         onMapClick={handleMapClick}
                         onUnitClick={handleMapUnitClick}
+                        onUnitCharge={handleChargeUnit}
+                        onUnitDelete={handleDeleteRequest}
                         controlCenterPosition={controlCenterPosition}
                         drawnItems={drawnItems}
                         onShapesChange={handleShapesChange}
@@ -355,6 +387,20 @@ export default function Home() {
           isRallyPossible={!!controlCenterPosition}
           groups={groups}
         />
+        <AlertDialog open={!!unitToDelete} onOpenChange={(open) => !open && setUnitToDelete(null)}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Sind Sie sicher?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Möchten Sie die Einheit "{unitToDelete?.name}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setUnitToDelete(null)}>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDeleteUnit} className="bg-destructive hover:bg-destructive/90">Löschen</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
       </SidebarProvider>
     </div>
   );
