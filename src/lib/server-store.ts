@@ -15,7 +15,7 @@ try {
         }
     }
     on(event, callback) {}
-    close() {}
+    close(callback) { if(callback) callback(); }
     static list() {
       return Promise.resolve([]);
     }
@@ -59,7 +59,7 @@ interface ServerState {
     controlCenterPosition: { lat: number, lng: number } | null;
     messages: ToastMessage[];
     maxRangeKm: number;
-    serialPort: typeof SerialPort | null;
+    serialPortConnection: { port: typeof SerialPort, buffer: string } | null;
 }
 
 // This is our in-memory "database" on the server.
@@ -75,7 +75,7 @@ let state: ServerState = {
     controlCenterPosition: { lat: 53.19745, lng: 10.84507 },
     messages: [],
     maxRangeKm: 3,
-    serialPort: null,
+    serialPortConnection: null,
 };
 
 
@@ -322,15 +322,15 @@ export async function stopSimulation() {
         clearInterval(state.simulationInterval);
         state = { ...state, simulationInterval: null };
     }
-    if (state.serialPort && state.serialPort.isOpen) {
-        state.serialPort.close();
-        state = { ...state, serialPort: null };
+    if (state.serialPortConnection) {
+        state.serialPortConnection.port.close();
+        state = { ...state, serialPortConnection: null };
     }
 }
 
 export async function getSnapshot() {
     // If neither simulation nor real connection is active, start simulation by default.
-    if (state.simulationInterval === null && (state.serialPort === null || !state.serialPort.isOpen)) {
+    if (state.simulationInterval === null && !state.serialPortConnection) {
         await startSimulation();
     }
     const messages = [...state.messages];
@@ -512,7 +512,7 @@ export async function removeAssignmentFromGroup(groupId: number) {
 }
 
 export async function isSimulationRunning(): Promise<boolean> {
-    return state.simulationInterval !== null || (state.serialPort !== null && state.serialPort.isOpen);
+    return state.simulationInterval !== null || !!state.serialPortConnection;
 }
 
 export async function addTypeMapping(id: number, name: string) {
@@ -568,11 +568,39 @@ export async function setControlCenterPosition(position: { lat: number; lng: num
 }
 
 
+function processData(data: Buffer) {
+    if (!state.serialPortConnection) return;
+    
+    state.serialPortConnection.buffer += data.toString();
+    let newlineIndex;
+    while ((newlineIndex = state.serialPortConnection.buffer.indexOf('\n')) >= 0) {
+        const line = state.serialPortConnection.buffer.slice(0, newlineIndex).trim();
+        state.serialPortConnection.buffer = state.serialPortConnection.buffer.slice(newlineIndex + 1);
+
+        if (line) {
+            console.log('Received line from device:', line);
+            try {
+                const parsedData = JSON.parse(line);
+                console.log('Parsed Meshtastic data:', parsedData);
+                //
+                // HIER IST DER NÄCHSTE SCHRITT:
+                // Diese `parsedData` müssen in das `MeshUnit`-Format übersetzt werden.
+                // Man würde hier eine Funktion `translateMeshtasticToUnit(parsedData)` aufrufen,
+                // die die `state.units` aktualisiert.
+                //
+            } catch (error) {
+                console.warn('Could not parse line as JSON:', line);
+            }
+        }
+    }
+}
+
+
 // Real Device Connection Logic
 export async function connectToSerialPort(portPath: string, baudRate: number): Promise<{ success: boolean; message: string }> {
     // If a port is already open, close it first.
-    if (state.serialPort && state.serialPort.isOpen) {
-        state.serialPort.close();
+    if (state.serialPortConnection) {
+        state.serialPortConnection.port.close();
     }
     
     return new Promise((resolve) => {
@@ -586,20 +614,20 @@ export async function connectToSerialPort(portPath: string, baudRate: number): P
 
         port.on('open', () => {
             console.log(`Serial port ${portPath} opened successfully.`);
-            state = { ...state, serialPort: port };
+            
             // Stop simulation if it's running
             if (state.simulationInterval) {
                 clearInterval(state.simulationInterval);
                 state = { ...state, simulationInterval: null };
             }
             // Clear simulated units and prepare for real data
-            state = { ...state, units: [] };
-
-            // TODO: Implement data listener and parser for Meshtastic protocol
-            port.on('data', (data) => {
-                console.log('Data from serial port:', data.toString());
-                // Here, you would parse the data and update the state.units array
-            });
+            state = { 
+                ...state, 
+                units: [], 
+                serialPortConnection: { port, buffer: '' } 
+            };
+            
+            port.on('data', processData);
 
             resolve({ success: true, message: `Erfolgreich mit ${portPath} verbunden. Warte auf Daten...` });
         });
@@ -612,9 +640,7 @@ export async function connectToSerialPort(portPath: string, baudRate: number): P
 
          port.on('close', () => {
             console.log(`Serial port ${portPath} closed.`);
-            if (state.serialPort === port) {
-                 state = { ...state, serialPort: null };
-            }
+            state = { ...state, serialPortConnection: null };
         });
     });
 }
