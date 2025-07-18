@@ -18,6 +18,7 @@ import {
   assignPatrolToGroupOnBackend,
   removeAssignmentFromGroupOnBackend,
   assignPendulumToGroupOnBackend,
+  setUnitStatusOnBackend,
 } from '@/app/actions';
 
 interface ToastMessage {
@@ -77,6 +78,10 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
     await updateUnitOnBackend(updatedUnit);
   }, []);
 
+  const setUnitStatus = useCallback(async (unitId: number, status: string) => {
+    await setUnitStatusOnBackend(unitId, status);
+  }, []);
+
   const addUnit = useCallback(async () => {
     await addUnitOnBackend();
   }, []);
@@ -128,6 +133,7 @@ export function useMeshData({ onUnitMessage }: UseMeshDataProps) {
   return {
     units,
     updateUnit,
+    setUnitStatus,
     addUnit,
     removeUnit,
     chargeUnit,

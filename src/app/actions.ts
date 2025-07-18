@@ -30,9 +30,8 @@ import {
   removeAssignmentFromGroup as removeAssignmentFromGroupInStore,
   setControlCenterPosition as setControlCenterPositionInStore,
   setRallying as setRallyingInStore,
+  setUnitStatus as setUnitStatusInStore,
 } from '@/lib/server-store';
-import { analyzeNetwork } from '@/ai/flows/network-analysis-flow';
-import { createReverseMapping } from '@/lib/utils';
 import { AiAssistantInput, aiAssistantFlow } from '@/ai/flows/ai-assistant-flow';
 
 
@@ -63,46 +62,6 @@ export async function disconnectFromGateway(): Promise<{ success: boolean; messa
     return { success: true, message: 'Verbindung zum Gateway getrennt.' };
 }
 
-export async function getNetworkAnalysis(): Promise<{ summary: string; details: string }> {
-  try {
-    const { units, typeMapping, statusMapping } = await getConfig();
-
-    const UNIT_TYPE_TO_CODE = createReverseMapping(typeMapping);
-    const UNIT_STATUS_TO_CODE = createReverseMapping(statusMapping);
-
-    const compactUnits = units.map(unit => ({
-        i: unit.id,
-        t: Number(UNIT_TYPE_TO_CODE[unit.type]),
-        s: Number(UNIT_STATUS_TO_CODE[unit.status]),
-        p: {
-            a: parseFloat(unit.position.lat.toFixed(5)),
-            o: parseFloat(unit.position.lng.toFixed(5)),
-        },
-        v: unit.speed,
-        h: unit.heading,
-        b: parseFloat(unit.battery.toFixed(1)),
-        ts: unit.timestamp,
-        si: unit.sendInterval,
-        a: unit.isActive ? 1 : 0,
-        ss: unit.signalStrength,
-        hc: unit.hopCount,
-    }));
-        
-    const unitNames = units.reduce((acc, unit) => {
-        acc[unit.id] = unit.name;
-        return acc;
-    }, {} as Record<number, string>);
-
-    const analysis = await analyzeNetwork({ units: compactUnits, unitNames, typeMapping, statusMapping });
-    return analysis;
-  } catch (error) {
-    console.error('Genkit flow failed:', error);
-    return {
-      summary: 'Analyse Fehlgeschlagen',
-      details: 'Die KI-Analyse konnte nicht durchgeführt werden. Überprüfen Sie die Server-Logs.',
-    };
-  }
-}
 
 export async function loadAdminSettings() {
     const { typeMapping, statusMapping, maxRangeKm } = await getConfig();
@@ -118,6 +77,12 @@ export async function updateUnitOnBackend(unit: MeshUnit) {
     await updateUnit(unit);
     return { success: true };
 }
+
+export async function setUnitStatusOnBackend(unitId: number, status: string) {
+    await setUnitStatusInStore(unitId, status);
+    return { success: true };
+}
+
 
 export async function addUnitOnBackend() {
     await addUnitInStore();

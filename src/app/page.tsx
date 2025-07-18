@@ -8,11 +8,10 @@ import AppSidebar from '@/components/layout/sidebar';
 import AppHeader from '@/components/layout/header';
 import { useMeshData } from '@/hooks/use-mesh-data';
 import type { MeshUnit, StatusMapping, TypeMapping } from '@/types/mesh';
-import AiAnomalyDetector from '@/components/ai-anomaly-detector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import JsonView from '@/components/json-view';
 import { Card, CardContent } from '@/components/ui/card';
-import { Code, Map as MapIcon, ListTree, BrainCircuit } from 'lucide-react';
+import { Code, Map as MapIcon, ListTree, Bot } from 'lucide-react';
 import DeviceRegistry from '@/components/device-registry';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +19,7 @@ import LeitstelleConfigPanel from '@/components/leitstelle-config-panel';
 import GroupManagement from '@/components/group-management';
 import { setControlCenterPositionOnBackend, setRallyingOnBackend } from './actions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import AiAssistant from '@/components/ai-assistant';
 
 const MapView = dynamic(() => import('@/components/map-view'), {
   ssr: false,
@@ -98,6 +98,7 @@ export default function Home() {
       assignPatrolToGroup,
       assignPendulumToGroup,
       removeAssignmentFromGroup,
+      setUnitStatus,
    } = useMeshData({ 
     onUnitMessage: handleUnitMessage,
    });
@@ -300,7 +301,7 @@ export default function Home() {
                 <div className="px-4 pt-4">
                   <TabsList className="mb-4 self-start">
                     <TabsTrigger value="map"><MapIcon className="mr-2 h-4 w-4"/>Live-Karte</TabsTrigger>
-                    <TabsTrigger value="ai-monitor"><BrainCircuit className="mr-2 h-4 w-4"/>KI-Analyse</TabsTrigger>
+                    <TabsTrigger value="ai-assistant"><Bot className="mr-2 h-4 w-4"/>KI-Assistent</TabsTrigger>
                     <TabsTrigger value="device-registry"><ListTree className="mr-2 h-4 w-4"/>Geräte & Gruppen</TabsTrigger>
                     <TabsTrigger value="json-view" disabled={!selectedUnit}>
                       Rohdaten
@@ -335,8 +336,15 @@ export default function Home() {
                     )}
                   </div>
                 </TabsContent>
-                <TabsContent value="ai-monitor" className="flex-1 overflow-y-auto p-4 md:p-6">
-                  <AiAnomalyDetector />
+                <TabsContent value="ai-assistant" className="h-full overflow-y-auto p-4 md:p-6 data-[state=inactive]:hidden">
+                   <AiAssistant
+                    units={units}
+                    groups={groups}
+                    setUnitStatus={setUnitStatus}
+                    sendMessage={sendMessage}
+                    typeMapping={typeMapping}
+                    statusMapping={statusMapping}
+                  />
                 </TabsContent>
                 <TabsContent value="device-registry" className="flex-1 overflow-y-auto p-4 md:p-6">
                   <div className="grid grid-cols-1 gap-8">

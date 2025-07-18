@@ -338,6 +338,13 @@ export async function updateUnit(updatedUnit: MeshUnit) {
     };
 }
 
+export async function setUnitStatus(unitId: number, status: string) {
+     state = {
+        ...state,
+        units: state.units.map(u => u.id === unitId ? { ...u, status } : u),
+    };
+}
+
 export async function addUnit() {
     const newId = state.units.length > 0 ? Math.max(...state.units.map(u => u.id)) + 1 : 1;
     const availableTypes = Object.values(state.typeMapping) as UnitType[];
