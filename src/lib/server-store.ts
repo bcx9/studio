@@ -1,6 +1,7 @@
 
 'use server';
 
+import { SerialPort } from 'serialport';
 import type { MeshUnit, Group, TypeMapping, StatusMapping, UnitType, ToastMessage, Assignment } from '@/types/mesh';
 import { DEFAULT_CODE_TO_UNIT_TYPE, DEFAULT_CODE_TO_UNIT_STATUS } from '@/types/mesh';
 import { calculateBearing, calculateDistance, createReverseMapping } from '@/lib/utils';
@@ -37,6 +38,7 @@ interface ServerState {
     controlCenterPosition: { lat: number, lng: number } | null;
     messages: ToastMessage[];
     maxRangeKm: number;
+    serialPort: SerialPort | null;
 }
 
 // This is our in-memory "database" on the server.
@@ -52,6 +54,7 @@ let state: ServerState = {
     controlCenterPosition: { lat: 53.19745, lng: 10.84507 },
     messages: [],
     maxRangeKm: 3,
+    serialPort: null,
 };
 
 
@@ -298,10 +301,15 @@ export async function stopSimulation() {
         clearInterval(state.simulationInterval);
         state = { ...state, simulationInterval: null };
     }
+    if (state.serialPort && state.serialPort.isOpen) {
+        state.serialPort.close();
+        state = { ...state, serialPort: null };
+    }
 }
 
 export async function getSnapshot() {
-    if (state.simulationInterval === null) {
+    // If neither simulation nor real connection is active, start simulation by default.
+    if (state.simulationInterval === null && (state.serialPort === null || !state.serialPort.isOpen)) {
         await startSimulation();
     }
     const messages = [...state.messages];
@@ -483,7 +491,7 @@ export async function removeAssignmentFromGroup(groupId: number) {
 }
 
 export async function isSimulationRunning(): Promise<boolean> {
-    return state.simulationInterval !== null;
+    return state.simulationInterval !== null || (state.serialPort !== null && state.serialPort.isOpen);
 }
 
 export async function addTypeMapping(id: number, name: string) {
@@ -525,7 +533,7 @@ export async function removeStatusMapping(id: number) {
         throw new Error(`Der Status "${statusName}" wird noch von ${unitsUsingStatus.length} Einheit(en) verwendet und kann nicht gelöscht werden.`);
     }
     
-    const newMapping = { ...state.statusMapping };
+    const newMapping = { ...state.typeMapping };
     delete newMapping[id];
     state = { ...state, statusMapping: newMapping };
 }
@@ -536,4 +544,56 @@ export async function setRallying(isRallying: boolean) {
 
 export async function setControlCenterPosition(position: { lat: number; lng: number } | null) {
     state = { ...state, controlCenterPosition: position };
+}
+
+
+// Real Device Connection Logic
+export async function connectToSerialPort(portPath: string, baudRate: number): Promise<{ success: boolean; message: string }> {
+    // If a port is already open, close it first.
+    if (state.serialPort && state.serialPort.isOpen) {
+        state.serialPort.close();
+    }
+    
+    return new Promise((resolve) => {
+        const port = new SerialPort({ path: portPath, baudRate }, (err) => {
+            if (err) {
+                console.error('Error opening serial port:', err.message);
+                resolve({ success: false, message: `Fehler beim Öffnen von ${portPath}: ${err.message}` });
+                return;
+            }
+        });
+
+        port.on('open', () => {
+            console.log(`Serial port ${portPath} opened successfully.`);
+            state = { ...state, serialPort: port };
+            // Stop simulation if it's running
+            if (state.simulationInterval) {
+                clearInterval(state.simulationInterval);
+                state = { ...state, simulationInterval: null };
+            }
+            // Clear simulated units and prepare for real data
+            state = { ...state, units: [] };
+
+            // TODO: Implement data listener and parser for Meshtastic protocol
+            port.on('data', (data) => {
+                console.log('Data from serial port:', data.toString());
+                // Here, you would parse the data and update the state.units array
+            });
+
+            resolve({ success: true, message: `Erfolgreich mit ${portPath} verbunden. Warte auf Daten...` });
+        });
+
+        port.on('error', (err) => {
+            console.error('Serial port error:', err.message);
+            // This might be redundant if the constructor callback already handles it, but good for runtime errors.
+            // resolve({ success: false, message: `Fehler am seriellen Port ${portPath}: ${err.message}` });
+        });
+
+         port.on('close', () => {
+            console.log(`Serial port ${portPath} closed.`);
+            if (state.serialPort === port) {
+                 state = { ...state, serialPort: null };
+            }
+        });
+    });
 }

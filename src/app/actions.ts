@@ -31,6 +31,7 @@ import {
   setControlCenterPosition as setControlCenterPositionInStore,
   setRallying as setRallyingInStore,
   setUnitStatus as setUnitStatusInStore,
+  connectToSerialPort,
 } from '@/lib/server-store';
 
 
@@ -51,8 +52,11 @@ export async function connectToGateway(settings: ConnectionSettings): Promise<{ 
   }
 
   if (settings.mode === 'real') {
-    if (settings.connectionType === 'serial' && settings.serialPort?.toLowerCase().includes('error')) {
-        return { success: false, message: `Fehler: Serieller Port ${settings.serialPort} konnte nicht geöffnet werden.` };
+    if (settings.connectionType === 'serial') {
+        if (!settings.serialPort) {
+            return { success: false, message: 'Fehler: Kein serieller Port angegeben.'};
+        }
+        return await connectToSerialPort(settings.serialPort, settings.baudRate || 115200);
     }
     if (settings.connectionType === 'network' && settings.ipAddress?.includes('0.0.0.0')) {
         return { success: false, message: `Fehler: Verbindung zu ${settings.ipAddress}:${settings.port} fehlgeschlagen.` };
