@@ -296,9 +296,9 @@ export default function Home() {
         <SidebarInset>
           <div className="flex flex-col h-screen">
             <AppHeader />
-            <main className="flex-1 overflow-hidden flex flex-col p-0">
+            <main className="flex-1 overflow-hidden flex flex-col p-0 md:p-4">
               <Tabs defaultValue="map" className="h-full flex flex-col">
-                <div className="px-4 pt-4">
+                <div className="px-4 pt-4 md:px-0 md:pt-0">
                   <TabsList className="mb-4 self-start">
                     <TabsTrigger value="map"><MapIcon className="mr-2 h-4 w-4"/>Live-Karte</TabsTrigger>
                     <TabsTrigger value="ai-assistant"><Bot className="mr-2 h-4 w-4"/>KI-Assistent</TabsTrigger>
@@ -308,7 +308,7 @@ export default function Home() {
                     </TabsTrigger>
                   </TabsList>
                 </div>
-                <TabsContent value="map" className="flex-1 data-[state=inactive]:hidden p-0" forceMount>
+                <TabsContent value="map" className="flex-1 data-[state=inactive]:hidden p-0 -m-4 md:m-0" forceMount>
                   <div className="w-full h-full">
                     {isInitialized ? (
                       <MapView 
@@ -336,7 +336,7 @@ export default function Home() {
                     )}
                   </div>
                 </TabsContent>
-                <TabsContent value="ai-assistant" className="h-full overflow-y-auto p-4 md:p-6 data-[state=inactive]:hidden">
+                <TabsContent value="ai-assistant" className="h-full overflow-y-auto p-0 -m-4 md:m-0 md:p-6 data-[state=inactive]:hidden">
                    <AiAssistant
                     units={units}
                     groups={groups}
@@ -346,7 +346,7 @@ export default function Home() {
                     statusMapping={statusMapping}
                   />
                 </TabsContent>
-                <TabsContent value="device-registry" className="flex-1 overflow-y-auto p-4 md:p-6">
+                <TabsContent value="device-registry" className="flex-1 overflow-y-auto p-0 -m-4 md:m-0 md:p-6">
                   <div className="grid grid-cols-1 gap-8">
                     <DeviceRegistry 
                         units={units} 
@@ -370,7 +370,7 @@ export default function Home() {
                     />
                   </div>
                 </TabsContent>
-                <TabsContent value="json-view" className="flex-1 overflow-y-auto p-4 md:p-6">
+                <TabsContent value="json-view" className="flex-1 overflow-y-auto p-0 -m-4 md:m-0 md:p-6">
                   {selectedUnit ? (
                     <JsonView unit={selectedUnit} typeMapping={typeMapping} statusMapping={statusMapping} />
                   ) : (
@@ -413,3 +413,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

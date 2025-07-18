@@ -211,3 +211,5 @@ export async function setControlCenterPositionOnBackend(position: { lat: number;
     await setControlCenterPositionInStore(position);
     return { success: true };
 }
+
+    
