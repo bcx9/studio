@@ -32,7 +32,6 @@ import {
   setRallying as setRallyingInStore,
   setUnitStatus as setUnitStatusInStore,
 } from '@/lib/server-store';
-import { AiAssistantInput, aiAssistantFlow } from '@/ai/flows/ai-assistant-flow';
 
 
 export async function getNetworkSnapshot() {
@@ -192,16 +191,6 @@ export async function verifyAdminPassword(password: string): Promise<{ success: 
   return { success: password === adminPassword };
 }
 
-
-export async function invokeAiAssistant(
-  query: string,
-  units: AiAssistantInput['units'],
-  groups: AiAssistantInput['groups'],
-  unitNames: AiAssistantInput['unitNames']
-) {
-  return await aiAssistantFlow({ query, units, groups, unitNames });
-}
-
 export async function setRallyingOnBackend(isRallying: boolean) {
     await setRallyingInStore(isRallying);
     return { success: true };
@@ -211,5 +200,3 @@ export async function setControlCenterPositionOnBackend(position: { lat: number;
     await setControlCenterPositionInStore(position);
     return { success: true };
 }
-
-    
