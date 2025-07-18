@@ -568,6 +568,65 @@ export async function setControlCenterPosition(position: { lat: number; lng: num
 }
 
 
+// --- Real Device Data Handling ---
+
+function translateMeshtasticToUnit(data: any) {
+    if (data.type !== 'position' || !data.payload) {
+        // We only care about position packets for now
+        return;
+    }
+
+    const unitId = data.from;
+    const payload = data.payload;
+    let existingUnit = state.units.find(u => u.id === unitId);
+
+    if (existingUnit) {
+        // Update existing unit
+        const updatedUnit: MeshUnit = {
+            ...existingUnit,
+            position: {
+                lat: payload.latitude_i / 1e7,
+                lng: payload.longitude_i / 1e7,
+            },
+            speed: payload.speed || existingUnit.speed,
+            heading: payload.heading || existingUnit.heading,
+            timestamp: payload.time ? payload.time * 1000 : Date.now(),
+            isActive: true,
+            status: payload.speed > 1 ? 'Moving' : 'Idle',
+            // Note: We don't get battery, hopCount, etc. directly from a position packet.
+            // This would require handling nodeinfo packets. For now, we keep existing values.
+        };
+        state = { ...state, units: state.units.map(u => u.id === unitId ? updatedUnit : u) };
+    } else {
+        // Create new unit
+        const newUnit: MeshUnit = {
+            id: unitId,
+            name: `Node ${unitId}`, // Default name
+            type: 'Personnel', // Default type
+            status: 'Online',
+            position: {
+                lat: payload.latitude_i / 1e7,
+                lng: payload.longitude_i / 1e7,
+            },
+            speed: payload.speed || 0,
+            heading: payload.heading || 0,
+            battery: 100, // Assume full battery on first contact
+            timestamp: payload.time ? payload.time * 1000 : Date.now(),
+            sendInterval: 10, // Default value
+            isActive: true,
+            isExternallyPowered: false,
+            lastMessage: null,
+            groupId: null,
+            signalStrength: -80, // Default value
+            hopCount: 1, // Default value
+            patrolTarget: null,
+            patrolTargetIndex: null,
+        };
+        state = { ...state, units: [...state.units, newUnit] };
+    }
+}
+
+
 function processData(data: Buffer) {
     if (!state.serialPortConnection) return;
     
@@ -581,13 +640,7 @@ function processData(data: Buffer) {
             console.log('Received line from device:', line);
             try {
                 const parsedData = JSON.parse(line);
-                console.log('Parsed Meshtastic data:', parsedData);
-                //
-                // HIER IST DER NÄCHSTE SCHRITT:
-                // Diese `parsedData` müssen in das `MeshUnit`-Format übersetzt werden.
-                // Man würde hier eine Funktion `translateMeshtasticToUnit(parsedData)` aufrufen,
-                // die die `state.units` aktualisiert.
-                //
+                translateMeshtasticToUnit(parsedData);
             } catch (error) {
                 console.warn('Could not parse line as JSON:', line);
             }
@@ -644,3 +697,5 @@ export async function connectToSerialPort(portPath: string, baudRate: number): P
         });
     });
 }
+
+    
