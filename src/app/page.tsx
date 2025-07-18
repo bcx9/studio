@@ -297,7 +297,7 @@ export default function Home() {
             <AppHeader />
             <main className="flex-1 overflow-hidden flex flex-col p-0">
               <Tabs defaultValue="map" className="h-full flex flex-col">
-                <div className="px-4 md:px-6 pt-4">
+                <div className="px-4 pt-4">
                   <TabsList className="mb-4 self-start">
                     <TabsTrigger value="map"><MapIcon className="mr-2 h-4 w-4"/>Live-Karte</TabsTrigger>
                     <TabsTrigger value="ai-monitor"><BrainCircuit className="mr-2 h-4 w-4"/>KI-Analyse</TabsTrigger>
@@ -307,8 +307,8 @@ export default function Home() {
                     </TabsTrigger>
                   </TabsList>
                 </div>
-                <TabsContent value="map" className="data-[state=inactive]:hidden p-4 pt-0 md:p-0 md:pt-0" forceMount>
-                  <div className="w-full aspect-video rounded-lg overflow-hidden shadow-lg">
+                <TabsContent value="map" className="flex-1 data-[state=inactive]:hidden p-0" forceMount>
+                  <div className="w-full h-full">
                     {isInitialized ? (
                       <MapView 
                         units={units} 

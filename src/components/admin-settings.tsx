@@ -165,7 +165,7 @@ export default function AdminSettings() {
   );
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
+    <div className="container mx-auto max-w-4xl py-2">
       <Card>
         <CardHeader>
           <div className='flex items-center justify-between'>
@@ -180,7 +180,7 @@ export default function AdminSettings() {
             </div>
              <Button onClick={handleSaveEdits} disabled={isSaving || isLoading}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Änderungen Speichern
+                Speichern
             </Button>
           </div>
         </CardHeader>

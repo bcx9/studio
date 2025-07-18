@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -44,7 +45,7 @@ export default function GatewayConfig({ status, logs, onConnect, onDisconnect, i
     const isConnected = status === 'connected';
 
     return (
-        <div className="container mx-auto max-w-4xl py-8">
+        <div className="container mx-auto max-w-4xl py-2 md:py-8">
             <Card>
                 <CardHeader>
                     <div className='flex items-center gap-3'>
@@ -61,11 +62,11 @@ export default function GatewayConfig({ status, logs, onConnect, onDisconnect, i
                     <div className='space-y-6'>
                         <h3 className="font-semibold text-lg">Verbindungseinstellungen</h3>
                         <RadioGroup value={connectionType} onValueChange={handleTypeChange} className="flex gap-4" disabled={isConnected || isConnecting}>
-                            <Label htmlFor="serial" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer">
+                            <Label htmlFor="serial" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
                                 <RadioGroupItem value="serial" id="serial" />
                                 <Usb className="h-5 w-5 mr-1" /> Serieller Port (USB)
                             </Label>
-                            <Label htmlFor="network" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer">
+                            <Label htmlFor="network" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
                                 <RadioGroupItem value="network" id="network"/>
                                 <Wifi className="h-5 w-5 mr-1" /> Netzwerk (TCP/IP)
                             </Label>

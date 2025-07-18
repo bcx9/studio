@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -40,7 +41,7 @@ export default function AiAnomalyDetector() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
+    <div className="container mx-auto max-w-4xl py-2 md:py-8">
       <Card>
         <CardHeader>
           <div className='flex items-center gap-3'>

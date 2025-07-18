@@ -98,20 +98,20 @@ export default function GroupManagement({
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col md:flex-row gap-2">
                         <Input 
                             placeholder="Neuer Gruppenname..."
                             value={newGroupName}
                             onChange={(e) => setNewGroupName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddGroup()}
                         />
-                        <Button onClick={handleAddGroup}>
+                        <Button onClick={handleAddGroup} className="shrink-0">
                             <PlusCircle className="mr-2" />
                             Erstellen
                         </Button>
                     </div>
 
-                    <div className="border-none rounded-lg">
+                    <div className="border-none rounded-lg overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="border-b-0">
@@ -227,7 +227,7 @@ export default function GroupManagement({
                     </div>
                 </CardHeader>
                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-2 gap-x-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <Label htmlFor="radius" className="text-sm font-medium">Patrouillenradius</Label>
                             <div className="flex items-center gap-2 mt-1">
@@ -280,4 +280,3 @@ export default function GroupManagement({
         </div>
     );
 }
-

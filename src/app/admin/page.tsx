@@ -1,3 +1,4 @@
+
 'use client';
 import * as React from 'react';
 import Link from 'next/link';
@@ -84,7 +85,7 @@ function AdminConsole() {
                 <ThemeToggle />
             </div>
       </header>
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
+      <main className="flex-1 overflow-y-auto p-4 space-y-8">
         <GatewayConfig
             status={gatewayStatus}
             logs={gatewayLogs}

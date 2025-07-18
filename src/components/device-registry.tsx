@@ -94,7 +94,7 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
   return (
       <Card>
         <CardHeader>
-          <div className='flex items-center justify-between'>
+          <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-2'>
             <div className='flex items-center gap-3'>
                 <ListTree className="h-6 w-6 text-primary" />
                 <div>
@@ -111,15 +111,15 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
           </div>
         </CardHeader>
         <CardContent>
-            <div className="border-none rounded-lg">
+            <div className="border-none rounded-lg overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className='border-b-0'>
-                            <TableHead className="w-[80px]">ID</TableHead>
-                            <TableHead className="min-w-[200px]">Name</TableHead>
-                            <TableHead className="w-[180px]">Typ</TableHead>
-                            <TableHead className="w-[140px]">Status</TableHead>
-                            <TableHead className="w-[220px]">Gruppe</TableHead>
+                            <TableHead className="w-[60px]">ID</TableHead>
+                            <TableHead className="min-w-[150px]">Name</TableHead>
+                            <TableHead className="min-w-[150px]">Typ</TableHead>
+                            <TableHead className="min-w-[120px]">Status</TableHead>
+                            <TableHead className="min-w-[180px]">Gruppe</TableHead>
                             <TableHead className="w-[130px] text-right">Aktionen</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -187,8 +187,8 @@ export default function DeviceRegistry({ units, groups, updateUnit, addUnit, onA
                                             onClick={() => handleSaveUnit(unit)}
                                             disabled={!isBeingEdited}
                                         >
-                                            <Save className="h-4 w-4 mr-2" />
-                                            Speichern
+                                            <Save className="h-4 w-4 md:mr-2" />
+                                            <span className="hidden md:inline">Speichern</span>
                                         </Button>
                                     </TableCell>
                                 </TableRow>
