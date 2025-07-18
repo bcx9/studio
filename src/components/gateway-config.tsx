@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plug, Wifi, Usb, Server, Terminal } from 'lucide-react';
-import type { GatewayStatus, ConnectionType, ConnectionSettings } from '@/types/gateway';
+import { Plug, Wifi, Usb, Server, Terminal, TestTube2, HardDrive } from 'lucide-react';
+import type { GatewayStatus, ConnectionType, ConnectionSettings, GatewayMode } from '@/types/gateway';
 
 interface GatewayConfigProps {
   status: GatewayStatus;
@@ -20,9 +20,9 @@ interface GatewayConfigProps {
 }
 
 export default function GatewayConfig({ status, logs, onConnect, onDisconnect, isConnecting }: GatewayConfigProps) {
+    const [gatewayMode, setGatewayMode] = React.useState<GatewayMode>('simulation');
     const [connectionType, setConnectionType] = React.useState<ConnectionType>('serial');
-    const [settings, setSettings] = React.useState<ConnectionSettings>({
-        type: 'serial',
+    const [settings, setSettings] = React.useState<Omit<ConnectionSettings, 'mode' | 'connectionType'>>({
         serialPort: '/dev/ttyUSB0',
         baudRate: 115200,
         ipAddress: '192.168.1.100',
@@ -30,16 +30,15 @@ export default function GatewayConfig({ status, logs, onConnect, onDisconnect, i
     });
 
     const handleConnect = () => {
-        onConnect(settings);
+        onConnect({
+            ...settings,
+            mode: gatewayMode,
+            connectionType: connectionType,
+        });
     }
     
-    const handleSettingChange = (field: keyof ConnectionSettings, value: any) => {
-        setSettings(prev => ({ ...prev, [field]: value, type: connectionType }));
-    }
-
-    const handleTypeChange = (type: ConnectionType) => {
-        setConnectionType(type);
-        setSettings(prev => ({...prev, type: type}));
+    const handleSettingChange = (field: keyof typeof settings, value: any) => {
+        setSettings(prev => ({ ...prev, [field]: value }));
     }
 
     const isConnected = status === 'connected';
@@ -53,59 +52,75 @@ export default function GatewayConfig({ status, logs, onConnect, onDisconnect, i
                         <div>
                             <CardTitle className="text-2xl">Gateway-Konfiguration</CardTitle>
                             <CardDescription>
-                                Konfigurieren Sie hier die Verbindung zu Ihrer Meshtastic-Gateway-Node, um Live-Daten zu empfangen.
+                                Konfigurieren Sie die Verbindung zu Ihrer Datenquelle.
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-8">
                     <div className='space-y-6'>
-                        <h3 className="font-semibold text-lg">Verbindungseinstellungen</h3>
-                        <RadioGroup value={connectionType} onValueChange={handleTypeChange} className="flex gap-4" disabled={isConnected || isConnecting}>
-                            <Label htmlFor="serial" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
-                                <RadioGroupItem value="serial" id="serial" />
-                                <Usb className="h-5 w-5 mr-1" /> Serieller Port (USB)
+                        <h3 className="font-semibold text-lg">Betriebsmodus</h3>
+                        <RadioGroup value={gatewayMode} onValueChange={(v) => setGatewayMode(v as GatewayMode)} className="flex gap-4" disabled={isConnected || isConnecting}>
+                            <Label htmlFor="simulation" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
+                                <RadioGroupItem value="simulation" id="simulation" />
+                                <TestTube2 className="h-5 w-5 mr-1" /> Simulation
                             </Label>
-                            <Label htmlFor="network" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
-                                <RadioGroupItem value="network" id="network"/>
-                                <Wifi className="h-5 w-5 mr-1" /> Netzwerk (TCP/IP)
+                            <Label htmlFor="real" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
+                                <RadioGroupItem value="real" id="real"/>
+                                <HardDrive className="h-5 w-5 mr-1" /> Echtes Gerät
                             </Label>
                         </RadioGroup>
 
-                        {connectionType === 'serial' && (
-                            <div className="space-y-4 animate-in fade-in-50">
-                                <div className="space-y-2">
-                                    <Label htmlFor="serial-port">Serieller Port</Label>
-                                    <Input id="serial-port" value={settings.serialPort} onChange={e => handleSettingChange('serialPort', e.target.value)} disabled={isConnected || isConnecting} placeholder="/dev/ttyUSB0 or COM3" />
-                                </div>
-                                 <div className="space-y-2">
-                                    <Label htmlFor="baud-rate">Baudrate</Label>
-                                     <Select value={String(settings.baudRate)} onValueChange={val => handleSettingChange('baudRate', Number(val))} disabled={isConnected || isConnecting}>
-                                        <SelectTrigger id="baud-rate">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="9600">9600</SelectItem>
-                                            <SelectItem value="19200">19200</SelectItem>
-                                            <SelectItem value="38400">38400</SelectItem>
-                                            <SelectItem value="57600">57600</SelectItem>
-                                            <SelectItem value="115200">115200</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        )}
+                        {gatewayMode === 'real' && (
+                            <div className='space-y-6 animate-in fade-in-50'>
+                                <h3 className="font-semibold text-lg">Verbindungseinstellungen</h3>
+                                <RadioGroup value={connectionType} onValueChange={(v) => setConnectionType(v as ConnectionType)} className="flex gap-4" disabled={isConnected || isConnecting}>
+                                    <Label htmlFor="serial" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
+                                        <RadioGroupItem value="serial" id="serial" />
+                                        <Usb className="h-5 w-5 mr-1" /> Serieller Port (USB)
+                                    </Label>
+                                    <Label htmlFor="network" className="flex items-center gap-2 border rounded-md p-3 flex-1 has-[[data-state=checked]]:border-primary cursor-pointer text-sm">
+                                        <RadioGroupItem value="network" id="network"/>
+                                        <Wifi className="h-5 w-5 mr-1" /> Netzwerk (TCP/IP)
+                                    </Label>
+                                </RadioGroup>
 
-                        {connectionType === 'network' && (
-                             <div className="space-y-4 animate-in fade-in-50">
-                                <div className="space-y-2">
-                                    <Label htmlFor="ip-address">IP-Adresse</Label>
-                                    <Input id="ip-address" value={settings.ipAddress} onChange={e => handleSettingChange('ipAddress', e.target.value)} disabled={isConnected || isConnecting} placeholder="192.168.1.100" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="port">Port</Label>
-                                    <Input id="port" type="number" value={settings.port} onChange={e => handleSettingChange('port', Number(e.target.value))} disabled={isConnected || isConnecting} placeholder="8080" />
-                                </div>
+                                {connectionType === 'serial' && (
+                                    <div className="space-y-4 animate-in fade-in-50">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="serial-port">Serieller Port</Label>
+                                            <Input id="serial-port" value={settings.serialPort} onChange={e => handleSettingChange('serialPort', e.target.value)} disabled={isConnected || isConnecting} placeholder="/dev/ttyUSB0 or COM3" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="baud-rate">Baudrate</Label>
+                                            <Select value={String(settings.baudRate)} onValueChange={val => handleSettingChange('baudRate', Number(val))} disabled={isConnected || isConnecting}>
+                                                <SelectTrigger id="baud-rate">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="9600">9600</SelectItem>
+                                                    <SelectItem value="19200">19200</SelectItem>
+                                                    <SelectItem value="38400">38400</SelectItem>
+                                                    <SelectItem value="57600">57600</SelectItem>
+                                                    <SelectItem value="115200">115200</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {connectionType === 'network' && (
+                                    <div className="space-y-4 animate-in fade-in-50">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="ip-address">IP-Adresse</Label>
+                                            <Input id="ip-address" value={settings.ipAddress} onChange={e => handleSettingChange('ipAddress', e.target.value)} disabled={isConnected || isConnecting} placeholder="192.168.1.100" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="port">Port</Label>
+                                            <Input id="port" type="number" value={settings.port} onChange={e => handleSettingChange('port', Number(e.target.value))} disabled={isConnected || isConnecting} placeholder="8080" />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                         

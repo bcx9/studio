@@ -43,20 +43,31 @@ export async function getGatewayStatus() {
 }
 
 export async function connectToGateway(settings: ConnectionSettings): Promise<{ success: boolean; message: string }> {
-  console.log('Verbindungsversuch mit Einstellungen:', settings);
+  console.log('Verbindungsversuch mit Modus:', settings.mode, 'und Einstellungen:', settings);
   
-  if (settings.type === 'serial' && settings.serialPort?.toLowerCase().includes('error')) {
-      return { success: false, message: `Fehler: Serieller Port ${settings.serialPort} konnte nicht geöffnet werden. (Simuliert)` };
-  }
-  if (settings.type === 'network' && settings.ipAddress?.includes('0.0.0.0')) {
-      return { success: false, message: `Fehler: Verbindung zu ${settings.ipAddress}:${settings.port} fehlgeschlagen. (Simuliert)` };
+  if (settings.mode === 'simulation') {
+    await startSimulation();
+    return { success: true, message: 'Simulation erfolgreich gestartet. Sende simulierte Daten...' };
   }
 
-  await startSimulation();
-  return { success: true, message: 'Verbindung zum Gateway erfolgreich hergestellt. Sende Daten... (Simuliert)' };
+  if (settings.mode === 'real') {
+    if (settings.connectionType === 'serial' && settings.serialPort?.toLowerCase().includes('error')) {
+        return { success: false, message: `Fehler: Serieller Port ${settings.serialPort} konnte nicht geöffnet werden.` };
+    }
+    if (settings.connectionType === 'network' && settings.ipAddress?.includes('0.0.0.0')) {
+        return { success: false, message: `Fehler: Verbindung zu ${settings.ipAddress}:${settings.port} fehlgeschlagen.` };
+    }
+    
+    // This is where the actual connection logic for a real device would go.
+    // For now, we'll just return a success message indicating it's not fully implemented yet.
+    return { success: false, message: 'Die Anbindung für echte Geräte ist vorbereitet, aber noch nicht implementiert.' };
+  }
+
+  return { success: false, message: 'Unbekannter Gateway-Modus.' };
 }
 
 export async function disconnectFromGateway(): Promise<{ success: boolean; message: string }> {
+    // In the future, this would also close the real connection.
     await stopSimulation();
     return { success: true, message: 'Verbindung zum Gateway getrennt.' };
 }

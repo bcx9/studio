@@ -1,9 +1,11 @@
 
 export type GatewayStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 export type ConnectionType = 'serial' | 'network';
+export type GatewayMode = 'simulation' | 'real';
 
 export interface ConnectionSettings {
-    type: ConnectionType;
+    mode: GatewayMode;
+    connectionType?: ConnectionType;
     serialPort?: string;
     baudRate?: number;
     ipAddress?: string;
